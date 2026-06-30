@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppCard from './AppCard';
+import VideoButton from './VideoButton';
 import { Colors } from '../constants/colors';
 import { ImpactCard as ImpactCardType } from '../types';
 
@@ -52,6 +53,7 @@ export default function ImpactCard({ impact, onPress }: ImpactCardProps) {
             <Text style={styles.statText}>{impact.location}</Text>
           </View>
         )}
+        {impact.video_url && <VideoButton url={impact.video_url} />}
       </View>
     </AppCard>
   );

@@ -96,6 +96,107 @@ Interactive API docs: `http://localhost:8000/docs`
 | `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI model |
 | `CORS_ORIGINS` | `http://localhost:3000,http://localhost:8081` | Allowed CORS origins |
 | `SQL_ECHO` | `false` | Log all SQL queries |
+| `CLOUDINARY_CLOUD_NAME` | _(empty)_ | Cloudinary cloud name (optional) |
+| `CLOUDINARY_API_KEY` | _(empty)_ | Cloudinary API key (optional) |
+| `CLOUDINARY_API_SECRET` | _(empty)_ | Cloudinary API secret (optional) |
+
+---
+
+## Media Storage Policy
+
+Family Pledge keeps hosting costs near zero by never storing files on the server.
+
+### Rules
+
+| Media type | Where to store | Max size |
+|---|---|---|
+| Project images | Cloudinary | 1 MB |
+| Impact card images | Cloudinary | 1 MB |
+| Reminder images | Cloudinary | 1 MB |
+| Contribution proof images | Cloudinary | 2 MB |
+| Short videos (≤30s) | Cloudinary | 10 MB |
+| Sheikh / NAMLEF talks | YouTube (unlisted) | unlimited |
+| Long campaign videos | YouTube (unlisted) | unlimited |
+
+**PostgreSQL stores only URLs and metadata — never raw files.**
+**Railway disk is never used for media.**
+
+### Accepted URL formats
+
+- **Cloudinary**: `https://res.cloudinary.com/...` or `https://cloudinary.com/...`
+- **YouTube**: `https://youtube.com/watch?v=...`, `https://youtu.be/...`, `https://youtube.com/shorts/...`
+
+All other URL formats are rejected by the backend validator.
+
+### Cloudinary signed upload (optional)
+
+When `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` are
+configured, the admin dashboard can upload directly from the browser to Cloudinary
+without routing files through this server:
+
+```
+POST /admin/storage/cloudinary-signature
+Body: { "folder": "projects" | "impact" | "namlef" | "reminders" | "contribution_proofs" }
+Returns: { timestamp, signature, cloud_name, api_key, upload_folder, upload_url }
+```
+
+Suggested upload folders:
+- `family-pledge/projects`
+- `family-pledge/impact`
+- `family-pledge/namlef`
+- `family-pledge/reminders`
+- `family-pledge/contribution-proofs`
+
+### Sensitivity policy
+
+No beneficiary-identifying images should be made public without explicit admin approval.
+Impact card images are only visible in the mobile app after an admin publishes the card.
+
+---
+
+## AI Assistant
+
+### How to enable AI
+
+Set `OPENAI_API_KEY` in your `.env` (or Railway environment variables):
+
+```env
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4o-mini
+```
+
+When `OPENAI_API_KEY` is empty the API returns a `503` error on AI endpoints. All other
+endpoints work normally without it.
+
+### What AI can do
+
+- Generate donor reminder drafts (Islamic tone, motivational, warm, formal)
+- Generate multi-format impact updates (in-app, WhatsApp, push notification)
+- Summarise internal weekly stats from the database for the admin team
+- Draft motivational messages for collector circle leaders
+
+### What AI cannot do
+
+- Invent donation amounts, beneficiary numbers, or project results
+- Fabricate Quran verses, hadiths, or their references/translations
+- Issue fatwas or religious rulings
+- Confirm, reject, or approve contributions
+- Publish content automatically
+- Access or expose personal donor data
+
+### Human approval policy
+
+Every AI output is saved as a **draft** (`status: draft`) and must be reviewed
+and approved by an admin before any use:
+
+1. Admin generates a draft via `/admin/ai/*` endpoint
+2. Admin reviews and edits the text in the dashboard
+3. Admin calls `PATCH /admin/ai/drafts/{id}/approve` — logs the approval
+4. Admin calls `PATCH /admin/ai/drafts/{id}/publish` — marks as ready to use
+5. Content is then manually sent/published via the notifications or reminders flow
+
+Reject with `PATCH /admin/ai/drafts/{id}/reject` at any step.
+All actions are recorded in `admin_audit_logs`.
 
 ---
 

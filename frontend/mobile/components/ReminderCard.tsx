@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Share } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Share, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppCard from './AppCard';
 import { Colors } from '../constants/colors';
@@ -29,32 +29,41 @@ export default function ReminderCard({ reminder, onPress }: ReminderCardProps) {
 
   return (
     <AppCard onPress={onPress} style={[styles.card, { backgroundColor: cfg.bg }]} borderColor={cfg.color}>
-      <View style={styles.header}>
-        <View style={[styles.typeBadge, { backgroundColor: cfg.color }]}>
-          <Text style={styles.typeLabel}>{cfg.label}</Text>
+      {reminder.image_url && (
+        <Image
+          source={{ uri: reminder.image_url }}
+          style={styles.image}
+          resizeMode="cover"
+        />
+      )}
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <View style={[styles.typeBadge, { backgroundColor: cfg.color }]}>
+            <Text style={styles.typeLabel}>{cfg.label}</Text>
+          </View>
+          <TouchableOpacity onPress={handleShare} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="share-outline" size={20} color={cfg.color} />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity onPress={handleShare} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Ionicons name="share-outline" size={20} color={cfg.color} />
-        </TouchableOpacity>
+
+        {reminder.arabic_text && (
+          <Text style={[styles.arabic, { color: cfg.color }]}>{reminder.arabic_text}</Text>
+        )}
+
+        <Text style={styles.text}>{reminder.text}</Text>
+
+        {reminder.translation && (
+          <Text style={styles.translation}>"{reminder.translation}"</Text>
+        )}
+
+        {reminder.explanation && (
+          <Text style={styles.explanation}>{reminder.explanation}</Text>
+        )}
+
+        {reminder.source_reference && (
+          <Text style={[styles.source, { color: cfg.color }]}>— {reminder.source_reference}</Text>
+        )}
       </View>
-
-      {reminder.arabic_text && (
-        <Text style={[styles.arabic, { color: cfg.color }]}>{reminder.arabic_text}</Text>
-      )}
-
-      <Text style={styles.text}>{reminder.text}</Text>
-
-      {reminder.translation && (
-        <Text style={styles.translation}>"{reminder.translation}"</Text>
-      )}
-
-      {reminder.explanation && (
-        <Text style={styles.explanation}>{reminder.explanation}</Text>
-      )}
-
-      {reminder.source_reference && (
-        <Text style={[styles.source, { color: cfg.color }]}>— {reminder.source_reference}</Text>
-      )}
     </AppCard>
   );
 }
@@ -63,6 +72,15 @@ const styles = StyleSheet.create({
   card: {
     marginHorizontal: 16,
     marginVertical: 8,
+    padding: 0,
+    overflow: 'hidden',
+  },
+  image: {
+    width: '100%',
+    height: 160,
+  },
+  content: {
+    padding: 16,
   },
   header: {
     flexDirection: 'row',

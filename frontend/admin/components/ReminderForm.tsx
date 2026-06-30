@@ -1,7 +1,8 @@
 'use client';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { Reminder, ReminderType } from '../types';
 import { createReminder, updateReminder, publishReminder } from '../lib/api';
+import MediaUrlInput from './MediaUrlInput';
 import toast from 'react-hot-toast';
 
 const TYPES: ReminderType[] = ['quran', 'hadith', 'dua', 'motivation', 'friday', 'sadaqah'];
@@ -13,7 +14,7 @@ interface ReminderFormProps {
 }
 
 export default function ReminderForm({ initial, onSuccess, onCancel }: ReminderFormProps) {
-  const { register, handleSubmit, formState: { isSubmitting } } = useForm<Partial<Reminder>>({
+  const { register, handleSubmit, control, formState: { isSubmitting } } = useForm<Partial<Reminder>>({
     defaultValues: initial || { type: 'quran', status: 'draft' },
   });
 
@@ -98,8 +99,19 @@ export default function ReminderForm({ initial, onSuccess, onCancel }: ReminderF
         </div>
 
         <div className="sm:col-span-2">
-          <label className="label">Image URL</label>
-          <input {...register('image_url')} className="input" placeholder="https://..." />
+          <Controller
+            control={control}
+            name="image_url"
+            render={({ field }) => (
+              <MediaUrlInput
+                label="Reminder Image"
+                value={field.value || ''}
+                onChange={field.onChange}
+                accept={['cloudinary']}
+                uploadFolder="reminders"
+              />
+            )}
+          />
         </div>
       </div>
 
