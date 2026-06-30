@@ -244,31 +244,98 @@ export const sendNotification = async (payload: {
 };
 
 // ── AI Assistant ──────────────────────────────────────────────────────────────
-export const generateReminderDraft = async (payload: Record<string, string>): Promise<AiDraft> => {
+
+export interface AiReminderPayload {
+  audience?: string;
+  campaign_title?: string;
+  campaign_goal?: string;
+  donor_progress?: string;
+  tone?: 'warm' | 'formal' | 'concise' | 'motivational';
+  language?: string;
+  key_points?: string[];
+  max_length?: number;
+}
+
+export interface AiImpactPayload {
+  project_title: string;
+  category?: string;
+  verified_facts?: string[];
+  beneficiaries_count?: number;
+  completed_date?: string;
+  call_to_action?: string;
+  tone?: 'warm' | 'formal' | 'concise' | 'motivational';
+  language?: string;
+}
+
+export interface AiCollectorPayload {
+  collector_name?: string;
+  group_name: string;
+  registered_count?: number;
+  contributed_count?: number;
+  pending_count?: number;
+  campaign_title?: string;
+  tone?: 'warm' | 'formal' | 'concise' | 'motivational';
+  language?: string;
+}
+
+export const generateReminderDraft = async (payload: AiReminderPayload): Promise<AiDraft> => {
   try {
-    const { data } = await client.post<ApiResponse<AiDraft>>('/admin/ai/reminder-draft', payload);
-    return data.data;
+    const { data } = await client.post<AiDraft>('/admin/ai/reminder-draft', payload);
+    return data;
   } catch (e) { return handle(e); }
 };
 
-export const generateImpactDraft = async (payload: Record<string, string>): Promise<AiDraft> => {
+export const generateImpactDraft = async (payload: AiImpactPayload): Promise<AiDraft> => {
   try {
-    const { data } = await client.post<ApiResponse<AiDraft>>('/admin/ai/impact-update-draft', payload);
-    return data.data;
+    const { data } = await client.post<AiDraft>('/admin/ai/impact-update-draft', payload);
+    return data;
   } catch (e) { return handle(e); }
 };
 
-export const generateWeeklySummary = async (): Promise<AiDraft> => {
+export const generateWeeklySummary = async (date_range?: string): Promise<AiDraft> => {
   try {
-    const { data } = await client.post<ApiResponse<AiDraft>>('/admin/ai/weekly-summary');
-    return data.data;
+    const { data } = await client.post<AiDraft>('/admin/ai/weekly-summary', { date_range });
+    return data;
   } catch (e) { return handle(e); }
 };
 
-export const generateCollectorMessage = async (payload: Record<string, string>): Promise<AiDraft> => {
+export const generateCollectorMessage = async (payload: AiCollectorPayload): Promise<AiDraft> => {
   try {
-    const { data } = await client.post<ApiResponse<AiDraft>>('/admin/ai/collector-message-draft', payload);
-    return data.data;
+    const { data } = await client.post<AiDraft>('/admin/ai/collector-message-draft', payload);
+    return data;
+  } catch (e) { return handle(e); }
+};
+
+export const getAiDrafts = async (params?: {
+  page?: number;
+  size?: number;
+  draft_type?: string;
+  status?: string;
+}): Promise<{ items: AiDraft[]; total: number; page: number; size: number; pages: number }> => {
+  try {
+    const { data } = await client.get('/admin/ai/drafts', { params });
+    return data;
+  } catch (e) { return handle(e); }
+};
+
+export const approveAiDraft = async (id: string): Promise<AiDraft> => {
+  try {
+    const { data } = await client.patch<AiDraft>(`/admin/ai/drafts/${id}/approve`);
+    return data;
+  } catch (e) { return handle(e); }
+};
+
+export const rejectAiDraft = async (id: string): Promise<AiDraft> => {
+  try {
+    const { data } = await client.patch<AiDraft>(`/admin/ai/drafts/${id}/reject`);
+    return data;
+  } catch (e) { return handle(e); }
+};
+
+export const publishAiDraft = async (id: string): Promise<AiDraft> => {
+  try {
+    const { data } = await client.patch<AiDraft>(`/admin/ai/drafts/${id}/publish`);
+    return data;
   } catch (e) { return handle(e); }
 };
 

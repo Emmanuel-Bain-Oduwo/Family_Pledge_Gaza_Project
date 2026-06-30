@@ -99,6 +99,52 @@ Interactive API docs: `http://localhost:8000/docs`
 
 ---
 
+## AI Assistant
+
+### How to enable AI
+
+Set `OPENAI_API_KEY` in your `.env` (or Railway environment variables):
+
+```env
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4o-mini
+```
+
+When `OPENAI_API_KEY` is empty the API returns a `503` error on AI endpoints. All other
+endpoints work normally without it.
+
+### What AI can do
+
+- Generate donor reminder drafts (Islamic tone, motivational, warm, formal)
+- Generate multi-format impact updates (in-app, WhatsApp, push notification)
+- Summarise internal weekly stats from the database for the admin team
+- Draft motivational messages for collector circle leaders
+
+### What AI cannot do
+
+- Invent donation amounts, beneficiary numbers, or project results
+- Fabricate Quran verses, hadiths, or their references/translations
+- Issue fatwas or religious rulings
+- Confirm, reject, or approve contributions
+- Publish content automatically
+- Access or expose personal donor data
+
+### Human approval policy
+
+Every AI output is saved as a **draft** (`status: draft`) and must be reviewed
+and approved by an admin before any use:
+
+1. Admin generates a draft via `/admin/ai/*` endpoint
+2. Admin reviews and edits the text in the dashboard
+3. Admin calls `PATCH /admin/ai/drafts/{id}/approve` — logs the approval
+4. Admin calls `PATCH /admin/ai/drafts/{id}/publish` — marks as ready to use
+5. Content is then manually sent/published via the notifications or reminders flow
+
+Reject with `PATCH /admin/ai/drafts/{id}/reject` at any step.
+All actions are recorded in `admin_audit_logs`.
+
+---
+
 ## Deployment on Railway
 
 1. Create a new Railway project and add a **PostgreSQL** plugin.
