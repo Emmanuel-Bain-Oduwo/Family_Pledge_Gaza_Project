@@ -15,6 +15,7 @@ from app.api.routes import (
     notifications,
     pledges,
     projects,
+    storage,
     users,
 )
 
@@ -44,6 +45,7 @@ app.include_router(namlef_content.router)
 app.include_router(collectors.router)
 app.include_router(notifications.router)
 app.include_router(ai_assistant.router)
+app.include_router(storage.router)
 app.include_router(admin.router)
 
 

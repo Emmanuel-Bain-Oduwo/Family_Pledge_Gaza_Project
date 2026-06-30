@@ -96,6 +96,61 @@ Interactive API docs: `http://localhost:8000/docs`
 | `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI model |
 | `CORS_ORIGINS` | `http://localhost:3000,http://localhost:8081` | Allowed CORS origins |
 | `SQL_ECHO` | `false` | Log all SQL queries |
+| `CLOUDINARY_CLOUD_NAME` | _(empty)_ | Cloudinary cloud name (optional) |
+| `CLOUDINARY_API_KEY` | _(empty)_ | Cloudinary API key (optional) |
+| `CLOUDINARY_API_SECRET` | _(empty)_ | Cloudinary API secret (optional) |
+
+---
+
+## Media Storage Policy
+
+Family Pledge keeps hosting costs near zero by never storing files on the server.
+
+### Rules
+
+| Media type | Where to store | Max size |
+|---|---|---|
+| Project images | Cloudinary | 1 MB |
+| Impact card images | Cloudinary | 1 MB |
+| Reminder images | Cloudinary | 1 MB |
+| Contribution proof images | Cloudinary | 2 MB |
+| Short videos (≤30s) | Cloudinary | 10 MB |
+| Sheikh / NAMLEF talks | YouTube (unlisted) | unlimited |
+| Long campaign videos | YouTube (unlisted) | unlimited |
+
+**PostgreSQL stores only URLs and metadata — never raw files.**
+**Railway disk is never used for media.**
+
+### Accepted URL formats
+
+- **Cloudinary**: `https://res.cloudinary.com/...` or `https://cloudinary.com/...`
+- **YouTube**: `https://youtube.com/watch?v=...`, `https://youtu.be/...`, `https://youtube.com/shorts/...`
+
+All other URL formats are rejected by the backend validator.
+
+### Cloudinary signed upload (optional)
+
+When `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` are
+configured, the admin dashboard can upload directly from the browser to Cloudinary
+without routing files through this server:
+
+```
+POST /admin/storage/cloudinary-signature
+Body: { "folder": "projects" | "impact" | "namlef" | "reminders" | "contribution_proofs" }
+Returns: { timestamp, signature, cloud_name, api_key, upload_folder, upload_url }
+```
+
+Suggested upload folders:
+- `family-pledge/projects`
+- `family-pledge/impact`
+- `family-pledge/namlef`
+- `family-pledge/reminders`
+- `family-pledge/contribution-proofs`
+
+### Sensitivity policy
+
+No beneficiary-identifying images should be made public without explicit admin approval.
+Impact card images are only visible in the mobile app after an admin publishes the card.
 
 ---
 

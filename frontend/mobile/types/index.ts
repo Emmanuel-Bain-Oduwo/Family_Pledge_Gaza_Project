@@ -67,6 +67,7 @@ export interface Reminder {
   translation?: string;
   explanation?: string;
   source_reference?: string;
+  image_url?: string;
   date: string;
 }
 

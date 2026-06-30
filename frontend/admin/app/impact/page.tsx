@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Edit2, Eye, EyeOff } from 'lucide-react';
 import AdminLayout from '../../components/AdminLayout';
+import MediaUrlInput from '../../components/MediaUrlInput';
 import { getImpactCards, createImpactCard, updateImpactCard } from '../../lib/api';
 import { ImpactCard } from '../../types';
 import { formatDate } from '../../lib/utils';
@@ -179,10 +180,21 @@ export default function ImpactPage() {
                   <input value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} className="input" placeholder="e.g. Rafah" />
                 </div>
               </div>
-              <div>
-                <label className="label">Image URL</label>
-                <input value={form.image_url} onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))} className="input" placeholder="https://…" />
-              </div>
+              <MediaUrlInput
+                label="Impact Image"
+                value={form.image_url}
+                onChange={(v) => setForm((f) => ({ ...f, image_url: v }))}
+                accept={['cloudinary']}
+                uploadFolder="impact"
+              />
+              <MediaUrlInput
+                label="Video URL"
+                value={form.video_url}
+                onChange={(v) => setForm((f) => ({ ...f, video_url: v }))}
+                accept={['cloudinary', 'youtube']}
+                showPreview={false}
+                hint="YouTube (unlisted) for longer videos. Cloudinary for short clips."
+              />
               <div>
                 <label className="label">Completion Date</label>
                 <input type="date" value={form.completed_date} onChange={(e) => setForm((f) => ({ ...f, completed_date: e.target.value }))} className="input" />

@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4o-mini"
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8081"
     SQL_ECHO: bool = False
+    # Cloudinary — for signed upload (optional)
+    CLOUDINARY_CLOUD_NAME: str = ""
+    CLOUDINARY_API_KEY: str = ""
+    CLOUDINARY_API_SECRET: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

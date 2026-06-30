@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppCard from './AppCard';
 import { Colors } from '../constants/colors';
@@ -38,50 +38,59 @@ export default function CampaignProgressCard({
 
   return (
     <AppCard onPress={onPress} borderColor={accentColor} style={styles.card}>
-      <View style={styles.header}>
-        <View style={[styles.typeBadge, { backgroundColor: accentColor + '20' }]}>
-          <Text style={[styles.typeLabel, { color: accentColor }]}>
-            {TYPE_LABELS[campaign.type]}
-          </Text>
-        </View>
-        {campaign.is_urgent && (
-          <View style={styles.urgentBadge}>
-            <Text style={styles.urgentText}>URGENT</Text>
+      {campaign.image_url && (
+        <Image
+          source={{ uri: campaign.image_url }}
+          style={styles.coverImage}
+          resizeMode="cover"
+        />
+      )}
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <View style={[styles.typeBadge, { backgroundColor: accentColor + '20' }]}>
+            <Text style={[styles.typeLabel, { color: accentColor }]}>
+              {TYPE_LABELS[campaign.type]}
+            </Text>
           </View>
+          {campaign.is_urgent && (
+            <View style={styles.urgentBadge}>
+              <Text style={styles.urgentText}>URGENT</Text>
+            </View>
+          )}
+        </View>
+
+        <Text style={styles.title} numberOfLines={2}>{campaign.title}</Text>
+
+        {!compact && (
+          <Text style={styles.description} numberOfLines={2}>{campaign.description}</Text>
+        )}
+
+        <View style={styles.progressSection}>
+          <View style={styles.progressHeader}>
+            <Text style={styles.progressLabel}>
+              <Text style={[styles.progressCount, { color: accentColor }]}>{campaign.current_donors}</Text>
+              {' '}/ {campaign.target_donors} donors
+            </Text>
+            <Text style={[styles.pct, { color: accentColor }]}>{pct}%</Text>
+          </View>
+          <View style={styles.progressBar}>
+            <View
+              style={[styles.progressFill, { width: `${pct}%` as any, backgroundColor: accentColor }]}
+            />
+          </View>
+        </View>
+
+        {onContribute && (
+          <TouchableOpacity
+            onPress={onContribute}
+            activeOpacity={0.8}
+            style={[styles.contributeBtn, { backgroundColor: accentColor }]}
+          >
+            <Ionicons name="heart" size={14} color={Colors.white} />
+            <Text style={styles.contributeBtnText}>Contribute</Text>
+          </TouchableOpacity>
         )}
       </View>
-
-      <Text style={styles.title} numberOfLines={2}>{campaign.title}</Text>
-
-      {!compact && (
-        <Text style={styles.description} numberOfLines={2}>{campaign.description}</Text>
-      )}
-
-      <View style={styles.progressSection}>
-        <View style={styles.progressHeader}>
-          <Text style={styles.progressLabel}>
-            <Text style={[styles.progressCount, { color: accentColor }]}>{campaign.current_donors}</Text>
-            {' '}/ {campaign.target_donors} donors
-          </Text>
-          <Text style={[styles.pct, { color: accentColor }]}>{pct}%</Text>
-        </View>
-        <View style={styles.progressBar}>
-          <View
-            style={[styles.progressFill, { width: `${pct}%` as any, backgroundColor: accentColor }]}
-          />
-        </View>
-      </View>
-
-      {onContribute && (
-        <TouchableOpacity
-          onPress={onContribute}
-          activeOpacity={0.8}
-          style={[styles.contributeBtn, { backgroundColor: accentColor }]}
-        >
-          <Ionicons name="heart" size={14} color={Colors.white} />
-          <Text style={styles.contributeBtnText}>Contribute</Text>
-        </TouchableOpacity>
-      )}
     </AppCard>
   );
 }
@@ -90,6 +99,15 @@ const styles = StyleSheet.create({
   card: {
     marginHorizontal: 16,
     marginVertical: 8,
+    padding: 0,
+    overflow: 'hidden',
+  },
+  coverImage: {
+    width: '100%',
+    height: 140,
+  },
+  content: {
+    padding: 16,
   },
   header: {
     flexDirection: 'row',

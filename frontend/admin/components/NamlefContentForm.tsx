@@ -1,7 +1,8 @@
 'use client';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { NamlefContent, NamlefContentType } from '../types';
 import { createNamlefContent, updateNamlefContent } from '../lib/api';
+import MediaUrlInput from './MediaUrlInput';
 import toast from 'react-hot-toast';
 
 const TYPES: NamlefContentType[] = ['video', 'audio', 'text', 'link'];
@@ -13,7 +14,7 @@ interface NamlefContentFormProps {
 }
 
 export default function NamlefContentForm({ initial, onSuccess, onCancel }: NamlefContentFormProps) {
-  const { register, handleSubmit, formState: { isSubmitting } } = useForm<Partial<NamlefContent>>({
+  const { register, handleSubmit, control, formState: { isSubmitting } } = useForm<Partial<NamlefContent>>({
     defaultValues: initial || { content_type: 'video', status: 'draft', featured: false },
   });
 
@@ -71,13 +72,37 @@ export default function NamlefContentForm({ initial, onSuccess, onCancel }: Naml
         </div>
 
         <div className="sm:col-span-2">
-          <label className="label">URL (video / audio / link)</label>
-          <input {...register('url')} className="input" placeholder="https://..." />
+          <Controller
+            control={control}
+            name="url"
+            render={({ field }) => (
+              <MediaUrlInput
+                label="URL (video / audio / link)"
+                value={field.value || ''}
+                onChange={field.onChange}
+                accept={['cloudinary', 'youtube']}
+                showPreview={false}
+                uploadFolder="namlef"
+                hint="YouTube (unlisted) for Sheikh/NAMLEF talks. Cloudinary for short audio or clips."
+              />
+            )}
+          />
         </div>
 
         <div className="sm:col-span-2">
-          <label className="label">Thumbnail URL</label>
-          <input {...register('thumbnail_url')} className="input" placeholder="https://..." />
+          <Controller
+            control={control}
+            name="thumbnail_url"
+            render={({ field }) => (
+              <MediaUrlInput
+                label="Thumbnail Image"
+                value={field.value || ''}
+                onChange={field.onChange}
+                accept={['cloudinary']}
+                uploadFolder="namlef"
+              />
+            )}
+          />
         </div>
 
         <div className="flex items-center gap-2">

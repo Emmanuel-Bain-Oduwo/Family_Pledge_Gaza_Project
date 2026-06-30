@@ -1,7 +1,8 @@
 'use client';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { Project, ProjectCategory } from '../types';
 import { createProject, updateProject } from '../lib/api';
+import MediaUrlInput from './MediaUrlInput';
 import toast from 'react-hot-toast';
 
 const CATEGORIES: ProjectCategory[] = ['food', 'water', 'clothing', 'emergency_cash', 'orphans', 'widows', 'children', 'general'];
@@ -13,7 +14,7 @@ interface ProjectFormProps {
 }
 
 export default function ProjectForm({ initial, onSuccess, onCancel }: ProjectFormProps) {
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<Partial<Project>>({
+  const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm<Partial<Project>>({
     defaultValues: initial || { category: 'general', status: 'active' },
   });
 
@@ -81,13 +82,36 @@ export default function ProjectForm({ initial, onSuccess, onCancel }: ProjectFor
         </div>
 
         <div className="sm:col-span-2">
-          <label className="label">Image URL</label>
-          <input {...register('image_url')} className="input" placeholder="https://..." />
+          <Controller
+            control={control}
+            name="image_url"
+            render={({ field }) => (
+              <MediaUrlInput
+                label="Project Image"
+                value={field.value || ''}
+                onChange={field.onChange}
+                accept={['cloudinary']}
+                uploadFolder="projects"
+              />
+            )}
+          />
         </div>
 
         <div className="sm:col-span-2">
-          <label className="label">Video URL</label>
-          <input {...register('video_url')} className="input" placeholder="https://..." />
+          <Controller
+            control={control}
+            name="video_url"
+            render={({ field }) => (
+              <MediaUrlInput
+                label="Video URL"
+                value={field.value || ''}
+                onChange={field.onChange}
+                accept={['cloudinary', 'youtube']}
+                showPreview={false}
+                hint="YouTube (unlisted) for long videos. Cloudinary for short clips (≤30s)."
+              />
+            )}
+          />
         </div>
       </div>
 

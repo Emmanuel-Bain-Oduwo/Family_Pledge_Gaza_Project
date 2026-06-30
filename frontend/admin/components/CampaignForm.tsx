@@ -1,7 +1,8 @@
 'use client';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { Campaign, CampaignType } from '../types';
 import { createCampaign, updateCampaign } from '../lib/api';
+import MediaUrlInput from './MediaUrlInput';
 import toast from 'react-hot-toast';
 
 const TYPES: CampaignType[] = ['monthly', 'friday_challenge', 'emergency', 'sponsorship', 'food', 'water', 'clothing', 'general'];
@@ -13,7 +14,7 @@ interface CampaignFormProps {
 }
 
 export default function CampaignForm({ initial, onSuccess, onCancel }: CampaignFormProps) {
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<Partial<Campaign>>({
+  const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm<Partial<Campaign>>({
     defaultValues: initial || { type: 'monthly', is_active: true, is_urgent: false, status: 'active' },
   });
 
@@ -83,13 +84,36 @@ export default function CampaignForm({ initial, onSuccess, onCancel }: CampaignF
         </div>
 
         <div className="sm:col-span-2">
-          <label className="label">Cover Image URL</label>
-          <input {...register('cover_image_url')} className="input" placeholder="https://..." />
+          <Controller
+            control={control}
+            name="cover_image_url"
+            render={({ field }) => (
+              <MediaUrlInput
+                label="Cover Image"
+                value={field.value || ''}
+                onChange={field.onChange}
+                accept={['cloudinary']}
+                uploadFolder="projects"
+              />
+            )}
+          />
         </div>
 
         <div className="sm:col-span-2">
-          <label className="label">Video URL</label>
-          <input {...register('video_url')} className="input" placeholder="https://..." />
+          <Controller
+            control={control}
+            name="video_url"
+            render={({ field }) => (
+              <MediaUrlInput
+                label="Video URL"
+                value={field.value || ''}
+                onChange={field.onChange}
+                accept={['cloudinary', 'youtube']}
+                showPreview={false}
+                hint="YouTube (unlisted) for long videos. Cloudinary for short clips (≤30s)."
+              />
+            )}
+          />
         </div>
 
         <div className="flex items-center gap-4">
