@@ -11,6 +11,7 @@ from app.api.routes import (
     contributions,
     daily_reminders,
     impact_cards,
+    mobile,
     namlef_content,
     notifications,
     pledges,
@@ -33,6 +34,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(mobile.router)
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(pledges.router)

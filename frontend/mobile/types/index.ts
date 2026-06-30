@@ -2,16 +2,18 @@ export interface User {
   id: string;
   full_name: string;
   nickname?: string;
-  phone: string;
+  phone?: string;
   email?: string;
-  country: string;
+  country?: string;
   city?: string;
   anonymous_publicly: boolean;
+  public_display_name?: string;
   collector_code?: string;
-  is_collector: boolean;
-  pledge_status: PledgeStatus;
+  is_collector?: boolean;
+  role?: string;
+  pledge_status?: PledgeStatus;
   donor_number?: number;
-  badges: Badge[];
+  badges?: Badge[];
   created_at: string;
 }
 
@@ -22,66 +24,96 @@ export interface Pledge {
   user_id: string;
   amount: number;
   currency: string;
-  status: PledgeStatus;
-  month: string;
-  year: number;
-  contributed_at?: string;
-  reference?: string;
-  proof_url?: string;
+  pledge_type: string;
+  status: string;
+  start_date: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PledgeStatusOut {
+  has_active_pledge: boolean;
+  pledge: Pledge | null;
+  confirmed_contributions_count: number;
+  current_month_contributed: boolean;
 }
 
 export interface Campaign {
   id: string;
   title: string;
   description: string;
-  type: 'friday_challenge' | 'emergency' | 'monthly' | 'general';
-  target_donors: number;
-  current_donors: number;
+  campaign_type?: string;
+  type?: string;
+  target_donors?: number;
+  current_donors?: number;
+  donor_target?: number;
+  donor_count?: number;
   target_amount?: number;
   raised_amount?: number;
+  cover_image_url?: string;
   image_url?: string;
-  is_active: boolean;
-  is_urgent: boolean;
-  start_date: string;
+  video_url?: string;
+  is_active?: boolean;
+  is_urgent?: boolean;
+  status?: string;
+  start_date?: string;
   end_date?: string;
+  starts_at?: string;
+  ends_at?: string;
   created_at: string;
 }
 
 export interface ImpactCard {
   id: string;
   title: string;
-  description: string;
-  category: 'food' | 'medical' | 'shelter' | 'education' | 'water' | 'general';
+  story?: string;
+  description?: string;
+  category?: string;
   image_url?: string;
   video_url?: string;
   beneficiaries?: number;
+  beneficiaries_count?: number;
   location?: string;
-  date: string;
+  date?: string;
+  created_at?: string;
 }
 
 export interface Reminder {
   id: string;
-  type: 'quran' | 'hadith' | 'dua' | 'motivation' | 'friday';
+  type?: string;
+  reminder_type?: string;
+  title?: string;
+  text?: string;
   arabic_text?: string;
-  text: string;
   translation?: string;
   explanation?: string;
   source_reference?: string;
   image_url?: string;
-  date: string;
+  date?: string;
+  created_at?: string;
 }
 
 export interface NamlefContent {
   id: string;
-  type: 'about' | 'sheikh_message' | 'introduction' | 'voice_of_support';
   title: string;
-  content: string;
+  content_type?: string;
+  type?: string;
+  content?: string;
+  description?: string;
+  speaker_name?: string;
+  speaker_role?: string;
   author?: string;
   author_title?: string;
+  url?: string;
+  thumbnail_url?: string;
   image_url?: string;
   video_url?: string;
   audio_url?: string;
-  date: string;
+  is_featured?: boolean;
+  featured?: boolean;
+  status?: string;
+  date?: string;
+  created_at?: string;
 }
 
 export interface Badge {
@@ -94,12 +126,13 @@ export interface Badge {
 }
 
 export interface CollectorDashboard {
-  collector_code: string;
-  total_registered: number;
-  contributed_this_month: number;
-  pending_this_month: number;
-  circle_members: CircleMember[];
-  invite_link: string;
+  collector_code?: string;
+  total_registered?: number;
+  contributed_this_month?: number;
+  pending_this_month?: number;
+  circle_members?: CircleMember[];
+  invite_link?: string;
+  member_count?: number;
 }
 
 export interface CircleMember {
@@ -122,6 +155,7 @@ export interface Dashboard {
     target: number;
     current: number;
   };
+  pledge_summary?: PledgeStatusOut;
 }
 
 export interface AuthTokens {
@@ -163,9 +197,9 @@ export interface ApiResponse<T> {
 }
 
 export interface PaginatedResponse<T> {
-  data: T[];
+  items: T[];
   total: number;
   page: number;
-  per_page: number;
-  has_more: boolean;
+  size: number;
+  pages: number;
 }

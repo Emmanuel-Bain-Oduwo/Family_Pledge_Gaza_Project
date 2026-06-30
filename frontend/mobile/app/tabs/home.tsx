@@ -51,12 +51,7 @@ export default function HomeScreen() {
     load();
   };
 
-  const greeting = () => {
-    const h = new Date().getHours();
-    if (h < 12) return 'Good Morning';
-    if (h < 17) return 'Good Afternoon';
-    return 'Good Evening';
-  };
+  const greeting = () => 'Assalamu alaykum';
 
   if (loading) return <LoadingState fullScreen message="Loading your dashboard..." />;
 
@@ -99,7 +94,7 @@ export default function HomeScreen() {
       )}
 
       {/* Friday Challenge */}
-      {dashboard?.active_campaign?.type === 'friday_challenge' && (
+      {(dashboard?.active_campaign?.type === 'friday_challenge' || dashboard?.active_campaign?.campaign_type === 'friday') && (
         <Section title="Friday Challenge" icon="flash" onPress={() => router.push('/screens/friday-challenge')}>
           <CampaignProgressCard
             campaign={dashboard.active_campaign}

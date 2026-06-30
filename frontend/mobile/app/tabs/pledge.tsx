@@ -16,9 +16,9 @@ import AppCard from '../../components/AppCard';
 import PledgeStatusCard from '../../components/PledgeStatusCard';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
-import { getPledgeStatus, updateAnonymousPreference } from '../../services/api';
+import { getPledgeStatus, getMyPledges, updateAnonymousPreference } from '../../services/api';
 import { getUser, saveUser } from '../../services/auth';
-import { Pledge, User } from '../../types';
+import { Pledge, PledgeStatus, PledgeStatusOut, User } from '../../types';
 import { MOCK_PLEDGE_STATUS } from '../../constants/mockData';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -37,8 +37,14 @@ const STATUS_COLOR: Record<string, string> = {
   none: Colors.gray[400],
 };
 
+function derivePledgeStatusStr(statusOut: PledgeStatusOut): PledgeStatus {
+  if (!statusOut.has_active_pledge) return 'none';
+  return statusOut.current_month_contributed ? 'paid' : 'pending';
+}
+
 export default function PledgeScreen() {
-  const [pledge, setPledge] = useState<Pledge | null>(null);
+  const [pledgeStatus, setPledgeStatus] = useState<PledgeStatusOut | null>(null);
+  const [displayStatus, setDisplayStatus] = useState<PledgeStatus>('none');
   const [history, setHistory] = useState<Pledge[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,14 +53,20 @@ export default function PledgeScreen() {
 
   const load = useCallback(async () => {
     try {
-      const [status, u] = await Promise.all([getPledgeStatus(), getUser()]);
-      setPledge(status.pledge);
-      setHistory(status.history);
+      const [statusOut, pledgeList, u] = await Promise.all([
+        getPledgeStatus(),
+        getMyPledges(),
+        getUser(),
+      ]);
+      setPledgeStatus(statusOut);
+      setDisplayStatus(derivePledgeStatusStr(statusOut));
+      setHistory(pledgeList);
       setUser(u);
     } catch {
       const mock = MOCK_PLEDGE_STATUS;
-      setPledge(mock.pledge);
-      setHistory(mock.history);
+      setPledgeStatus(null);
+      setDisplayStatus(mock.pledge?.status as PledgeStatus || 'none');
+      setHistory(mock.history || []);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -91,19 +103,19 @@ export default function PledgeScreen() {
         <View style={styles.heroTop}>
           <View>
             <Text style={styles.heroLabel}>Monthly Pledge Amount</Text>
-            <Text style={styles.heroAmount}>USD 10</Text>
+            <Text style={styles.heroAmount}>USD {pledgeStatus?.pledge?.amount ?? 10}</Text>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: STATUS_COLOR[pledge?.status || 'none'] + '22' }]}>
-            <Text style={[styles.statusText, { color: STATUS_COLOR[pledge?.status || 'none'] }]}>
-              {STATUS_LABEL[pledge?.status || 'none']}
+          <View style={[styles.statusBadge, { backgroundColor: STATUS_COLOR[displayStatus] + '22' }]}>
+            <Text style={[styles.statusText, { color: STATUS_COLOR[displayStatus] }]}>
+              {STATUS_LABEL[displayStatus]}
             </Text>
           </View>
         </View>
-        {pledge?.contributed_at && (
+        {pledgeStatus?.current_month_contributed && (
           <View style={styles.paidRow}>
             <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
             <Text style={styles.paidText}>
-              Contributed on {new Date(pledge.contributed_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+              Contributed this month ({pledgeStatus.confirmed_contributions_count} total confirmed)
             </Text>
           </View>
         )}
@@ -156,26 +168,32 @@ export default function PledgeScreen() {
           />
         ) : (
           <AppCard style={styles.historyCard} shadow>
-            {history.map((p, i) => (
-              <View key={p.id}>
-                <View style={styles.historyRow}>
-                  <View style={styles.historyLeft}>
-                    <View style={[styles.historyDot, { backgroundColor: STATUS_COLOR[p.status] }]} />
-                    <View>
-                      <Text style={styles.historyMonth}>{p.month} {p.year}</Text>
-                      {p.reference && <Text style={styles.historyRef}>Ref: {p.reference}</Text>}
+            {history.map((p, i) => {
+              const startDate = p.start_date ? new Date(p.start_date) : null;
+              const monthLabel = startDate
+                ? startDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
+                : '—';
+              const dotColor = p.status === 'active' ? Colors.success : p.status === 'paused' ? Colors.warning : Colors.gray[400];
+              return (
+                <View key={p.id}>
+                  <View style={styles.historyRow}>
+                    <View style={styles.historyLeft}>
+                      <View style={[styles.historyDot, { backgroundColor: dotColor }]} />
+                      <View>
+                        <Text style={styles.historyMonth}>{monthLabel}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.historyRight}>
+                      <Text style={styles.historyAmount}>${p.amount} {p.currency}</Text>
+                      <Text style={[styles.historyStatus, { color: dotColor }]}>
+                        {p.status.charAt(0).toUpperCase() + p.status.slice(1)}
+                      </Text>
                     </View>
                   </View>
-                  <View style={styles.historyRight}>
-                    <Text style={styles.historyAmount}>${p.amount}</Text>
-                    <Text style={[styles.historyStatus, { color: STATUS_COLOR[p.status] }]}>
-                      {STATUS_LABEL[p.status]}
-                    </Text>
-                  </View>
+                  {i < history.length - 1 && <View style={styles.divider} />}
                 </View>
-                {i < history.length - 1 && <View style={styles.divider} />}
-              </View>
-            ))}
+              );
+            })}
           </AppCard>
         )}
       </View>

@@ -53,18 +53,18 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
 };
 
 // ── Donors ────────────────────────────────────────────────────────────────────
-export const getDonors = async (params?: Record<string, string>): Promise<PaginatedResponse<Donor>> => {
+export const getDonors = async (params?: Record<string, string>): Promise<{ items: Donor[]; total: number }> => {
   try {
-    const { data } = await client.get<ApiResponse<PaginatedResponse<Donor>>>('/admin/donors', { params });
-    return data.data;
+    const { data } = await client.get<{ items: Donor[]; total: number }>('/admin/donors', { params });
+    return data;
   } catch (e) { return handle(e); }
 };
 
 // ── Contributions ─────────────────────────────────────────────────────────────
-export const getContributions = async (params?: Record<string, string>): Promise<PaginatedResponse<Contribution>> => {
+export const getContributions = async (params?: Record<string, string>): Promise<{ items: Contribution[]; total: number }> => {
   try {
-    const { data } = await client.get<ApiResponse<PaginatedResponse<Contribution>>>('/admin/contributions', { params });
-    return data.data;
+    const { data } = await client.get<{ items: Contribution[]; total: number }>('/admin/contributions', { params });
+    return data;
   } catch (e) { return handle(e); }
 };
 
@@ -78,11 +78,25 @@ export const reviewContribution = async (
   } catch (e) { return handle(e); }
 };
 
+export const confirmContribution = async (id: string): Promise<Contribution> => {
+  try {
+    const { data } = await client.patch<ApiResponse<Contribution>>(`/admin/contributions/${id}/confirm`);
+    return data.data;
+  } catch (e) { return handle(e); }
+};
+
+export const rejectContribution = async (id: string, admin_note?: string): Promise<Contribution> => {
+  try {
+    const { data } = await client.patch<ApiResponse<Contribution>>(`/admin/contributions/${id}/reject`, { admin_note });
+    return data.data;
+  } catch (e) { return handle(e); }
+};
+
 // ── Campaigns ─────────────────────────────────────────────────────────────────
 export const getCampaigns = async (params?: Record<string, string>): Promise<Campaign[]> => {
   try {
-    const { data } = await client.get<ApiResponse<Campaign[]>>('/admin/campaigns', { params });
-    return data.data;
+    const { data } = await client.get<{ items: Campaign[] }>('/campaigns', { params });
+    return data.items || [];
   } catch (e) { return handle(e); }
 };
 
@@ -95,7 +109,7 @@ export const createCampaign = async (payload: Partial<Campaign>): Promise<Campai
 
 export const updateCampaign = async (id: string, payload: Partial<Campaign>): Promise<Campaign> => {
   try {
-    const { data } = await client.put<ApiResponse<Campaign>>(`/admin/campaigns/${id}`, payload);
+    const { data } = await client.patch<ApiResponse<Campaign>>(`/admin/campaigns/${id}`, payload);
     return data.data;
   } catch (e) { return handle(e); }
 };
@@ -109,8 +123,8 @@ export const deleteCampaign = async (id: string): Promise<void> => {
 // ── Projects ──────────────────────────────────────────────────────────────────
 export const getProjects = async (): Promise<Project[]> => {
   try {
-    const { data } = await client.get<ApiResponse<Project[]>>('/admin/projects');
-    return data.data;
+    const { data } = await client.get<{ items: Project[] }>('/projects');
+    return data.items || [];
   } catch (e) { return handle(e); }
 };
 
@@ -123,7 +137,7 @@ export const createProject = async (payload: Partial<Project>): Promise<Project>
 
 export const updateProject = async (id: string, payload: Partial<Project>): Promise<Project> => {
   try {
-    const { data } = await client.put<ApiResponse<Project>>(`/admin/projects/${id}`, payload);
+    const { data } = await client.patch<ApiResponse<Project>>(`/admin/projects/${id}`, payload);
     return data.data;
   } catch (e) { return handle(e); }
 };
@@ -131,21 +145,21 @@ export const updateProject = async (id: string, payload: Partial<Project>): Prom
 // ── Impact ────────────────────────────────────────────────────────────────────
 export const getImpactCards = async (): Promise<ImpactCard[]> => {
   try {
-    const { data } = await client.get<ApiResponse<ImpactCard[]>>('/admin/impact');
-    return data.data;
+    const { data } = await client.get<{ items: ImpactCard[] }>('/impact-cards');
+    return data.items || [];
   } catch (e) { return handle(e); }
 };
 
 export const createImpactCard = async (payload: Partial<ImpactCard>): Promise<ImpactCard> => {
   try {
-    const { data } = await client.post<ApiResponse<ImpactCard>>('/admin/impact', payload);
+    const { data } = await client.post<ApiResponse<ImpactCard>>('/admin/impact-cards', payload);
     return data.data;
   } catch (e) { return handle(e); }
 };
 
 export const updateImpactCard = async (id: string, payload: Partial<ImpactCard>): Promise<ImpactCard> => {
   try {
-    const { data } = await client.put<ApiResponse<ImpactCard>>(`/admin/impact/${id}`, payload);
+    const { data } = await client.patch<ApiResponse<ImpactCard>>(`/admin/impact-cards/${id}`, payload);
     return data.data;
   } catch (e) { return handle(e); }
 };
@@ -153,28 +167,28 @@ export const updateImpactCard = async (id: string, payload: Partial<ImpactCard>)
 // ── Reminders ─────────────────────────────────────────────────────────────────
 export const getReminders = async (params?: Record<string, string>): Promise<Reminder[]> => {
   try {
-    const { data } = await client.get<ApiResponse<Reminder[]>>('/admin/reminders', { params });
-    return data.data;
+    const { data } = await client.get<Reminder[]>('/daily-reminders', { params });
+    return Array.isArray(data) ? data : [];
   } catch (e) { return handle(e); }
 };
 
 export const createReminder = async (payload: Partial<Reminder>): Promise<Reminder> => {
   try {
-    const { data } = await client.post<ApiResponse<Reminder>>('/admin/reminders', payload);
+    const { data } = await client.post<ApiResponse<Reminder>>('/admin/daily-reminders', payload);
     return data.data;
   } catch (e) { return handle(e); }
 };
 
 export const updateReminder = async (id: string, payload: Partial<Reminder>): Promise<Reminder> => {
   try {
-    const { data } = await client.put<ApiResponse<Reminder>>(`/admin/reminders/${id}`, payload);
+    const { data } = await client.patch<ApiResponse<Reminder>>(`/admin/daily-reminders/${id}`, payload);
     return data.data;
   } catch (e) { return handle(e); }
 };
 
 export const publishReminder = async (id: string): Promise<Reminder> => {
   try {
-    const { data } = await client.patch<ApiResponse<Reminder>>(`/admin/reminders/${id}/publish`);
+    const { data } = await client.patch<ApiResponse<Reminder>>(`/admin/daily-reminders/${id}/publish`);
     return data.data;
   } catch (e) { return handle(e); }
 };
@@ -182,8 +196,8 @@ export const publishReminder = async (id: string): Promise<Reminder> => {
 // ── Collectors ────────────────────────────────────────────────────────────────
 export const getCollectors = async (): Promise<Collector[]> => {
   try {
-    const { data } = await client.get<ApiResponse<Collector[]>>('/admin/collectors');
-    return data.data;
+    const { data } = await client.get<{ items: Collector[] }>('/admin/collectors');
+    return data.items || [];
   } catch (e) { return handle(e); }
 };
 
@@ -204,21 +218,21 @@ export const createCollector = async (payload: { user_id: string }): Promise<Col
 // ── NAMLEF Content ────────────────────────────────────────────────────────────
 export const getNamlefContent = async (): Promise<NamlefContent[]> => {
   try {
-    const { data } = await client.get<ApiResponse<NamlefContent[]>>('/admin/namlef/content');
-    return data.data;
+    const { data } = await client.get<{ items: NamlefContent[] }>('/namlef-content');
+    return data.items || [];
   } catch (e) { return handle(e); }
 };
 
 export const createNamlefContent = async (payload: Partial<NamlefContent>): Promise<NamlefContent> => {
   try {
-    const { data } = await client.post<ApiResponse<NamlefContent>>('/admin/namlef/content', payload);
+    const { data } = await client.post<ApiResponse<NamlefContent>>('/admin/namlef-content', payload);
     return data.data;
   } catch (e) { return handle(e); }
 };
 
 export const updateNamlefContent = async (id: string, payload: Partial<NamlefContent>): Promise<NamlefContent> => {
   try {
-    const { data } = await client.put<ApiResponse<NamlefContent>>(`/admin/namlef/content/${id}`, payload);
+    const { data } = await client.patch<ApiResponse<NamlefContent>>(`/admin/namlef-content/${id}`, payload);
     return data.data;
   } catch (e) { return handle(e); }
 };
