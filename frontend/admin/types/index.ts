@@ -210,10 +210,28 @@ export interface ActivityItem {
   timestamp: string;
 }
 
+export type AiDraftType =
+  | 'reminder'
+  | 'impact_update'
+  | 'weekly_summary'
+  | 'collector_message'
+  | 'friday_challenge'
+  | 'emergency_appeal'
+  | 'social_caption';
+
+export type AiDraftStatus = 'draft' | 'approved' | 'rejected' | 'published';
+
 export interface AiDraft {
-  content: string;
-  type: 'reminder' | 'impact_update' | 'weekly_summary' | 'collector_message';
-  generated_at: string;
+  id: string;
+  admin_id: string;
+  draft_type: AiDraftType;
+  input_context: Record<string, unknown> | null;
+  generated_text: string;
+  status: AiDraftStatus;
+  approved_by: string | null;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AppSettings {

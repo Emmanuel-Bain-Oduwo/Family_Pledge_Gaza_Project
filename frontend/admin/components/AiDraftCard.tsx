@@ -1,33 +1,75 @@
 'use client';
 import { useState } from 'react';
-import { AlertTriangle, Check, X, Send, BookOpen } from 'lucide-react';
+import { AlertTriangle, Check, X, Send, BookOpen, Globe } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { AiDraft } from '../types';
+import { AiDraft, AiDraftStatus } from '../types';
+import { approveAiDraft, rejectAiDraft, publishAiDraft } from '../lib/api';
+
+const STATUS_BADGE: Record<AiDraftStatus, string> = {
+  draft: 'bg-yellow-100 text-yellow-800',
+  approved: 'bg-green-100 text-green-800',
+  rejected: 'bg-red-100 text-red-800',
+  published: 'bg-blue-100 text-blue-800',
+};
 
 interface AiDraftCardProps {
   draft: AiDraft;
-  onApprove?: (content: string) => void;
-  onReject?: () => void;
-  onUseInNotification?: (content: string) => void;
-  onUseInReminder?: (content: string) => void;
-  onSaveDraft?: (content: string) => void;
+  onStatusChange?: (updated: AiDraft) => void;
+  onUseInNotification?: (text: string) => void;
+  onUseInReminder?: (text: string) => void;
 }
 
 export default function AiDraftCard({
-  draft,
-  onApprove,
-  onReject,
+  draft: initialDraft,
+  onStatusChange,
   onUseInNotification,
   onUseInReminder,
-  onSaveDraft,
 }: AiDraftCardProps) {
-  const [content, setContent] = useState(draft.content);
-  const [approved, setApproved] = useState(false);
+  const [draft, setDraft] = useState<AiDraft>(initialDraft);
+  const [busy, setBusy] = useState(false);
 
-  const handleApprove = () => {
-    setApproved(true);
-    onApprove?.(content);
-    toast.success('Draft approved.');
+  const update = (updated: AiDraft) => {
+    setDraft(updated);
+    onStatusChange?.(updated);
+  };
+
+  const handleApprove = async () => {
+    setBusy(true);
+    try {
+      const updated = await approveAiDraft(draft.id);
+      update(updated);
+      toast.success('Draft approved.');
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Could not approve draft');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleReject = async () => {
+    setBusy(true);
+    try {
+      const updated = await rejectAiDraft(draft.id);
+      update(updated);
+      toast.success('Draft rejected.');
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Could not reject draft');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    setBusy(true);
+    try {
+      const updated = await publishAiDraft(draft.id);
+      update(updated);
+      toast.success('Draft marked as published.');
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Could not publish draft');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -36,58 +78,83 @@ export default function AiDraftCard({
       <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
         <AlertTriangle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
         <p className="text-xs text-amber-700 font-medium">
-          AI drafts must be reviewed and approved by an admin before sending or publishing. Edit the content below as needed.
+          Review and edit this AI draft before approving. Do not publish unreviewed content.
         </p>
       </div>
 
-      {/* Editable content */}
+      {/* Status + meta */}
+      <div className="flex items-center justify-between text-xs text-gray-500">
+        <span className={`px-2 py-0.5 rounded-full font-semibold capitalize ${STATUS_BADGE[draft.status]}`}>
+          {draft.status}
+        </span>
+        <span>{new Date(draft.created_at).toLocaleString()}</span>
+      </div>
+
+      {/* Content */}
       <div>
-        <label className="label">Draft Content (editable)</label>
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          rows={10}
-          className="input resize-y font-mono text-sm"
-        />
-        <p className="text-xs text-gray-400 mt-1">
-          Generated {new Date(draft.generated_at).toLocaleString()}
-        </p>
+        <label className="label">Generated Draft</label>
+        <pre className="whitespace-pre-wrap font-sans text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-lg p-3 min-h-[6rem]">
+          {draft.generated_text}
+        </pre>
       </div>
 
       {/* Actions */}
       <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
-        {!approved ? (
+        {draft.status === 'draft' && (
           <>
-            <button onClick={handleApprove} className="btn-primary flex items-center gap-1.5">
-              <Check size={14} /> Approve Draft
+            <button onClick={handleApprove} disabled={busy} className="btn-primary flex items-center gap-1.5">
+              <Check size={14} /> Approve
             </button>
-            <button onClick={onReject} className="btn-danger flex items-center gap-1.5">
+            <button onClick={handleReject} disabled={busy} className="btn-danger flex items-center gap-1.5">
               <X size={14} /> Reject
             </button>
           </>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 text-green-700 text-sm font-semibold">
-            <Check size={14} /> Approved
+        )}
+
+        {draft.status === 'approved' && (
+          <>
+            <button onClick={handlePublish} disabled={busy} className="btn-primary flex items-center gap-1.5">
+              <Globe size={14} /> Mark Published
+            </button>
+            <button onClick={handleReject} disabled={busy} className="btn-danger flex items-center gap-1.5">
+              <X size={14} /> Reject
+            </button>
+          </>
+        )}
+
+        {draft.status === 'published' && (
+          <span className="inline-flex items-center gap-1.5 text-blue-700 text-sm font-semibold">
+            <Globe size={14} /> Published
+            {draft.published_at && (
+              <span className="text-gray-400 font-normal ml-1">
+                {new Date(draft.published_at).toLocaleDateString()}
+              </span>
+            )}
           </span>
         )}
-        <button
-          onClick={() => { onSaveDraft?.(content); toast.success('Saved as draft.'); }}
-          className="btn-secondary flex items-center gap-1.5"
-        >
-          Save Draft
-        </button>
-        <button
-          onClick={() => { onUseInNotification?.(content); toast.success('Copied to notification form.'); }}
-          className="btn-ghost flex items-center gap-1.5"
-        >
-          <Send size={14} /> Use in Notification
-        </button>
-        <button
-          onClick={() => { onUseInReminder?.(content); toast.success('Copied to reminder form.'); }}
-          className="btn-ghost flex items-center gap-1.5"
-        >
-          <BookOpen size={14} /> Use in Reminder
-        </button>
+
+        {draft.status === 'rejected' && (
+          <span className="inline-flex items-center gap-1.5 text-red-600 text-sm font-semibold">
+            <X size={14} /> Rejected
+          </span>
+        )}
+
+        {(draft.status === 'approved' || draft.status === 'published') && (
+          <>
+            <button
+              onClick={() => { onUseInNotification?.(draft.generated_text); toast.success('Copied to notification.'); }}
+              className="btn-ghost flex items-center gap-1.5"
+            >
+              <Send size={14} /> Use in Notification
+            </button>
+            <button
+              onClick={() => { onUseInReminder?.(draft.generated_text); toast.success('Copied to reminder.'); }}
+              className="btn-ghost flex items-center gap-1.5"
+            >
+              <BookOpen size={14} /> Use in Reminder
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
