@@ -86,10 +86,14 @@ def create(db: Session, admin: User, data: ReminderCreate) -> DailyReminder:
     return reminder
 
 
+_REMINDER_ALIAS_FIELDS = {'type', 'text', 'scheduled_date'}
+
+
 def update(db: Session, admin: User, reminder_id: UUID, data: ReminderUpdate) -> DailyReminder:
     reminder = _get(db, reminder_id)
     for field, value in data.model_dump(exclude_none=True).items():
-        setattr(reminder, field, value)
+        if field not in _REMINDER_ALIAS_FIELDS and hasattr(reminder, field):
+            setattr(reminder, field, value)
     db.commit()
     db.refresh(reminder)
     return reminder

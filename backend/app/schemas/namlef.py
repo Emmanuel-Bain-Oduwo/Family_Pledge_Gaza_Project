@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 from app.models.enums import NamlefContentStatus, NamlefContentType
 
@@ -46,4 +46,26 @@ class NamlefContentOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    # Frontend-compatible alias fields
+    featured: Optional[bool] = None
+    author: Optional[str] = None
+    author_title: Optional[str] = None
+    content: Optional[str] = None
+    image_url: Optional[str] = None
+    video_url: Optional[str] = None
+    audio_url: Optional[str] = None
+    date: Optional[str] = None
+
     model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode='after')
+    def compute_alias_fields(self) -> 'NamlefContentOut':
+        self.featured = self.is_featured
+        self.author = self.speaker_name
+        self.author_title = self.speaker_role
+        self.content = self.description
+        self.image_url = self.thumbnail_url
+        self.video_url = self.url if self.content_type == NamlefContentType.video else None
+        self.audio_url = self.url if self.content_type == NamlefContentType.audio else None
+        self.date = self.created_at.isoformat()
+        return self
