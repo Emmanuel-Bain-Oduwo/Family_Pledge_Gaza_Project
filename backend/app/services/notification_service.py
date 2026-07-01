@@ -56,8 +56,12 @@ def _send_expo_push(tokens: List[str], title: str, body: str) -> tuple[int, int]
             response = client.post(
                 "https://exp.host/--/api/v2/push/send", json=batch, headers=headers
             )
-            response.raise_for_status()
-            payload = response.json()
+            try:
+                response.raise_for_status()
+                payload = response.json()
+            except (httpx.HTTPError, ValueError):
+                failed += len(batch)
+                continue
             receipts = payload.get("data", []) if isinstance(payload, dict) else []
             sent += sum(1 for receipt in receipts if receipt.get("status") == "ok")
             failed += len(batch) - sum(

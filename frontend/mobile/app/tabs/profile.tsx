@@ -91,6 +91,7 @@ export default function ProfileScreen() {
   if (!user) return null;
 
   const initial = (user.nickname || user.full_name || 'D').charAt(0).toUpperCase();
+  const pledgeStatus = user.pledge_status || 'none';
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -119,9 +120,9 @@ export default function ProfileScreen() {
             <Ionicons name="heart" size={18} color={Colors.primary} />
             <Text style={styles.cardLabelText}>Pledge Status</Text>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: STATUS_COLOR[user.pledge_status] + '20' }]}>
-            <Text style={[styles.statusText, { color: STATUS_COLOR[user.pledge_status] }]}>
-              {STATUS_LABEL[user.pledge_status]}
+          <View style={[styles.statusBadge, { backgroundColor: STATUS_COLOR[pledgeStatus] + '20' }]}>
+            <Text style={[styles.statusText, { color: STATUS_COLOR[pledgeStatus] }]}>
+              {STATUS_LABEL[pledgeStatus]}
             </Text>
           </View>
         </View>

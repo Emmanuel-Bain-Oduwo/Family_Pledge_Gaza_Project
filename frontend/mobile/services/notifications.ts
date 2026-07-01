@@ -2,6 +2,8 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { savePushToken } from './api';
 
+const projectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID || 'family-pledge-namlef';
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -24,7 +26,7 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
   }
 
   const tokenData = await Notifications.getExpoPushTokenAsync({
-    projectId: 'family-pledge-namlef',
+    projectId,
   });
 
   const token = tokenData.data;

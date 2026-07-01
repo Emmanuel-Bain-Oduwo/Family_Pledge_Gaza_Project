@@ -19,6 +19,7 @@ class UserOut(BaseModel):
     anonymous_publicly: bool
     public_display_name: Optional[str] = None
     is_active: bool
+    weekly_email_opt_in: bool
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -39,6 +40,10 @@ class UserUpdateRequest(BaseModel):
     country: Optional[str] = None
     city: Optional[str] = None
     public_display_name: Optional[str] = None
+
+
+class EmailPreferenceRequest(BaseModel):
+    weekly_email_opt_in: bool
 
 
 class AnonymousUpdateRequest(BaseModel):

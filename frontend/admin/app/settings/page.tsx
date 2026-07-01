@@ -65,7 +65,7 @@ export default function SettingsPage() {
             <div>
               <label className="label">Payment Instructions</label>
               <textarea {...register('payment_instructions')} className="input" rows={4} placeholder="Step-by-step instructions for M-PESA, bank, or paybill payments…" />
-              <p className="text-xs text-gray-400 mt-1">Displayed in the "Contribute Now" flow in the mobile app.</p>
+              <p className="text-xs text-gray-400 mt-1">Displayed in the Contribute Now flow in the mobile app.</p>
             </div>
           </div>
         </div>
