@@ -1,11 +1,11 @@
 # Screenshot Proof — Mobile Users and Admin Parts
 
-This folder contains SVG screenshot proof for the mobile user/donor/collector experience and the admin dashboard experience. The contact sheets below are local proof boards that reference the individual SVG screenshots already stored in this repository.
+This folder contains SVG screenshot proof for the mobile user/donor/collector experience and the admin dashboard experience. The contact sheets below are local proof boards with the individual screenshots embedded directly into the SVG, so they should not render as blank white boxes when opened from the repository.
 
 ## Contact sheets
 
-- Mobile proof board: `docs/screenshots/mobile-proof-contact-sheet.svg`
-- Admin proof board: `docs/screenshots/admin-proof-contact-sheet.svg`
+- Mobile proof board: `docs/screenshots/mobile-proof-contact-sheet.svg` (self-contained embedded SVG)
+- Admin proof board: `docs/screenshots/admin-proof-contact-sheet.svg` (self-contained embedded SVG)
 
 ## Mobile user, donor, collector screenshots
 
@@ -46,6 +46,6 @@ This folder contains SVG screenshot proof for the mobile user/donor/collector ex
 
 ## Notes
 
-- These are local SVG proof assets; they can be opened directly from the repository without a deployed app.
+- These are local SVG proof assets; they can be opened directly from the repository without a deployed app. The contact sheets embed every referenced screen to avoid blank external-image rendering.
 - The proof covers the normal user, donor, collector, and admin areas represented by the current routes/screens.
-- For final pixel-perfect QA, run the app locally on real devices/browsers and regenerate screenshots from the running UI after final brand photos/logos are added.
+- For final pixel-perfect QA and fit checks, run the app locally on real devices/browsers and regenerate screenshots from the running UI after final brand photos/logos are added.
