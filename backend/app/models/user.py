@@ -1,3 +1,4 @@
+import secrets
 import uuid
 from typing import TYPE_CHECKING, List, Optional
 
@@ -48,6 +49,15 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
         String(50), nullable=True, unique=True
     )
     push_token: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    weekly_email_opt_in: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True
+    )
+    email_unsubscribe_token: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+        unique=True,
+        default=lambda: secrets.token_urlsafe(32),
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     # Relationships
@@ -102,6 +112,7 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
         Index("ix_users_role", "role"),
         Index("ix_users_country", "country"),
         Index("ix_users_is_active", "is_active"),
+        Index("ix_users_weekly_email_opt_in", "weekly_email_opt_in"),
         Index("ix_users_deleted_at", "deleted_at"),
     )
 
