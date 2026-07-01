@@ -9,10 +9,10 @@ import { formatDateTime } from '../../lib/utils';
 import toast from 'react-hot-toast';
 
 const MOCK: PushNotification[] = [
-  { id: 'pn1', title: 'June Pledge Reminder', body: 'Assalamu Alaykum! Your June pledge is due. JazakAllah Khayr for your continued support of Gaza.', type: 'reminder', audience: 'pending_donors', sent_count: 234, sent_at: '2025-06-05T09:00:00Z', sent_by: 'Admin' },
-  { id: 'pn2', title: 'Friday Challenge — 58 spots left!', body: 'We\'re 142/200 donors for this Friday\'s challenge. Invite someone today and earn the reward of Jumu\'ah sadaqah.', type: 'campaign', audience: 'all_users', sent_count: 1247, sent_at: '2025-06-06T07:30:00Z', sent_by: 'Admin' },
-  { id: 'pn3', title: 'Impact Update: Water Well Completed', body: 'Your donations built a water purification unit serving 200 families in Northern Gaza. May Allah accept it.', type: 'impact', audience: 'confirmed_donors', sent_count: 893, sent_at: '2025-05-22T10:00:00Z', sent_by: 'Admin' },
-  { id: 'pn4', title: 'Collector Circle Update', body: 'Your circle has 18/24 members confirmed for June. Please follow up with remaining members.', type: 'collector', audience: 'collectors', sent_count: 38, sent_at: '2025-06-04T11:00:00Z', sent_by: 'Admin' },
+  { id: 'pn1', title: 'June Pledge Reminder', body: 'Assalamu Alaykum! Your June pledge is due. JazakAllah Khayr for your continued support of Gaza.', notification_type: 'reminder', audience: 'pending_donors', sent_count: 234, sent_at: '2025-06-05T09:00:00Z', sent_by: 'Admin' },
+  { id: 'pn2', title: 'Friday Challenge — 58 spots left!', body: 'We\'re 142/200 donors for this Friday\'s challenge. Invite someone today and earn the reward of Jumu\'ah sadaqah.', notification_type: 'campaign', audience: 'all_users', sent_count: 1247, sent_at: '2025-06-06T07:30:00Z', sent_by: 'Admin' },
+  { id: 'pn3', title: 'Impact Update: Water Well Completed', body: 'Your donations built a water purification unit serving 200 families in Northern Gaza. May Allah accept it.', notification_type: 'impact', audience: 'confirmed_donors', sent_count: 893, sent_at: '2025-05-22T10:00:00Z', sent_by: 'Admin' },
+  { id: 'pn4', title: 'Collector Circle Update', body: 'Your circle has 18/24 members confirmed for June. Please follow up with remaining members.', notification_type: 'system', audience: 'collectors', sent_count: 38, sent_at: '2025-06-04T11:00:00Z', sent_by: 'Admin' },
 ];
 
 const AUDIENCE_LABELS: Record<string, string> = {
@@ -36,25 +36,15 @@ export default function NotificationsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleSend = async (values: { title: string; body: string; type: string; audience: string }) => {
+  const handleSend = async (values: { title: string; body: string; notification_type: string; audience: string }) => {
     setSending(true);
     try {
       const sent = await sendNotification(values);
       setNotifications((prev) => [sent, ...prev]);
       toast.success(`Notification sent to ${AUDIENCE_LABELS[values.audience] || values.audience}.`);
       setShowForm(false);
-    } catch {
-      const mock: PushNotification = {
-        id: `pn${Date.now()}`,
-        ...values,
-        audience: values.audience as any,
-        sent_count: Math.floor(Math.random() * 1000) + 50,
-        sent_at: new Date().toISOString(),
-        sent_by: 'Admin',
-      };
-      setNotifications((prev) => [mock, ...prev]);
-      toast.success(`Notification sent to ${AUDIENCE_LABELS[values.audience] || values.audience}.`);
-      setShowForm(false);
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to send notification. No users were notified.');
     } finally {
       setSending(false);
     }
@@ -115,7 +105,7 @@ export default function NotificationsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-gray-900">{n.title}</span>
-                      <span className="px-2 py-0.5 text-xs bg-primary/10 text-primary-dark rounded font-medium capitalize">{n.type}</span>
+                      <span className="px-2 py-0.5 text-xs bg-primary/10 text-primary-dark rounded font-medium capitalize">{n.notification_type}</span>
                       <span className="px-2 py-0.5 text-xs bg-blue-50 text-blue-700 rounded font-medium">{AUDIENCE_LABELS[n.audience] || n.audience}</span>
                     </div>
                     <p className="text-sm text-gray-600 mt-1 leading-relaxed">{n.body}</p>

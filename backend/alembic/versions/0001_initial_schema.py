@@ -211,6 +211,8 @@ def upgrade() -> None:
         sa.Column("audience", sa.Enum("all_users","pending_donors","confirmed_donors","collectors","admins", name="notification_audience"), nullable=False),
         sa.Column("sent_by", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="RESTRICT"), nullable=False),
         sa.Column("sent_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("sent_count", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("failure_count", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
     )

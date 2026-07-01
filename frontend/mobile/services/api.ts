@@ -82,7 +82,7 @@ export const getMe = async (): Promise<User> => {
 
 export const savePushToken = async (expoPushToken: string): Promise<void> => {
   try {
-    await client.post('/auth/save-push-token', { token: expoPushToken });
+    await client.post('/auth/save-push-token', { push_token: expoPushToken });
   } catch {
     // Non-critical — fail silently
   }

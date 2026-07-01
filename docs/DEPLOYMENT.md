@@ -235,3 +235,34 @@ For Expo development, add your local network IP (`exp://192.168.x.x:8081`).
 - [ ] Push notifications sent (test via Admin → Notifications → Send)
 - [ ] AI assistant responds (test via Admin → AI Assistant)
 - [ ] Alembic migrations applied (`alembic current` shows head)
+
+## Production readiness notes
+
+### Backend (Railway)
+
+Set the Railway service root to `backend` and configure these required production variables:
+
+- `APP_ENV=production`
+- `API_V1_PREFIX=/api/v1`
+- `DATABASE_URL=<Railway PostgreSQL URL>`
+- `JWT_SECRET=<long random secret>`
+- `CORS_ORIGINS=https://<admin-vercel-domain>`
+
+Optional integrations:
+
+- `EXPO_ACCESS_TOKEN` for authenticated Expo push delivery.
+- `OPENAI_API_KEY` for AI assistant endpoints.
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM`, and `WEEKLY_EMAILS_ENABLED` for future weekly email delivery.
+
+`/health` remains available at the root URL for Railway health checks. Application routes are available under `/api/v1` and also at root for backward compatibility.
+
+### Admin frontend (Vercel)
+
+Set the Vercel project root to `frontend/admin` and configure:
+
+- `NEXT_PUBLIC_API_URL=https://<railway-backend-domain>/api/v1`
+- `NEXT_PUBLIC_DEMO_MODE=false`
+
+### Mobile app
+
+Set `EXPO_PUBLIC_API_URL=https://<railway-backend-domain>/api/v1` so mobile requests use the same versioned API base path.

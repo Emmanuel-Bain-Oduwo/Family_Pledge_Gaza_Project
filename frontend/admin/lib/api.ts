@@ -4,10 +4,17 @@ import {
   Admin, AuthTokens, Donor, Contribution, ContributionStatus,
   Campaign, Project, ImpactCard, Reminder, Collector, CollectorMember,
   NamlefContent, PushNotification, DashboardStats, AiDraft, AppSettings,
-  ApiResponse, PaginatedResponse,
+  PaginatedResponse,
 } from '../types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.familypledge.org/api/v1';
+
+const unwrap = <T>(payload: T | { data: T }): T => {
+  if (payload && typeof payload === 'object' && 'data' in payload) {
+    return (payload as { data: T }).data;
+  }
+  return payload as T;
+};
 
 const client: AxiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -32,39 +39,39 @@ const handle = (e: unknown): never => {
 // ── Auth ──────────────────────────────────────────────────────────────────────
 export const adminLogin = async (payload: { email: string; password: string }): Promise<AuthTokens> => {
   try {
-    const { data } = await client.post<ApiResponse<AuthTokens>>('/admin/auth/login', payload);
-    return data.data;
+    const { data } = await client.post<AuthTokens>('/auth/login', { identifier: payload.email, password: payload.password });
+    return data;
   } catch (e) { return handle(e); }
 };
 
 export const getAdminMe = async (): Promise<Admin> => {
   try {
-    const { data } = await client.get<ApiResponse<Admin>>('/admin/auth/me');
-    return data.data;
+    const { data } = await client.get<Admin>('/auth/me');
+    return data;
   } catch (e) { return handle(e); }
 };
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   try {
-    const { data } = await client.get<ApiResponse<DashboardStats>>('/admin/dashboard');
-    return data.data;
+    const { data } = await client.get<DashboardStats>('/admin/dashboard');
+    return data;
   } catch (e) { return handle(e); }
 };
 
 // ── Donors ────────────────────────────────────────────────────────────────────
-export const getDonors = async (params?: Record<string, string>): Promise<{ items: Donor[]; total: number }> => {
+export const getDonors = async (params?: Record<string, string>): Promise<{ items: Donor[]; data: Donor[]; total: number }> => {
   try {
     const { data } = await client.get<{ items: Donor[]; total: number }>('/admin/donors', { params });
-    return data;
+    return { ...data, data: data.items };
   } catch (e) { return handle(e); }
 };
 
 // ── Contributions ─────────────────────────────────────────────────────────────
-export const getContributions = async (params?: Record<string, string>): Promise<{ items: Contribution[]; total: number }> => {
+export const getContributions = async (params?: Record<string, string>): Promise<{ items: Contribution[]; data: Contribution[]; total: number }> => {
   try {
     const { data } = await client.get<{ items: Contribution[]; total: number }>('/admin/contributions', { params });
-    return data;
+    return { ...data, data: data.items };
   } catch (e) { return handle(e); }
 };
 
@@ -73,22 +80,22 @@ export const reviewContribution = async (
   payload: { status: ContributionStatus; admin_note?: string }
 ): Promise<Contribution> => {
   try {
-    const { data } = await client.patch<ApiResponse<Contribution>>(`/admin/contributions/${id}/review`, payload);
-    return data.data;
+    const { data } = await client.patch<Contribution | { data: Contribution }>(`/admin/contributions/${id}/review`, payload);
+    return unwrap(data);
   } catch (e) { return handle(e); }
 };
 
 export const confirmContribution = async (id: string): Promise<Contribution> => {
   try {
-    const { data } = await client.patch<ApiResponse<Contribution>>(`/admin/contributions/${id}/confirm`);
-    return data.data;
+    const { data } = await client.patch<Contribution | { data: Contribution }>(`/admin/contributions/${id}/confirm`);
+    return unwrap(data);
   } catch (e) { return handle(e); }
 };
 
 export const rejectContribution = async (id: string, admin_note?: string): Promise<Contribution> => {
   try {
-    const { data } = await client.patch<ApiResponse<Contribution>>(`/admin/contributions/${id}/reject`, { admin_note });
-    return data.data;
+    const { data } = await client.patch<Contribution | { data: Contribution }>(`/admin/contributions/${id}/reject`, { admin_note });
+    return unwrap(data);
   } catch (e) { return handle(e); }
 };
 
@@ -102,15 +109,15 @@ export const getCampaigns = async (params?: Record<string, string>): Promise<Cam
 
 export const createCampaign = async (payload: Partial<Campaign>): Promise<Campaign> => {
   try {
-    const { data } = await client.post<ApiResponse<Campaign>>('/admin/campaigns', payload);
-    return data.data;
+    const { data } = await client.post<Campaign | { data: Campaign }>('/admin/campaigns', payload);
+    return unwrap(data);
   } catch (e) { return handle(e); }
 };
 
 export const updateCampaign = async (id: string, payload: Partial<Campaign>): Promise<Campaign> => {
   try {
-    const { data } = await client.patch<ApiResponse<Campaign>>(`/admin/campaigns/${id}`, payload);
-    return data.data;
+    const { data } = await client.patch<Campaign | { data: Campaign }>(`/admin/campaigns/${id}`, payload);
+    return unwrap(data);
   } catch (e) { return handle(e); }
 };
 
@@ -130,15 +137,15 @@ export const getProjects = async (): Promise<Project[]> => {
 
 export const createProject = async (payload: Partial<Project>): Promise<Project> => {
   try {
-    const { data } = await client.post<ApiResponse<Project>>('/admin/projects', payload);
-    return data.data;
+    const { data } = await client.post<Project | { data: Project }>('/admin/projects', payload);
+    return unwrap(data);
   } catch (e) { return handle(e); }
 };
 
 export const updateProject = async (id: string, payload: Partial<Project>): Promise<Project> => {
   try {
-    const { data } = await client.patch<ApiResponse<Project>>(`/admin/projects/${id}`, payload);
-    return data.data;
+    const { data } = await client.patch<Project | { data: Project }>(`/admin/projects/${id}`, payload);
+    return unwrap(data);
   } catch (e) { return handle(e); }
 };
 
@@ -152,15 +159,15 @@ export const getImpactCards = async (): Promise<ImpactCard[]> => {
 
 export const createImpactCard = async (payload: Partial<ImpactCard>): Promise<ImpactCard> => {
   try {
-    const { data } = await client.post<ApiResponse<ImpactCard>>('/admin/impact-cards', payload);
-    return data.data;
+    const { data } = await client.post<ImpactCard | { data: ImpactCard }>('/admin/impact-cards', payload);
+    return unwrap(data);
   } catch (e) { return handle(e); }
 };
 
 export const updateImpactCard = async (id: string, payload: Partial<ImpactCard>): Promise<ImpactCard> => {
   try {
-    const { data } = await client.patch<ApiResponse<ImpactCard>>(`/admin/impact-cards/${id}`, payload);
-    return data.data;
+    const { data } = await client.patch<ImpactCard | { data: ImpactCard }>(`/admin/impact-cards/${id}`, payload);
+    return unwrap(data);
   } catch (e) { return handle(e); }
 };
 
@@ -174,22 +181,22 @@ export const getReminders = async (params?: Record<string, string>): Promise<Rem
 
 export const createReminder = async (payload: Partial<Reminder>): Promise<Reminder> => {
   try {
-    const { data } = await client.post<ApiResponse<Reminder>>('/admin/daily-reminders', payload);
-    return data.data;
+    const { data } = await client.post<Reminder | { data: Reminder }>('/admin/daily-reminders', payload);
+    return unwrap(data);
   } catch (e) { return handle(e); }
 };
 
 export const updateReminder = async (id: string, payload: Partial<Reminder>): Promise<Reminder> => {
   try {
-    const { data } = await client.patch<ApiResponse<Reminder>>(`/admin/daily-reminders/${id}`, payload);
-    return data.data;
+    const { data } = await client.patch<Reminder | { data: Reminder }>(`/admin/daily-reminders/${id}`, payload);
+    return unwrap(data);
   } catch (e) { return handle(e); }
 };
 
 export const publishReminder = async (id: string): Promise<Reminder> => {
   try {
-    const { data } = await client.patch<ApiResponse<Reminder>>(`/admin/daily-reminders/${id}/publish`);
-    return data.data;
+    const { data } = await client.patch<Reminder | { data: Reminder }>(`/admin/daily-reminders/${id}/publish`);
+    return unwrap(data);
   } catch (e) { return handle(e); }
 };
 
@@ -203,15 +210,15 @@ export const getCollectors = async (): Promise<Collector[]> => {
 
 export const getCollectorMembers = async (id: string): Promise<CollectorMember[]> => {
   try {
-    const { data } = await client.get<ApiResponse<CollectorMember[]>>(`/admin/collectors/${id}/members`);
-    return data.data;
+    const { data } = await client.get<CollectorMember[] | { data: CollectorMember[] }>(`/admin/collectors/${id}/members`);
+    return unwrap(data);
   } catch (e) { return handle(e); }
 };
 
 export const createCollector = async (payload: { user_id: string }): Promise<Collector> => {
   try {
-    const { data } = await client.post<ApiResponse<Collector>>('/admin/collectors', payload);
-    return data.data;
+    const { data } = await client.post<Collector | { data: Collector }>('/admin/collectors', payload);
+    return unwrap(data);
   } catch (e) { return handle(e); }
 };
 
@@ -225,35 +232,35 @@ export const getNamlefContent = async (): Promise<NamlefContent[]> => {
 
 export const createNamlefContent = async (payload: Partial<NamlefContent>): Promise<NamlefContent> => {
   try {
-    const { data } = await client.post<ApiResponse<NamlefContent>>('/admin/namlef-content', payload);
-    return data.data;
+    const { data } = await client.post<NamlefContent | { data: NamlefContent }>('/admin/namlef-content', payload);
+    return unwrap(data);
   } catch (e) { return handle(e); }
 };
 
 export const updateNamlefContent = async (id: string, payload: Partial<NamlefContent>): Promise<NamlefContent> => {
   try {
-    const { data } = await client.patch<ApiResponse<NamlefContent>>(`/admin/namlef-content/${id}`, payload);
-    return data.data;
+    const { data } = await client.patch<NamlefContent | { data: NamlefContent }>(`/admin/namlef-content/${id}`, payload);
+    return unwrap(data);
   } catch (e) { return handle(e); }
 };
 
 // ── Notifications ─────────────────────────────────────────────────────────────
 export const getNotifications = async (): Promise<PushNotification[]> => {
   try {
-    const { data } = await client.get<ApiResponse<PushNotification[]>>('/admin/notifications');
-    return data.data;
+    const { data } = await client.get<PaginatedResponse<PushNotification> | PushNotification[]>('/admin/notifications');
+    return Array.isArray(data) ? data : data.data;
   } catch (e) { return handle(e); }
 };
 
 export const sendNotification = async (payload: {
   title: string;
   body: string;
-  type: string;
+  notification_type: string;
   audience: string;
 }): Promise<PushNotification> => {
   try {
-    const { data } = await client.post<ApiResponse<PushNotification>>('/admin/notifications/send', payload);
-    return data.data;
+    const { data } = await client.post<PushNotification | { data: PushNotification }>('/admin/notifications/send', payload);
+    return unwrap(data);
   } catch (e) { return handle(e); }
 };
 
@@ -356,14 +363,14 @@ export const publishAiDraft = async (id: string): Promise<AiDraft> => {
 // ── Settings ──────────────────────────────────────────────────────────────────
 export const getSettings = async (): Promise<AppSettings> => {
   try {
-    const { data } = await client.get<ApiResponse<AppSettings>>('/admin/settings');
-    return data.data;
+    const { data } = await client.get<AppSettings | { data: AppSettings }>('/admin/settings');
+    return unwrap(data);
   } catch (e) { return handle(e); }
 };
 
 export const updateSettings = async (payload: Partial<AppSettings>): Promise<AppSettings> => {
   try {
-    const { data } = await client.put<ApiResponse<AppSettings>>('/admin/settings', payload);
-    return data.data;
+    const { data } = await client.put<AppSettings | { data: AppSettings }>('/admin/settings', payload);
+    return unwrap(data);
   } catch (e) { return handle(e); }
 };

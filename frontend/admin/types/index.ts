@@ -185,7 +185,7 @@ export interface PushNotification {
   id: string;
   title: string;
   body: string;
-  type: string;
+  notification_type: string;
   audience: NotificationAudience;
   sent_count?: number;
   sent_at: string;
