@@ -44,6 +44,12 @@ This folder contains SVG screenshot proof for the mobile user/donor/collector ex
 - `impact` — `docs/screenshots/admin/impact.svg`
 - `settings` — `docs/screenshots/admin/settings.svg`
 
+## Latest reference-style regeneration
+
+- Every listed mobile and admin SVG was regenerated in the same green, white-card, rounded-phone/reference-board style.
+- Every contact-sheet image is embedded directly, so opening the proof boards locally should show screenshots instead of blank white boxes.
+- Each mobile proof screen uses a 430 × 932 phone frame, and each admin proof screen uses a 1440 × 1000 dashboard frame so the content fits consistently.
+
 ## Notes
 
 - These are local SVG proof assets; they can be opened directly from the repository without a deployed app. The contact sheets embed every referenced screen to avoid blank external-image rendering.

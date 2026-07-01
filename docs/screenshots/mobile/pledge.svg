@@ -1,33 +1,36 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="430" height="932" viewBox="0 0 430 932">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F8FAF5"/><stop offset="1" stop-color="#EAF5EE"/></linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="7" stdDeviation="9" flood-color="#0F172A" flood-opacity="0.13"/></filter>
-  </defs>
-  <rect width="430" height="932" fill="#111827"/>
-  <rect x="18" y="18" width="394" height="896" rx="44" fill="url(#bg)"/>
-  <rect x="176" y="30" width="78" height="6" rx="3" fill="#1F2937" opacity="0.45"/>
-  <rect x="18" y="18" width="394" height="132" rx="44" fill="#0B6B3A"/>
-  <text x="44" y="72" font-size="22" font-weight="800" fill="#FFFFFF" font-family="Arial">Family Pledge</text>
-  <text x="44" y="100" font-size="13" fill="#F6D77A" font-family="Arial">Normal user mobile screen</text>
-  <text x="44" y="132" font-size="12" fill="#D8E8DD" font-family="Arial">/tabs/pledge</text>
-  <text x="44" y="198" font-size="30" font-weight="800" fill="#0F172A" font-family="Arial">My Pledge</text>
-  <text x="44" y="226" font-size="15" fill="#475569" font-family="Arial">Track monthly USD 10 pledge</text>
-  <rect x="44" y="262" width="342" height="126" rx="24" fill="#FFFFFF" filter="url(#shadow)"/>
-  <circle cx="82" cy="313" r="22" fill="#ECFDF5"/>
-  <text x="74" y="321" font-size="22" fill="#0B6B3A" font-family="Arial">❤</text>
-  <text x="120" y="305" font-size="14" fill="#64748B" font-family="Arial">Primary user action</text>
-  <text x="120" y="338" font-size="22" font-weight="800" fill="#0B6B3A" font-family="Arial">Status card</text>
-  <rect x="44" y="416" width="342" height="126" rx="24" fill="#FFFFFF" filter="url(#shadow)"/>
-  <circle cx="82" cy="467" r="22" fill="#FFFBEB"/>
-  <text x="74" y="475" font-size="22" fill="#D6A437" font-family="Arial">✦</text>
-  <text x="120" y="459" font-size="14" fill="#64748B" font-family="Arial">Feature highlight</text>
-  <text x="120" y="492" font-size="22" font-weight="800" fill="#92400E" font-family="Arial">Contribution history</text>
-  <rect x="44" y="570" width="342" height="170" rx="24" fill="#FFFFFF" filter="url(#shadow)"/>
-  <text x="70" y="616" font-size="18" font-weight="800" fill="#111827" font-family="Arial">Why this matters</text>
-  <text x="70" y="652" font-size="14" fill="#475569" font-family="Arial">Know if pledge is paid/pending</text>
-  <text x="70" y="682" font-size="14" fill="#475569" font-family="Arial">Designed for quick, clear donor action</text>
-  <text x="70" y="712" font-size="14" fill="#475569" font-family="Arial">without admin access.</text>
-  <rect x="44" y="780" width="342" height="70" rx="24" fill="#0B6B3A"/>
-  <text x="86" y="824" font-size="17" font-weight="800" fill="#FFFFFF" font-family="Arial">Open in Expo route: /tabs/pledge</text>
-  <circle cx="112" cy="882" r="5" fill="#0B6B3A"/><circle cx="166" cy="882" r="5" fill="#CBD5E1"/><circle cx="220" cy="882" r="5" fill="#CBD5E1"/><circle cx="274" cy="882" r="5" fill="#CBD5E1"/><circle cx="328" cy="882" r="5" fill="#CBD5E1"/>
+<defs><filter id="shadow"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#0F172A" flood-opacity="0.12"/></filter><linearGradient id="hero" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0B6B3A"/><stop offset="1" stop-color="#064E2B"/></linearGradient></defs>
+<rect width="430" height="932" fill="#111827"/>
+<rect x="18" y="18" width="394" height="896" rx="44" fill="#F8FAF8" />
+<rect x="176" y="30" width="78" height="6" rx="3" fill="#1F2937" opacity="0.45"/>
+<text x="42" y="82" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#111827" text-anchor="start">☰</text>
+<text x="215" y="82" font-family="Arial, sans-serif" font-size="16" font-weight="800" fill="#111827" text-anchor="middle">Pledge</text>
+<text x="374" y="82" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#111827" text-anchor="start">♢</text>
+<rect x="42" y="122" width="346" height="112" rx="16" fill="url(#hero)" />
+<text x="58" y="158" font-family="Arial, sans-serif" font-size="14" font-weight="800" fill="#fff" text-anchor="start">Your Pledge</text>
+<text x="58" y="194" font-family="Arial, sans-serif" font-size="32" font-weight="900" fill="#fff" text-anchor="start">$10</text>
+<text x="124" y="194" font-family="Arial, sans-serif" font-size="18" font-weight="800" fill="#fff" text-anchor="start">/ month</text>
+<text x="58" y="222" font-family="Arial, sans-serif" font-size="12" font-weight="800" fill="#fff" text-anchor="start">Status: Paid</text>
+<text x="318" y="222" font-family="Arial, sans-serif" font-size="12" font-weight="800" fill="#fff" text-anchor="start">July 2026</text>
+<text x="42" y="286" font-family="Arial, sans-serif" font-size="16" font-weight="900" fill="#111827" text-anchor="start">Pledge History</text>
+<rect x="42" y="310" width="346" height="42" rx="12" fill="#FFFFFF" /><text x="60" y="337" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#111827" text-anchor="start">July 2026</text><rect x="306" y="318" width="56" height="24" rx="8" fill="#ECFDF5" /><text x="334" y="335" font-family="Arial, sans-serif" font-size="11" font-weight="800" fill="#0B6B3A" text-anchor="middle">Paid</text>
+<rect x="42" y="360" width="346" height="42" rx="12" fill="#FFFFFF" /><text x="60" y="337" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#111827" text-anchor="start">June 2026</text><rect x="306" y="368" width="56" height="24" rx="8" fill="#ECFDF5" /><text x="334" y="335" font-family="Arial, sans-serif" font-size="11" font-weight="800" fill="#0B6B3A" text-anchor="middle">Paid</text>
+<rect x="42" y="410" width="346" height="42" rx="12" fill="#FFFFFF" /><text x="60" y="337" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#111827" text-anchor="start">May 2026</text><rect x="306" y="418" width="56" height="24" rx="8" fill="#ECFDF5" /><text x="334" y="335" font-family="Arial, sans-serif" font-size="11" font-weight="800" fill="#0B6B3A" text-anchor="middle">Paid</text>
+<rect x="42" y="460" width="346" height="42" rx="12" fill="#FFFFFF" /><text x="60" y="337" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#111827" text-anchor="start">April 2026</text><rect x="306" y="468" width="56" height="24" rx="8" fill="#ECFDF5" /><text x="334" y="335" font-family="Arial, sans-serif" font-size="11" font-weight="800" fill="#0B6B3A" text-anchor="middle">Paid</text>
+<rect x="42" y="510" width="346" height="42" rx="12" fill="#FFFFFF" /><text x="60" y="337" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#111827" text-anchor="start">March 2026</text><rect x="306" y="518" width="56" height="24" rx="8" fill="#ECFDF5" /><text x="334" y="335" font-family="Arial, sans-serif" font-size="11" font-weight="800" fill="#0B6B3A" text-anchor="middle">Paid</text>
+<rect x="42" y="560" width="346" height="42" rx="12" fill="#FFFFFF" /><text x="60" y="337" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#111827" text-anchor="start">February 2026</text><rect x="306" y="568" width="56" height="24" rx="8" fill="#FEE2E2" /><text x="334" y="335" font-family="Arial, sans-serif" font-size="11" font-weight="800" fill="#D94A38" text-anchor="middle">Missed</text>
+<rect x="42" y="700" width="346" height="52" rx="12" fill="#0B6B3A" />
+<text x="215" y="734" font-family="Arial, sans-serif" font-size="16" font-weight="900" fill="#fff" text-anchor="middle">Contribute Now</text>
+<text x="215" y="780" font-family="Arial, sans-serif" font-size="13" font-weight="800" fill="#0B6B3A" text-anchor="middle">How to contribute?</text>
+<rect x="18" y="842" width="394" height="72" rx="0" fill="#FFFFFF" />
+<text x="56" y="875" font-family="Arial, sans-serif" font-size="18" font-weight="800" fill="#6B7280" text-anchor="middle">⌂</text>
+<text x="56" y="897" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#6B7280" text-anchor="middle">Home</text>
+<text x="134" y="875" font-family="Arial, sans-serif" font-size="18" font-weight="800" fill="#0B6B3A" text-anchor="middle">♡</text>
+<text x="134" y="897" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#0B6B3A" text-anchor="middle">Pledge</text>
+<text x="212" y="875" font-family="Arial, sans-serif" font-size="18" font-weight="800" fill="#6B7280" text-anchor="middle">⚑</text>
+<text x="212" y="897" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#6B7280" text-anchor="middle">Campaigns</text>
+<text x="290" y="875" font-family="Arial, sans-serif" font-size="18" font-weight="800" fill="#6B7280" text-anchor="middle">◫</text>
+<text x="290" y="897" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#6B7280" text-anchor="middle">Updates</text>
+<text x="368" y="875" font-family="Arial, sans-serif" font-size="18" font-weight="800" fill="#6B7280" text-anchor="middle">♙</text>
+<text x="368" y="897" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#6B7280" text-anchor="middle">Profile</text>
 </svg>
