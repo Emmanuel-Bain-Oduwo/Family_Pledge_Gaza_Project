@@ -11,19 +11,19 @@ interface StatCardProps {
 }
 
 const COLOR_MAP = {
-  green: { bg: 'bg-primary-50', icon: 'bg-primary text-white', value: 'text-primary-dark' },
-  gold: { bg: 'bg-amber-50', icon: 'bg-gold text-white', value: 'text-amber-800' },
-  blue: { bg: 'bg-blue-50', icon: 'bg-blue-600 text-white', value: 'text-blue-800' },
-  red: { bg: 'bg-red-50', icon: 'bg-red-600 text-white', value: 'text-red-800' },
-  purple: { bg: 'bg-purple-50', icon: 'bg-purple-600 text-white', value: 'text-purple-800' },
+  green: { bg: 'bg-white', icon: 'bg-primary text-white', value: 'text-primary-dark' },
+  gold: { bg: 'bg-white', icon: 'bg-gold text-white', value: 'text-amber-800' },
+  blue: { bg: 'bg-white', icon: 'bg-blue-600 text-white', value: 'text-blue-800' },
+  red: { bg: 'bg-white', icon: 'bg-red-600 text-white', value: 'text-red-800' },
+  purple: { bg: 'bg-white', icon: 'bg-purple-600 text-white', value: 'text-purple-800' },
 };
 
 export default function StatCard({ label, value, icon: Icon, trend, trendUp, color = 'green' }: StatCardProps) {
   const c = COLOR_MAP[color];
   return (
-    <div className={cn('card p-5', c.bg)}>
+    <div className={cn('card p-5 hover:shadow-md transition-shadow', c.bg)}>
       <div className="flex items-start justify-between mb-3">
-        <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', c.icon)}>
+        <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center', c.icon)}>
           <Icon size={20} />
         </div>
         {trend && (
@@ -34,8 +34,8 @@ export default function StatCard({ label, value, icon: Icon, trend, trendUp, col
           </span>
         )}
       </div>
-      <div className={cn('text-2xl font-bold', c.value)}>{value}</div>
-      <div className="text-sm text-gray-600 mt-1 font-medium">{label}</div>
+      <div className={cn('text-3xl font-black tracking-tight', c.value)}>{value}</div>
+      <div className="text-sm text-gray-600 mt-1 font-semibold">{label}</div>
     </div>
   );
 }

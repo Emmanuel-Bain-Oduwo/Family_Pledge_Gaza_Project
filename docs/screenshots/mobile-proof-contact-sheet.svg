@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="940" viewBox="0 0 900 940">
+<rect width="100%" height="100%" fill="#F5F8F6"/>
+<text x="24" y="38" font-family="Arial" font-size="24" font-weight="900" fill="#0B6B3A">Mobile user, donor, collector screenshot proof</text>
+<rect x="10" y="58" width="118" height="245" rx="18" fill="#fff" stroke="#E5ECE7"/>
+<image href="mobile/welcome.svg" x="16" y="64" width="106" height="230" preserveAspectRatio="xMidYMid meet"/>
+<text x="16" y="324" font-family="Arial" font-size="12" font-weight="800" fill="#111827">welcome</text>
+<rect x="160" y="58" width="118" height="245" rx="18" fill="#fff" stroke="#E5ECE7"/>
+<image href="mobile/login.svg" x="166" y="64" width="106" height="230" preserveAspectRatio="xMidYMid meet"/>
+<text x="166" y="324" font-family="Arial" font-size="12" font-weight="800" fill="#111827">login</text>
+<rect x="310" y="58" width="118" height="245" rx="18" fill="#fff" stroke="#E5ECE7"/>
+<image href="mobile/register.svg" x="316" y="64" width="106" height="230" preserveAspectRatio="xMidYMid meet"/>
+<text x="316" y="324" font-family="Arial" font-size="12" font-weight="800" fill="#111827">register</text>
+<rect x="460" y="58" width="118" height="245" rx="18" fill="#fff" stroke="#E5ECE7"/>
+<image href="mobile/home.svg" x="466" y="64" width="106" height="230" preserveAspectRatio="xMidYMid meet"/>
+<text x="466" y="324" font-family="Arial" font-size="12" font-weight="800" fill="#111827">home</text>
+<rect x="610" y="58" width="118" height="245" rx="18" fill="#fff" stroke="#E5ECE7"/>
+<image href="mobile/pledge.svg" x="616" y="64" width="106" height="230" preserveAspectRatio="xMidYMid meet"/>
+<text x="616" y="324" font-family="Arial" font-size="12" font-weight="800" fill="#111827">pledge</text>
+<rect x="760" y="58" width="118" height="245" rx="18" fill="#fff" stroke="#E5ECE7"/>
+<image href="mobile/campaigns.svg" x="766" y="64" width="106" height="230" preserveAspectRatio="xMidYMid meet"/>
+<text x="766" y="324" font-family="Arial" font-size="12" font-weight="800" fill="#111827">campaigns</text>
+<rect x="10" y="348" width="118" height="245" rx="18" fill="#fff" stroke="#E5ECE7"/>
+<image href="mobile/campaign-details.svg" x="16" y="354" width="106" height="230" preserveAspectRatio="xMidYMid meet"/>
+<text x="16" y="614" font-family="Arial" font-size="12" font-weight="800" fill="#111827">campaign-details</text>
+<rect x="160" y="348" width="118" height="245" rx="18" fill="#fff" stroke="#E5ECE7"/>
+<image href="mobile/friday-challenge.svg" x="166" y="354" width="106" height="230" preserveAspectRatio="xMidYMid meet"/>
+<text x="166" y="614" font-family="Arial" font-size="12" font-weight="800" fill="#111827">friday-challenge</text>
+<rect x="310" y="348" width="118" height="245" rx="18" fill="#fff" stroke="#E5ECE7"/>
+<image href="mobile/emergency-appeal.svg" x="316" y="354" width="106" height="230" preserveAspectRatio="xMidYMid meet"/>
+<text x="316" y="614" font-family="Arial" font-size="12" font-weight="800" fill="#111827">emergency-appeal</text>
+<rect x="460" y="348" width="118" height="245" rx="18" fill="#fff" stroke="#E5ECE7"/>
+<image href="mobile/contribute.svg" x="466" y="354" width="106" height="230" preserveAspectRatio="xMidYMid meet"/>
+<text x="466" y="614" font-family="Arial" font-size="12" font-weight="800" fill="#111827">contribute</text>
+<rect x="610" y="348" width="118" height="245" rx="18" fill="#fff" stroke="#E5ECE7"/>
+<image href="mobile/updates.svg" x="616" y="354" width="106" height="230" preserveAspectRatio="xMidYMid meet"/>
+<text x="616" y="614" font-family="Arial" font-size="12" font-weight="800" fill="#111827">updates</text>
+<rect x="760" y="348" width="118" height="245" rx="18" fill="#fff" stroke="#E5ECE7"/>
+<image href="mobile/reminders.svg" x="766" y="354" width="106" height="230" preserveAspectRatio="xMidYMid meet"/>
+<text x="766" y="614" font-family="Arial" font-size="12" font-weight="800" fill="#111827">reminders</text>
+<rect x="10" y="638" width="118" height="245" rx="18" fill="#fff" stroke="#E5ECE7"/>
+<image href="mobile/namlef.svg" x="16" y="644" width="106" height="230" preserveAspectRatio="xMidYMid meet"/>
+<text x="16" y="904" font-family="Arial" font-size="12" font-weight="800" fill="#111827">namlef</text>
+<rect x="160" y="638" width="118" height="245" rx="18" fill="#fff" stroke="#E5ECE7"/>
+<image href="mobile/collector-dashboard.svg" x="166" y="644" width="106" height="230" preserveAspectRatio="xMidYMid meet"/>
+<text x="166" y="904" font-family="Arial" font-size="12" font-weight="800" fill="#111827">collector-dashboard</text>
+<rect x="310" y="638" width="118" height="245" rx="18" fill="#fff" stroke="#E5ECE7"/>
+<image href="mobile/notifications.svg" x="316" y="644" width="106" height="230" preserveAspectRatio="xMidYMid meet"/>
+<text x="316" y="904" font-family="Arial" font-size="12" font-weight="800" fill="#111827">notifications</text>
+<rect x="460" y="638" width="118" height="245" rx="18" fill="#fff" stroke="#E5ECE7"/>
+<image href="mobile/profile.svg" x="466" y="644" width="106" height="230" preserveAspectRatio="xMidYMid meet"/>
+<text x="466" y="904" font-family="Arial" font-size="12" font-weight="800" fill="#111827">profile</text>
+<rect x="610" y="638" width="118" height="245" rx="18" fill="#fff" stroke="#E5ECE7"/>
+<image href="mobile/badges.svg" x="616" y="644" width="106" height="230" preserveAspectRatio="xMidYMid meet"/>
+<text x="616" y="904" font-family="Arial" font-size="12" font-weight="800" fill="#111827">badges</text>
+<rect x="760" y="638" width="118" height="245" rx="18" fill="#fff" stroke="#E5ECE7"/>
+<image href="mobile/project-details.svg" x="766" y="644" width="106" height="230" preserveAspectRatio="xMidYMid meet"/>
+<text x="766" y="904" font-family="Arial" font-size="12" font-weight="800" fill="#111827">project-details</text>
+</svg>
