@@ -192,16 +192,3 @@ def mobile_dashboard(
         ),
         pledge_summary=pledge_summary,
     )
-
-
-@router.post("/auth/save-push-token")
-def save_push_token(
-    payload: Dict[str, str],
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    token = payload.get("token", "")
-    if token:
-        current_user.push_token = token
-        db.commit()
-    return {"message": "Push token saved"}

@@ -12,12 +12,12 @@ const AUDIENCES: { value: NotificationAudience; label: string }[] = [
   { value: 'admins', label: 'Admins Only' },
 ];
 
-const TYPES = ['general', 'reminder', 'emergency', 'campaign', 'impact', 'friday_challenge'];
+const TYPES = ['reminder', 'campaign', 'emergency', 'impact', 'pledge', 'system'];
 
 interface NotifPayload {
   title: string;
   body: string;
-  type: string;
+  notification_type: string;
   audience: NotificationAudience;
 }
 
@@ -30,7 +30,7 @@ interface NotificationFormProps {
 
 export default function NotificationForm({ onSuccess, onSubmit: onSubmitOverride, prefill, loading }: NotificationFormProps) {
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<NotifPayload>({
-    defaultValues: prefill || { audience: 'all_users', type: 'general' },
+    defaultValues: prefill || { audience: 'all_users', notification_type: 'reminder' },
   });
 
   const onSubmit = async (values: NotifPayload) => {
@@ -66,7 +66,7 @@ export default function NotificationForm({ onSuccess, onSubmit: onSubmitOverride
 
         <div>
           <label className="label">Type</label>
-          <select {...register('type')} className="input">
+          <select {...register('notification_type')} className="input">
             {TYPES.map((t) => (
               <option key={t} value={t}>{t.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</option>
             ))}

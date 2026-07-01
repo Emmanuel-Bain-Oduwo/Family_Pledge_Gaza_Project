@@ -34,21 +34,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(mobile.router)
-app.include_router(auth.router)
-app.include_router(users.router)
-app.include_router(pledges.router)
-app.include_router(contributions.router)
-app.include_router(campaigns.router)
-app.include_router(projects.router)
-app.include_router(impact_cards.router)
-app.include_router(daily_reminders.router)
-app.include_router(namlef_content.router)
-app.include_router(collectors.router)
-app.include_router(notifications.router)
-app.include_router(ai_assistant.router)
-app.include_router(storage.router)
-app.include_router(admin.router)
+ROUTERS = (
+    mobile.router,
+    auth.router,
+    users.router,
+    pledges.router,
+    contributions.router,
+    campaigns.router,
+    projects.router,
+    impact_cards.router,
+    daily_reminders.router,
+    namlef_content.router,
+    collectors.router,
+    notifications.router,
+    ai_assistant.router,
+    storage.router,
+    admin.router,
+)
+
+for router in ROUTERS:
+    app.include_router(router, prefix=settings.API_V1_PREFIX)
+    app.include_router(router)
 
 
 @app.get("/health", tags=["Health"])

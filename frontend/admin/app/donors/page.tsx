@@ -59,7 +59,7 @@ export default function DonorsPage() {
     { key: 'created_at', header: 'Joined', render: (d) => formatDate(d.created_at) },
   ];
 
-  const countries = [...new Set(MOCK_DONORS.map((d) => d.country))];
+  const countries = Array.from(new Set(MOCK_DONORS.map((d) => d.country)));
 
   return (
     <AdminLayout title="Donors" subtitle={`${donors.length} registered donors`}>
