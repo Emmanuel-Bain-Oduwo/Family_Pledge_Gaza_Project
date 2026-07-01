@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, StyleSheet, ViewStyle, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, StyleProp, ViewStyle, TouchableOpacity } from 'react-native';
 import { Colors } from '../constants/colors';
 
 interface AppCardProps {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   onPress?: () => void;
   padding?: number;
   shadow?: boolean;
@@ -19,10 +19,10 @@ export default function AppCard({
   shadow = true,
   borderColor,
 }: AppCardProps) {
-  const cardStyle = [
+  const cardStyle: StyleProp<ViewStyle> = [
     styles.card,
-    shadow && styles.shadow,
-    borderColor && { borderLeftWidth: 4, borderLeftColor: borderColor },
+    shadow ? styles.shadow : null,
+    borderColor ? { borderLeftWidth: 4, borderLeftColor: borderColor } : null,
     { padding },
     style,
   ];

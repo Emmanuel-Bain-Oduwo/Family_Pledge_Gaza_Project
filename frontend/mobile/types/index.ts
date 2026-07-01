@@ -24,11 +24,15 @@ export interface Pledge {
   user_id: string;
   amount: number;
   currency: string;
-  pledge_type: string;
+  pledge_type?: string;
   status: string;
-  start_date: string;
-  created_at: string;
-  updated_at: string;
+  start_date?: string;
+  created_at?: string;
+  updated_at?: string;
+  month?: string;
+  year?: number;
+  contributed_at?: string;
+  reference?: string;
 }
 
 export interface PledgeStatusOut {
@@ -43,9 +47,9 @@ export interface Campaign {
   title: string;
   description: string;
   campaign_type?: string;
-  type?: string;
-  target_donors?: number;
-  current_donors?: number;
+  type: string;
+  target_donors: number;
+  current_donors: number;
   donor_target?: number;
   donor_count?: number;
   target_amount?: number;
@@ -68,7 +72,7 @@ export interface ImpactCard {
   title: string;
   story?: string;
   description?: string;
-  category?: string;
+  category: string;
   image_url?: string;
   video_url?: string;
   beneficiaries?: number;
@@ -80,10 +84,10 @@ export interface ImpactCard {
 
 export interface Reminder {
   id: string;
-  type?: string;
+  type: string;
   reminder_type?: string;
   title?: string;
-  text?: string;
+  text: string;
   arabic_text?: string;
   translation?: string;
   explanation?: string;
@@ -97,8 +101,8 @@ export interface NamlefContent {
   id: string;
   title: string;
   content_type?: string;
-  type?: string;
-  content?: string;
+  type: string;
+  content: string;
   description?: string;
   speaker_name?: string;
   speaker_role?: string;
@@ -126,11 +130,11 @@ export interface Badge {
 }
 
 export interface CollectorDashboard {
-  collector_code?: string;
-  total_registered?: number;
-  contributed_this_month?: number;
-  pending_this_month?: number;
-  circle_members?: CircleMember[];
+  collector_code: string;
+  total_registered: number;
+  contributed_this_month: number;
+  pending_this_month: number;
+  circle_members: CircleMember[];
   invite_link?: string;
   member_count?: number;
 }
