@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1000" viewBox="0 0 1440 1000">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#F8FAF5"/><stop offset="1" stop-color="#EAF5EE"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#0F172A" flood-opacity="0.10"/></filter>
+  </defs>
+  <rect width="1440" height="1000" fill="url(#g)"/>
+  <rect x="0" y="0" width="280" height="1000" fill="#064E2D"/>
+  <text x="30" y="54" font-size="26" font-weight="800" fill="#FFFFFF" font-family="Arial">Family Pledge</text>
+  <text x="30" y="82" font-size="13" fill="#D6A437" font-family="Arial">Admin Dashboard • Local :3000</text>
+  <rect x="30" y="106" width="220" height="38" rx="10" fill="transparent" opacity="0.95"/><text x="52" y="130" font-size="14" fill="#D8E8DD" font-family="Arial">Dashboard</text><rect x="30" y="150" width="220" height="38" rx="10" fill="transparent" opacity="0.95"/><text x="52" y="174" font-size="14" fill="#D8E8DD" font-family="Arial">Donors</text><rect x="30" y="194" width="220" height="38" rx="10" fill="transparent" opacity="0.95"/><text x="52" y="218" font-size="14" fill="#D8E8DD" font-family="Arial">Contributions</text><rect x="30" y="238" width="220" height="38" rx="10" fill="transparent" opacity="0.95"/><text x="52" y="262" font-size="14" fill="#D8E8DD" font-family="Arial">Campaigns</text><rect x="30" y="282" width="220" height="38" rx="10" fill="transparent" opacity="0.95"/><text x="52" y="306" font-size="14" fill="#D8E8DD" font-family="Arial">Projects</text><rect x="30" y="326" width="220" height="38" rx="10" fill="transparent" opacity="0.95"/><text x="52" y="350" font-size="14" fill="#D8E8DD" font-family="Arial">Impact</text><rect x="30" y="370" width="220" height="38" rx="10" fill="transparent" opacity="0.95"/><text x="52" y="394" font-size="14" fill="#D8E8DD" font-family="Arial">Collectors</text><rect x="30" y="414" width="220" height="38" rx="10" fill="transparent" opacity="0.95"/><text x="52" y="438" font-size="14" fill="#D8E8DD" font-family="Arial">Notifications</text><rect x="30" y="458" width="220" height="38" rx="10" fill="transparent" opacity="0.95"/><text x="52" y="482" font-size="14" fill="#D8E8DD" font-family="Arial">Reminders</text><rect x="30" y="502" width="220" height="38" rx="10" fill="transparent" opacity="0.95"/><text x="52" y="526" font-size="14" fill="#D8E8DD" font-family="Arial">NAMLEF</text><rect x="30" y="546" width="220" height="38" rx="10" fill="transparent" opacity="0.95"/><text x="52" y="570" font-size="14" fill="#D8E8DD" font-family="Arial">AI Assistant</text><rect x="30" y="590" width="220" height="38" rx="10" fill="transparent" opacity="0.95"/><text x="52" y="614" font-size="14" fill="#D8E8DD" font-family="Arial">Settings</text>
+  <rect x="280" y="0" width="1160" height="82" fill="#FFFFFF"/>
+  <text x="320" y="50" font-size="18" font-weight="700" fill="#0B1220" font-family="Arial">Admin Login</text>
+  <text x="1230" y="50" font-size="13" fill="#64748B" font-family="Arial">/login</text>
+  <text x="320" y="142" font-size="34" font-weight="800" fill="#0F172A" font-family="Arial">Admin Login</text>
+  <text x="320" y="174" font-size="17" fill="#475569" font-family="Arial">Email/password access for admins</text>
+  <rect x="320" y="220" width="315" height="145" rx="22" fill="#FFFFFF" filter="url(#shadow)"/>
+  <text x="350" y="270" font-size="15" fill="#64748B" font-family="Arial">Primary Feature</text>
+  <text x="350" y="315" font-size="30" font-weight="800" fill="#0B6B3A" font-family="Arial">Sign In</text>
+  <rect x="665" y="220" width="315" height="145" rx="22" fill="#FFFFFF" filter="url(#shadow)"/>
+  <text x="695" y="270" font-size="15" fill="#64748B" font-family="Arial">Admin Action</text>
+  <text x="695" y="315" font-size="30" font-weight="800" fill="#D6A437" font-family="Arial">Secure dashboard entry</text>
+  <rect x="1010" y="220" width="315" height="145" rx="22" fill="#FFFFFF" filter="url(#shadow)"/>
+  <text x="1040" y="270" font-size="15" fill="#64748B" font-family="Arial">Status</text>
+  <text x="1040" y="315" font-size="30" font-weight="800" fill="#15803D" font-family="Arial">Ready</text>
+  <rect x="320" y="410" width="1005" height="390" rx="24" fill="#FFFFFF" filter="url(#shadow)"/>
+  <rect x="350" y="450" width="945" height="58" rx="16" fill="#F1F5F9"/>
+  <text x="380" y="486" font-size="16" font-weight="700" fill="#334155" font-family="Arial">Local page preview for http://127.0.0.1:3000/login</text>
+  <rect x="350" y="540" width="280" height="190" rx="18" fill="#ECFDF5"/>
+  <text x="380" y="590" font-size="19" font-weight="800" fill="#065F46" font-family="Arial">User-friendly</text>
+  <text x="380" y="625" font-size="14" fill="#047857" font-family="Arial">Clear labels, admin-focused actions,</text>
+  <text x="380" y="650" font-size="14" fill="#047857" font-family="Arial">and consistent navigation.</text>
+  <rect x="680" y="540" width="280" height="190" rx="18" fill="#FFFBEB"/>
+  <text x="710" y="590" font-size="19" font-weight="800" fill="#92400E" font-family="Arial">Workflow support</text>
+  <text x="710" y="625" font-size="14" fill="#B45309" font-family="Arial">Designed to reduce repetitive admin</text>
+  <text x="710" y="650" font-size="14" fill="#B45309" font-family="Arial">work and speed up reviews.</text>
+  <rect x="1010" y="540" width="280" height="190" rx="18" fill="#EEF2FF"/>
+  <text x="1040" y="590" font-size="19" font-weight="800" fill="#3730A3" font-family="Arial">Backend-linked</text>
+  <text x="1040" y="625" font-size="14" fill="#4338CA" font-family="Arial">Route expects API data through the</text>
+  <text x="1040" y="650" font-size="14" fill="#4338CA" font-family="Arial">configured backend base URL.</text>
+  <text x="320" y="900" font-size="13" fill="#64748B" font-family="Arial">Generated from local admin route list because no browser renderer is installed in the container.</text>
+</svg>
