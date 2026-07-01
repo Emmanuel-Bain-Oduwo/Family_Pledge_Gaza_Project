@@ -52,3 +52,13 @@ def get_display_name(user: User) -> str:
     if user.anonymous_publicly:
         return user.public_display_name or user.nickname or "Anonymous donor"
     return user.full_name or user.nickname or "Anonymous donor"
+
+
+def update_email_preferences(
+    db: Session, user: User, weekly_email_opt_in: bool
+) -> User:
+    user.weekly_email_opt_in = weekly_email_opt_in
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
