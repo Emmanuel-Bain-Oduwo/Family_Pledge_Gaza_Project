@@ -10,10 +10,10 @@ frontend/admin/   Next.js admin dashboard for Vercel
 frontend/mobile/  Expo iOS/Android app for EAS, Play Store, and App Store
 docs/             Deployment, review, screenshot proof, and handover docs
 railway.json      Railway backend deployment config from repo root
-vercel.json       Vercel admin deployment config from repo root
+frontend/admin/vercel.json  Vercel admin deployment config scoped to the admin app
 ```
 
-Frontend code is contained under `frontend/`, split into `frontend/admin/` and `frontend/mobile/`. Backend code is contained under `backend/`. The root deployment config files are intentionally kept at the repo root so Vercel and Railway can deploy from the monorepo without moving code.
+Frontend code is contained under `frontend/`, split into `frontend/admin/` and `frontend/mobile/`. Backend code is contained under `backend/`. Railway keeps its root deployment config at the repo root; Vercel is scoped inside `frontend/admin/` so the admin project can use `frontend/admin` as its Root Directory without broken nested `cd frontend/admin` commands.
 
 ## Unnecessary-file check
 
@@ -58,8 +58,8 @@ The repo is clean enough to deploy today, but launch still depends on real produ
 
 ### Vercel admin
 
-- Import repo into Vercel.
-- Use existing `vercel.json` or set admin build commands manually.
+- Import repo into Vercel and set Root Directory to `frontend/admin`.
+- Use `frontend/admin/vercel.json` or set the same admin build commands manually: `npm install`, `npm run build`, output `.next`.
 - Set `NEXT_PUBLIC_API_URL=https://<railway-backend>/api/v1`.
 - Deploy.
 - Add the Vercel domain to Railway `CORS_ORIGINS`.

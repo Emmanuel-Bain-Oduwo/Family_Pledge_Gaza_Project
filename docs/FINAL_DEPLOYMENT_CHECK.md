@@ -86,11 +86,12 @@ curl https://<railway-backend-domain>/health
 ## Deploy admin frontend on Vercel
 
 1. Import the same GitHub repository in Vercel.
-2. Use the repo root with the existing `vercel.json`, or manually set:
+2. Set the Vercel project Root Directory to `frontend/admin`; the admin-scoped `frontend/admin/vercel.json` then uses:
    - Framework: Next.js
-   - Install command: `cd frontend/admin && npm install`
-   - Build command: `cd frontend/admin && npm run build`
-   - Output directory: `frontend/admin/.next`
+   - Root Directory: `frontend/admin`
+   - Install command: `npm install`
+   - Build command: `npm run build`
+   - Output directory: `.next`
 3. Set this Vercel variable:
 
 ```env
@@ -100,6 +101,10 @@ NEXT_PUBLIC_API_URL=https://<railway-backend-domain>/api/v1
 4. Deploy.
 5. Add the Vercel domain to Railway `CORS_ORIGINS`.
 6. Re-deploy/restart backend after CORS changes.
+
+### If Vercel still runs `cd frontend/admin && npm install`
+
+That command is an old Vercel dashboard override. When the Vercel Root Directory is already `frontend/admin`, the install command must be `npm install` only. Remove the old override in Vercel Project Settings, then redeploy the failed preview/build. See `docs/VERCEL_ADMIN_DEPLOY_FIX.md`.
 
 ## Railway PostgreSQL
 
