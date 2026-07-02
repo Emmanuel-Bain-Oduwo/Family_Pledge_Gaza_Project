@@ -2,11 +2,11 @@ const { execSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
-const realApp = path.resolve(__dirname, "../../admin");
+const frontendRoot = path.resolve(__dirname, "../..");
 
-execSync("npm run build", { cwd: realApp, stdio: "inherit" });
+execSync("npm run build", { cwd: frontendRoot, stdio: "inherit" });
 
-const source = path.join(realApp, ".next");
+const source = path.join(frontendRoot, ".next");
 const targets = [
   path.join(__dirname, ".next"),
   path.resolve(__dirname, "../..", ".next"),
