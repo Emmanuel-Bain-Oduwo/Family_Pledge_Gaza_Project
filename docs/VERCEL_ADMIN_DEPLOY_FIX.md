@@ -54,7 +54,7 @@ It intentionally runs commands from inside `frontend/admin`:
 }
 ```
 
-There should not be a root-level `vercel.json` for this setup.
+A root-level `vercel.json` is also included for the alternate setup where the Vercel project root is the repository root. In that mode, Vercel runs `cd frontend/admin && npm install`, builds with `cd frontend/admin && npm run build`, and publishes `frontend/admin/.next`.
 
 
 ## Compatibility shim
