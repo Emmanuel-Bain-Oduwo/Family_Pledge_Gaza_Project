@@ -1,0 +1,11 @@
+{
+  "name": "family-pledge-admin-vercel-deep-root-compat",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "postinstall": "cd ../../../.. && npm install",
+    "build": "cd ../../../.. && npm run build",
+    "dev": "cd ../../../.. && npm run dev",
+    "start": "cd ../../../.. && npm run start"
+  }
+}

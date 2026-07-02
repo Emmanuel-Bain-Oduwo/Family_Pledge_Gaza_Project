@@ -25,7 +25,7 @@ Checked the tracked repo for common junk/build artifacts:
 - No tracked `.pyc` files
 - No tracked `.DS_Store`
 - No tracked `dist/` or `build/` output folders
-- No duplicate admin source app under `frontend/admin/frontend/`; only a tiny Vercel compatibility package delegates stale dashboard commands back to the real app.
+- No duplicate admin source app under compatibility paths; only tiny Vercel compatibility packages delegate stale dashboard commands back to the real app.
 
 Superseded duplicate visual report files were removed. The remaining docs are operational docs, screenshot proof, handover docs, deployment docs, and safety/storage policies.
 

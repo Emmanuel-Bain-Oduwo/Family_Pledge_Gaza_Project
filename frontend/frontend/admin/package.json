@@ -1,0 +1,11 @@
+{
+  "name": "family-pledge-admin-vercel-frontend-root-compat",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "postinstall": "cd ../../admin && npm install",
+    "build": "cd ../../admin && npm run build",
+    "dev": "cd ../../admin && npm run dev",
+    "start": "cd ../../admin && npm run start"
+  }
+}
