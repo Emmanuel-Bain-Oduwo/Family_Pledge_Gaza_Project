@@ -26,7 +26,14 @@ This review focused on prioritized blockers rather than rewriting the product. T
    - The Expo project ID used to request push tokens is now configurable through environment variables instead of being hard-coded only in source.
 
 6. **Root-level deployment config**
-   - Added Vercel and Railway config files so the monorepo can deploy with the intended frontend/backend roots.
+   - Added Railway root config and Vercel admin-scoped config so the monorepo can deploy with the intended backend/admin roots.
+
+7. **Production configuration guardrails**
+   - Production startup now rejects weak/default JWT secrets, localhost/wildcard CORS origins, missing database URLs, and incomplete SMTP settings when weekly emails are enabled.
+   - Backend, admin, and mobile `.env.example` files now document the required Railway, Vercel, Expo, SMTP, OpenAI, and Cloudinary variables.
+
+8. **Safer auth and push-token inputs**
+   - Registration now requires valid email format when an email is provided, enforces 8+ character passwords, normalizes phone/email values before duplicate checks, and rejects malformed Expo push tokens before saving them.
 
 7. **Production configuration guardrails**
    - Production startup now rejects weak/default JWT secrets, localhost/wildcard CORS origins, missing database URLs, and incomplete SMTP settings when weekly emails are enabled.
@@ -96,7 +103,7 @@ This review focused on prioritized blockers rather than rewriting the product. T
 
 ### Vercel admin frontend
 
-- Root can be repository root because `vercel.json` builds `frontend/admin`.
+- Set Vercel Root Directory to `frontend/admin`; the scoped `frontend/admin/vercel.json` runs `npm install`, `npm run build`, and outputs `.next` from that directory.
 - Required variable: `NEXT_PUBLIC_API_URL=https://<railway-backend>/api/v1`.
 
 ### PostgreSQL
