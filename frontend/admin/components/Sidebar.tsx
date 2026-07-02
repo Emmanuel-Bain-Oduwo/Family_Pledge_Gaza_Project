@@ -33,16 +33,16 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="fixed inset-y-0 left-0 w-60 bg-primary-dark flex flex-col z-40">
+    <aside className="fixed inset-y-0 left-0 w-60 bg-[#101827] flex flex-col z-40">
       {/* Logo */}
       <div className="px-6 py-5 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gold flex items-center justify-center flex-shrink-0">
-            <span className="text-primary-dark font-bold text-sm">FP</span>
+          <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center flex-shrink-0 border border-white/20">
+            <span className="text-primary font-black text-sm">FP</span>
           </div>
           <div>
-            <div className="text-white font-bold text-sm leading-tight">Family Pledge</div>
-            <div className="text-white/50 text-xs">Admin Panel</div>
+            <div className="text-white font-black text-sm leading-tight tracking-wide">FAMILY PLEDGE</div>
+            <div className="text-white/55 text-xs">NAMLEF Admin</div>
           </div>
         </div>
       </div>
@@ -56,10 +56,10 @@ export default function Sidebar() {
               key={href}
               href={href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors',
                 active
-                  ? 'bg-white/15 text-white'
-                  : 'text-white/65 hover:bg-white/8 hover:text-white'
+                  ? 'bg-white text-primary-dark shadow-sm'
+                  : 'text-white/65 hover:bg-white/10 hover:text-white'
               )}
             >
               <Icon size={17} className="flex-shrink-0" />
@@ -79,7 +79,7 @@ export default function Sidebar() {
           Sign Out
         </button>
         <div className="mt-3 px-3 text-white/30 text-xs">
-          NAMLEF Gaza Relief · v1.0
+          100% Donation Policy · v1.0
         </div>
       </div>
     </aside>
