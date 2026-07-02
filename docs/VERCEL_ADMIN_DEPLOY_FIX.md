@@ -56,6 +56,11 @@ It intentionally runs commands from inside `frontend/admin`:
 
 There should not be a root-level `vercel.json` for this setup.
 
+
+## Compatibility shim
+
+The repo also includes a small compatibility shim at `frontend/admin/frontend/admin` that points back to the real admin app. This means the old Vercel command `cd frontend/admin && npm install` will no longer fail even if Vercel is already rooted at `frontend/admin`. The clean long-term setting is still to remove the old dashboard override and use `npm install` directly.
+
 ## User/mobile app reminder
 
 This Vercel project deploys only the admin dashboard. The mobile user and collector app lives in `frontend/mobile` and is previewed with Expo or released through EAS to Android/iOS.

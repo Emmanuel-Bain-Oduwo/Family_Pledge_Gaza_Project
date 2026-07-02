@@ -1,0 +1,1 @@
+This folder is a Vercel compatibility shim. If a Vercel project is already rooted at frontend/admin but still has the old install/build command `cd frontend/admin && ...`, the tracked admin symlink points back to the real admin app so the old command does not fail. Prefer fixing Vercel settings to use `npm install` and `npm run build` directly.
