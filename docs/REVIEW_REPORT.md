@@ -35,6 +35,13 @@ This review focused on prioritized blockers rather than rewriting the product. T
 8. **Safer auth and push-token inputs**
    - Registration now requires valid email format when an email is provided, enforces 8+ character passwords, normalizes phone/email values before duplicate checks, and rejects malformed Expo push tokens before saving them.
 
+7. **Production configuration guardrails**
+   - Production startup now rejects weak/default JWT secrets, localhost/wildcard CORS origins, missing database URLs, and incomplete SMTP settings when weekly emails are enabled.
+   - Backend, admin, and mobile `.env.example` files now document the required Railway, Vercel, Expo, SMTP, OpenAI, and Cloudinary variables.
+
+8. **Safer auth and push-token inputs**
+   - Registration now requires valid email format when an email is provided, enforces 8+ character passwords, normalizes phone/email values before duplicate checks, and rejects malformed Expo push tokens before saving them.
+
 ## Current product flow
 
 ### Mobile user flow

@@ -86,12 +86,11 @@ curl https://<railway-backend-domain>/health
 ## Deploy admin frontend on Vercel
 
 1. Import the same GitHub repository in Vercel.
-2. Set the Vercel project Root Directory to `frontend/admin`; the admin-scoped `frontend/admin/vercel.json` then uses:
+2. Use the repo root with the existing `vercel.json`, or manually set:
    - Framework: Next.js
-   - Root Directory: `frontend/admin`
-   - Install command: `npm install`
-   - Build command: `npm run build`
-   - Output directory: `.next`
+   - Install command: `cd frontend/admin && npm install`
+   - Build command: `cd frontend/admin && npm run build`
+   - Output directory: `frontend/admin/.next`
 3. Set this Vercel variable:
 
 ```env
