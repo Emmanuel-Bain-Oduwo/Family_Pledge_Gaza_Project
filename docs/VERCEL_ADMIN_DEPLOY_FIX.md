@@ -17,7 +17,7 @@ If the Vercel Root Directory is already `frontend/admin`, that means Vercel is e
 frontend/admin/frontend/admin
 ```
 
-This repo includes tiny compatibility packages for the common stale-root combinations so the stale command can still install and build the real admin app. The clean long-term fix is still to update the Vercel dashboard settings below.
+This repo includes tiny compatibility packages for the common stale-root combinations so the stale command can still install and build the real admin app. These packages also copy the generated `.next` output back to the likely Vercel output directory. The clean long-term fix is still to update the Vercel dashboard settings below.
 
 ## Correct Vercel project settings
 

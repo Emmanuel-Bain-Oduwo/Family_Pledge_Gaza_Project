@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "postinstall": "cd ../../admin && npm install",
-    "build": "cd ../../admin && npm run build",
+    "postinstall": "node install.js",
+    "build": "node build.js",
     "dev": "cd ../../admin && npm run dev",
     "start": "cd ../../admin && npm run start"
   }
