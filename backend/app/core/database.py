@@ -1,22 +1,18 @@
-import os
 from typing import Generator
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://postgres:postgres@localhost:5432/familypledge",
-)
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+from app.core.config import settings
+
+DATABASE_URL = settings.DATABASE_URL
 
 engine = create_engine(
     DATABASE_URL,
-    pool_pre_ping=True,   # reconnect on stale connections
+    pool_pre_ping=True,  # reconnect on stale connections
     pool_size=10,
     max_overflow=20,
-    echo=os.getenv("SQL_ECHO", "false").lower() == "true",
+    echo=settings.SQL_ECHO,
 )
 
 SessionLocal = sessionmaker(

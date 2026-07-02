@@ -3,8 +3,15 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import List
 
-from pydantic import model_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def normalize_database_url(url: str) -> str:
+    """Railway/Heroku may expose postgres://, while SQLAlchemy expects postgresql://."""
+    if url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql://", 1)
+    return url
 
 
 class Settings(BaseSettings):
@@ -33,6 +40,11 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
+    @field_validator("DATABASE_URL")
+    @classmethod
+    def normalize_database_url_value(cls, value: str) -> str:
+        return normalize_database_url(value)
+
     @model_validator(mode="after")
     def validate_production_settings(self):
         if self.APP_ENV.lower() == "production":
@@ -40,11 +52,27 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "DATABASE_URL must be explicitly configured for production"
                 )
-            if not self.JWT_SECRET or self.JWT_SECRET == "change-me-in-production":
-                raise ValueError("JWT_SECRET must be changed for production")
-            if not self.CORS_ORIGINS or "localhost" in self.CORS_ORIGINS:
+            if (
+                not self.JWT_SECRET
+                or self.JWT_SECRET == "change-me-in-production"
+                or len(self.JWT_SECRET) < 32
+            ):
+                raise ValueError(
+                    "JWT_SECRET must be changed for production and be at least 32 characters"
+                )
+            if (
+                not self.CORS_ORIGINS
+                or "localhost" in self.CORS_ORIGINS
+                or "*" in self.cors_origins_list
+            ):
                 raise ValueError(
                     "CORS_ORIGINS must list deployed frontend origins in production"
+                )
+            if self.WEEKLY_EMAILS_ENABLED and not all(
+                [self.SMTP_HOST, self.SMTP_USER, self.SMTP_PASSWORD, self.EMAIL_FROM]
+            ):
+                raise ValueError(
+                    "SMTP_HOST, SMTP_USER, SMTP_PASSWORD, and EMAIL_FROM are required when WEEKLY_EMAILS_ENABLED=true"
                 )
         return self
 

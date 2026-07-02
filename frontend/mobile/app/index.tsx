@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Image,
   Dimensions,
 } from 'react-native';
 import { router } from 'expo-router';
@@ -34,8 +33,8 @@ export default function OnboardingScreen() {
     return (
       <View style={styles.splash}>
         <StatusBar style="light" />
-        <View style={styles.logoCircle}>
-          <Ionicons name="heart" size={48} color={Colors.white} />
+        <View style={styles.logoMark}>
+          <Ionicons name="heart" size={44} color={Colors.primary} />
         </View>
         <Text style={styles.splashTitle}>Family Pledge</Text>
       </View>
@@ -43,90 +42,94 @@ export default function OnboardingScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      <StatusBar style="dark" />
 
-      {/* Hero */}
-      <View style={styles.hero}>
-        <View style={styles.logoCircle}>
-          <Ionicons name="heart" size={56} color={Colors.white} />
-        </View>
-        <Text style={styles.appName}>Family Pledge</Text>
-        <Text style={styles.tagline}>Small Pledge, Big Impact</Text>
-        <View style={styles.goldLine} />
-        <Text style={styles.sub}>For Gaza — Powered by NAMLEF</Text>
+      <View style={styles.badgeRail}>
+        <TrustBadge icon="heart" title="Free to Join" text="$10 / month" />
+        <TrustBadge icon="shield-checkmark" title="100% Impact" text="For Gaza Relief" />
       </View>
 
-      {/* Cards */}
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.features}>
-          <FeatureRow
-            icon="cash-outline"
-            title="USD 10 / Month"
-            text="Join thousands pledging a small monthly amount that adds up to massive relief."
-          />
-          <FeatureRow
-            icon="people-outline"
-            title="200 Donors Target"
-            text="Every Friday, we mobilise 200 donors for Gaza. Be part of the circle."
-          />
-          <FeatureRow
-            icon="shield-checkmark-outline"
-            title="Secure & Transparent"
-            text="Track your pledge, submit proof, see real impact from the ground."
-          />
-          <FeatureRow
-            icon="moon-outline"
-            title="Daily Reminders"
-            text="Quran, Hadith, Du'a and motivation to keep your heart connected."
-          />
+      <View style={styles.brandRow}>
+        <View style={styles.logoMark}>
+          <Ionicons name="home" size={34} color={Colors.primary} />
+          <Ionicons name="leaf" size={18} color={Colors.gold} style={styles.logoLeaf} />
         </View>
+        <View>
+          <Text style={styles.brandFamily}>FAMILY</Text>
+          <Text style={styles.brandPledge}>PLEDGE</Text>
+        </View>
+      </View>
 
-        <View style={styles.namlefRow}>
-          <Ionicons name="information-circle-outline" size={16} color={Colors.gold} />
-          <Text style={styles.namlefText}>
-            Initiative of <Text style={styles.namlefBold}>NAMLEF</Text> — National Muslim Leaders Forum
-          </Text>
-        </View>
+      <Text style={styles.initiative}>A initiative under</Text>
+      <Text style={styles.namlef}>NAMLEF</Text>
 
-        <View style={styles.actions}>
-          <AppButton
-            title="Sign My Pledge"
-            onPress={() => router.push('/auth/register')}
-            variant="primary"
-            icon={<Ionicons name="create-outline" size={18} color={Colors.white} />}
-          />
-          <AppButton
-            title="I Already Have an Account"
-            onPress={() => router.push('/auth/login')}
-            variant="outline"
-            style={{ marginTop: 12 }}
-          />
-          <AppButton
-            title="Continue as Visitor"
-            onPress={() => router.replace('/tabs/home')}
-            variant="ghost"
-            style={{ marginTop: 4 }}
-          />
-        </View>
-      </ScrollView>
-    </View>
+      <View style={styles.heroCopy}>
+        <Text style={styles.title}>Small Pledge,{`\n`}Big Impact</Text>
+        <Text style={styles.description}>
+          Your monthly $10 pledge helps provide food, water, clothing,
+          emergency cash assistance and hope to families in Gaza.
+        </Text>
+      </View>
+
+      <View style={styles.actions}>
+        <AppButton
+          title="Sign Your Pledge"
+          onPress={() => router.push('/auth/register')}
+          variant="primary"
+          style={styles.primaryButton}
+          textStyle={styles.primaryButtonText}
+        />
+        <AppButton
+          title="I Already Have an Account"
+          onPress={() => router.push('/auth/login')}
+          variant="outline"
+          style={styles.secondaryButton}
+          textStyle={styles.secondaryButtonText}
+        />
+      </View>
+
+      <View style={styles.secondaryRail}>
+        <TrustBadge icon="lock-closed" title="Secure & Private" text="Your data is safe" compact />
+        <TrustBadge icon="globe" title="Global Community" text="Be part of change" compact />
+      </View>
+
+      <View style={styles.skylineCard}>
+        <View style={styles.sun} />
+        <View style={styles.dome} />
+        <View style={styles.domeBase} />
+        <View style={styles.tower} />
+        <View style={styles.towerTop} />
+        <View style={styles.cityLine} />
+        <Text style={styles.skylineText}>Gaza Relief • Transparent Impact • Daily Reminders</Text>
+      </View>
+    </ScrollView>
   );
 }
 
-function FeatureRow({ icon, title, text }: { icon: string; title: string; text: string }) {
+function TrustBadge({
+  icon,
+  title,
+  text,
+  compact = false,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  text: string;
+  compact?: boolean;
+}) {
   return (
-    <View style={styles.featureRow}>
-      <View style={styles.featureIcon}>
-        <Ionicons name={icon as any} size={22} color={Colors.primary} />
+    <View style={[styles.trustBadge, compact && styles.trustBadgeCompact]}>
+      <View style={styles.trustIcon}>
+        <Ionicons name={icon} size={compact ? 17 : 19} color={Colors.primaryDark} />
       </View>
-      <View style={styles.featureText}>
-        <Text style={styles.featureTitle}>{title}</Text>
-        <Text style={styles.featureDesc}>{text}</Text>
+      <View style={styles.trustCopy}>
+        <Text style={styles.trustTitle}>{title}</Text>
+        <Text style={styles.trustText}>{text}</Text>
       </View>
     </View>
   );
@@ -142,52 +145,155 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: Colors.cream,
+    backgroundColor: '#F4F8F6',
   },
-  hero: {
-    backgroundColor: Colors.primary,
+  content: {
+    minHeight: '100%',
+    paddingTop: 54,
+    paddingHorizontal: 28,
+    paddingBottom: 28,
+  },
+  badgeRail: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 28,
+  },
+  secondaryRail: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 22,
+  },
+  trustBadge: {
+    flex: 1,
+    minHeight: 58,
+    borderRadius: 22,
+    backgroundColor: Colors.white,
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 70,
-    paddingBottom: 36,
-    paddingHorizontal: 24,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    paddingHorizontal: 12,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 3,
   },
-  logoCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  trustBadgeCompact: {
+    minHeight: 54,
+    borderRadius: 18,
+  },
+  trustIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E9F3EC',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: Colors.gold,
+    marginRight: 9,
   },
-  appName: {
-    fontSize: 30,
+  trustCopy: {
+    flex: 1,
+  },
+  trustTitle: {
+    color: Colors.black,
+    fontSize: 12,
     fontWeight: '800',
-    color: Colors.white,
-    letterSpacing: 0.5,
   },
-  tagline: {
-    fontSize: 17,
-    color: Colors.gold,
+  trustText: {
+    color: Colors.text.secondary,
+    fontSize: 11,
     fontWeight: '600',
-    marginTop: 6,
-    letterSpacing: 0.3,
+    marginTop: 2,
   },
-  goldLine: {
-    width: 60,
-    height: 3,
-    backgroundColor: Colors.gold,
-    borderRadius: 2,
-    marginVertical: 12,
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 10,
   },
-  sub: {
+  logoMark: {
+    width: 66,
+    height: 66,
+    borderRadius: 20,
+    backgroundColor: '#EEF7EF',
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  logoLeaf: {
+    position: 'absolute',
+    right: 10,
+    bottom: 8,
+  },
+  brandFamily: {
+    color: Colors.primary,
+    fontSize: 30,
+    lineHeight: 31,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  brandPledge: {
+    color: Colors.black,
+    fontSize: 30,
+    lineHeight: 31,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  initiative: {
+    color: Colors.black,
     fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+    marginLeft: 82,
+    fontWeight: '600',
+  },
+  namlef: {
+    color: Colors.primary,
+    fontSize: 22,
+    marginLeft: 82,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+  heroCopy: {
+    marginTop: 32,
+  },
+  title: {
+    color: Colors.primary,
+    fontSize: 34,
+    lineHeight: 42,
+    fontWeight: '900',
+    letterSpacing: -0.4,
+  },
+  description: {
+    marginTop: 22,
+    color: Colors.black,
+    fontSize: 17,
+    lineHeight: 27,
     fontWeight: '500',
+    maxWidth: width - 62,
+  },
+  actions: {
+    marginTop: 30,
+    gap: 12,
+  },
+  primaryButton: {
+    borderRadius: 10,
+    minHeight: 54,
+    shadowOpacity: 0,
+  },
+  primaryButtonText: {
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  secondaryButton: {
+    borderRadius: 10,
+    minHeight: 54,
+    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.72)',
+  },
+  secondaryButtonText: {
+    fontSize: 15,
+    fontWeight: '800',
   },
   splashTitle: {
     fontSize: 28,
@@ -195,69 +301,78 @@ const styles = StyleSheet.create({
     color: Colors.white,
     marginTop: 8,
   },
-  scroll: {
-    flex: 1,
+  skylineCard: {
+    height: 190,
+    marginTop: 28,
+    borderRadius: 28,
+    overflow: 'hidden',
+    backgroundColor: '#E8EFEA',
+    borderWidth: 1,
+    borderColor: '#DCE8DE',
   },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
+  sun: {
+    position: 'absolute',
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: Colors.gold,
+    left: 132,
+    top: 38,
   },
-  features: {
-    backgroundColor: Colors.white,
-    borderRadius: 20,
-    padding: 20,
-    gap: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+  dome: {
+    position: 'absolute',
+    width: 150,
+    height: 75,
+    borderTopLeftRadius: 75,
+    borderTopRightRadius: 75,
+    backgroundColor: '#D6A437',
+    left: 100,
+    bottom: 38,
   },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 14,
+  domeBase: {
+    position: 'absolute',
+    width: 178,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#F6E7B2',
+    left: 86,
+    bottom: 20,
   },
-  featureIcon: {
+  tower: {
+    position: 'absolute',
+    width: 26,
+    height: 118,
+    borderRadius: 13,
+    backgroundColor: '#F4F1E4',
+    left: 36,
+    bottom: 18,
+  },
+  towerTop: {
+    position: 'absolute',
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.primary + '12',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    backgroundColor: '#D6A437',
+    left: 27,
+    bottom: 124,
   },
-  featureText: {
-    flex: 1,
+  cityLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 34,
+    backgroundColor: 'rgba(11,107,58,0.18)',
   },
-  featureTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Colors.text.primary,
-    marginBottom: 2,
-  },
-  featureDesc: {
-    fontSize: 13,
-    color: Colors.text.secondary,
-    lineHeight: 19,
-  },
-  namlefRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    justifyContent: 'center',
-    marginBottom: 24,
-  },
-  namlefText: {
-    fontSize: 13,
-    color: Colors.text.secondary,
-  },
-  namlefBold: {
-    color: Colors.primary,
-    fontWeight: '700',
-  },
-  actions: {
-    gap: 0,
+  skylineText: {
+    position: 'absolute',
+    left: 18,
+    right: 18,
+    bottom: 10,
+    textAlign: 'center',
+    color: Colors.primaryDark,
+    fontSize: 12,
+    fontWeight: '800',
   },
 });
