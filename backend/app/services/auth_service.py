@@ -9,15 +9,17 @@ from app.schemas.auth import LoginRequest, RegisterRequest
 
 
 def register(db: Session, data: RegisterRequest) -> User:
-    if db.scalar(select(User).where(User.phone == data.phone)):
+    phone = data.phone.strip()
+    email = str(data.email).lower() if data.email else None
+    if db.scalar(select(User).where(User.phone == phone)):
         raise HTTPException(400, "Phone number already registered")
-    if data.email and db.scalar(select(User).where(User.email == data.email)):
+    if email and db.scalar(select(User).where(User.email == email)):
         raise HTTPException(400, "Email already registered")
 
     user = User(
         full_name=data.full_name,
-        phone=data.phone,
-        email=data.email,
+        phone=phone,
+        email=email,
         password_hash=hash_password(data.password),
         country=data.country,
         city=data.city,

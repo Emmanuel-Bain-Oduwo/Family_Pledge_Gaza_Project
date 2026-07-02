@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, StyleProp, ViewStyle, TouchableOpacity } from 'react-native';
 import { Colors } from '../constants/colors';
+import { ReferenceTheme } from '../constants/referenceTheme';
 
 interface AppCardProps {
   children: React.ReactNode;
@@ -22,7 +23,7 @@ export default function AppCard({
   const cardStyle: StyleProp<ViewStyle> = [
     styles.card,
     shadow ? styles.shadow : null,
-    borderColor ? { borderLeftWidth: 4, borderLeftColor: borderColor } : null,
+    borderColor ? { borderWidth: 1, borderColor } : null,
     { padding },
     style,
   ];
@@ -41,14 +42,14 @@ export default function AppCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.white,
-    borderRadius: 16,
+    borderRadius: ReferenceTheme.radius.card,
     overflow: 'hidden',
   },
   shadow: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: ReferenceTheme.shadow,
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowRadius: 18,
+    elevation: 4,
   },
 });
