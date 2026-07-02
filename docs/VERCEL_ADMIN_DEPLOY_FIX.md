@@ -17,7 +17,7 @@ If the Vercel Root Directory is already `frontend/admin`, that means Vercel is e
 frontend/admin/frontend/admin
 ```
 
-That nested folder does not exist in this clean monorepo, so the build correctly fails.
+This repo includes a tiny compatibility package at that nested path so the stale command can still install and build the real admin app. The clean long-term fix is still to update the Vercel dashboard settings below.
 
 ## Correct Vercel project settings
 
@@ -56,7 +56,7 @@ It intentionally runs commands from inside `frontend/admin`:
 
 A root-level `vercel.json` is also included for the alternate setup where the Vercel project root is the repository root. In that mode, Vercel runs `cd frontend/admin && npm install`, builds with `cd frontend/admin && npm run build`, and publishes `frontend/admin/.next`.
 
-Do not create a nested `frontend/admin/frontend/admin` folder to work around dashboard settings. Keep the repo clean and fix the Vercel project settings instead.
+The nested `frontend/admin/frontend/admin` package is intentionally tiny and only delegates commands back to the real app. Keep real admin source files in `frontend/admin`; do not duplicate the app inside the compatibility folder.
 
 ## User/mobile app reminder
 
