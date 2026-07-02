@@ -9,15 +9,15 @@ Running "install" command: `cd frontend/admin && npm install`...
 sh: line 1: cd: frontend/admin: No such file or directory
 ```
 
-then Vercel is already running inside the `frontend/admin` directory, but the Vercel project still has an old install-command override that tries to enter `frontend/admin` again.
+then Vercel is already running from a directory where `frontend/admin` does not exist, or the Vercel project still has an old install-command override that tries to enter `frontend/admin` from the wrong place.
 
-That means Vercel is effectively trying to run this path:
+If the Vercel Root Directory is already `frontend/admin`, that means Vercel is effectively trying to run this path:
 
 ```text
 frontend/admin/frontend/admin
 ```
 
-That nested folder should not exist in a clean monorepo, so the build correctly fails.
+That nested folder does not exist in this clean monorepo, so the build correctly fails.
 
 ## Correct Vercel project settings
 
@@ -56,10 +56,7 @@ It intentionally runs commands from inside `frontend/admin`:
 
 A root-level `vercel.json` is also included for the alternate setup where the Vercel project root is the repository root. In that mode, Vercel runs `cd frontend/admin && npm install`, builds with `cd frontend/admin && npm run build`, and publishes `frontend/admin/.next`.
 
-
-## Compatibility shim
-
-The repo also includes a small compatibility shim at `frontend/admin/frontend/admin` that points back to the real admin app. This means the old Vercel command `cd frontend/admin && npm install` will no longer fail even if Vercel is already rooted at `frontend/admin`. The clean long-term setting is still to remove the old dashboard override and use `npm install` directly.
+Do not create a nested `frontend/admin/frontend/admin` folder to work around dashboard settings. Keep the repo clean and fix the Vercel project settings instead.
 
 ## User/mobile app reminder
 

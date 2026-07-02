@@ -104,7 +104,7 @@ NEXT_PUBLIC_API_URL=https://<railway-backend-domain>/api/v1
 
 ### If Vercel still runs `cd frontend/admin && npm install`
 
-That command is an old Vercel dashboard override. When the Vercel Root Directory is already `frontend/admin`, the install command must be `npm install` only. Remove the old override in Vercel Project Settings, then redeploy the failed preview/build. See `docs/VERCEL_ADMIN_DEPLOY_FIX.md`.
+That command is only valid when the Vercel project root is the repository root. When the Vercel Root Directory is already `frontend/admin`, the install command must be `npm install` only. Remove the old override in Vercel Project Settings, then redeploy the failed preview/build. See `docs/VERCEL_ADMIN_DEPLOY_FIX.md`.
 
 ## Railway PostgreSQL
 
