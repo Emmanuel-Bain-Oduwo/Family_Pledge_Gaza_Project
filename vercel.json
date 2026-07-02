@@ -1,6 +1,0 @@
-{
-  "version": 2,
-  "buildCommand": "cd frontend/admin && npm run build",
-  "installCommand": "cd frontend/admin && npm install",
-  "outputDirectory": "frontend/admin/.next"
-}
