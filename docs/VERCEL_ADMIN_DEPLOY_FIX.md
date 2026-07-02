@@ -56,6 +56,8 @@ It intentionally runs commands from inside `frontend/admin`:
 
 A root-level `vercel.json` is also included for the alternate setup where the Vercel project root is the repository root. In that mode, Vercel runs `cd frontend/admin && npm install`, builds with `cd frontend/admin && npm run build`, and publishes `frontend/admin/.next`.
 
+An additional `frontend/vercel.json` exists for the setup currently seen in Vercel logs, where the Vercel Root Directory is `frontend` but the dashboard command still runs `cd frontend/admin && ...`. In that mode, Vercel publishes `admin/.next`, which is the real admin app build output relative to the `frontend` root.
+
 The compatibility packages are intentionally tiny and only delegate commands back to the real app. Keep real admin source files in `frontend/admin`; do not duplicate the app inside compatibility folders.
 
 ## User/mobile app reminder
