@@ -54,7 +54,6 @@ ROUTERS = (
 
 for router in ROUTERS:
     app.include_router(router, prefix=settings.API_V1_PREFIX)
-    app.include_router(router)
 
 
 @app.get("/health", tags=["Health"])

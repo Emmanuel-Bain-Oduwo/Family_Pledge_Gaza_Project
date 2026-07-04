@@ -17,7 +17,10 @@ If the Vercel Root Directory is already `frontend/admin`, that means Vercel is e
 frontend/admin/frontend/admin
 ```
 
-This repo includes tiny compatibility packages for the common stale-root combinations so the stale command can still install and build the real admin app. These packages also copy the generated `.next` output back to the likely Vercel output directory. The clean long-term fix is still to update the Vercel dashboard settings below.
+This repository now keeps only one real admin application at `frontend/admin`.
+Do not rely on nested compatibility folders such as `frontend/frontend/admin` or
+`frontend/admin/frontend/admin`; those duplicates were removed because they made
+the deploy target ambiguous.
 
 ## Correct Vercel project settings
 
@@ -54,11 +57,18 @@ It intentionally runs commands from inside `frontend/admin`:
 }
 ```
 
-A root-level `vercel.json` is also included for the alternate setup where the Vercel project root is the repository root. In that mode, Vercel runs `cd frontend/admin && npm install`, builds with `cd frontend/admin && npm run build`, and publishes `frontend/admin/.next`.
+A root-level `vercel.json` is also included for the alternate setup where the
+Vercel project root is the repository root. In that mode, Vercel runs
+`cd frontend/admin && npm install`, builds with
+`cd frontend/admin && npm run build`, and publishes `frontend/admin/.next`.
 
-An additional `frontend/vercel.json` exists for the setup currently seen in Vercel logs, where the Vercel Root Directory is `frontend` but the dashboard command still runs `cd frontend/admin && ...`. In that mode, Vercel publishes `admin/.next`, which is the real admin app build output relative to the `frontend` root.
+An additional `frontend/vercel.json` exists for the setup where the Vercel Root
+Directory is `frontend`. In that mode, Vercel runs `cd admin && ...` and
+publishes `admin/.next`, which is the real admin app build output relative to
+the `frontend` root.
 
-The compatibility packages are intentionally tiny and only delegate commands back to the real app. Keep real admin source files in `frontend/admin`; do not duplicate the app inside compatibility folders.
+Keep real admin source files in `frontend/admin`; do not duplicate the app inside
+compatibility folders.
 
 ## User/mobile app reminder
 

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "installCommand": "cd frontend/admin && npm install",
-  "buildCommand": "cd frontend/admin && npm run build",
+  "installCommand": "cd admin && npm install",
+  "buildCommand": "cd admin && npm run build",
   "outputDirectory": "admin/.next"
 }

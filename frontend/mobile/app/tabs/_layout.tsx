@@ -3,6 +3,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
 import { Platform } from 'react-native';
 
+type TabIconProps = {
+  color: string;
+  size: number;
+  focused: boolean;
+};
+
 export default function TabLayout() {
   return (
     <Tabs
@@ -40,7 +46,7 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           headerTitle: 'Family Pledge',
-          tabBarIcon: ({ color, size, focused }) => (
+          tabBarIcon: ({ color, size, focused }: TabIconProps) => (
             <Ionicons name={focused ? 'home' : 'home-outline'} size={size} color={color} />
           ),
         }}
@@ -49,7 +55,7 @@ export default function TabLayout() {
         name="pledge"
         options={{
           title: 'Pledge',
-          tabBarIcon: ({ color, size, focused }) => (
+          tabBarIcon: ({ color, size, focused }: TabIconProps) => (
             <Ionicons name={focused ? 'heart' : 'heart-outline'} size={size} color={color} />
           ),
         }}
@@ -58,7 +64,7 @@ export default function TabLayout() {
         name="campaigns"
         options={{
           title: 'Campaigns',
-          tabBarIcon: ({ color, size, focused }) => (
+          tabBarIcon: ({ color, size, focused }: TabIconProps) => (
             <Ionicons name={focused ? 'megaphone' : 'megaphone-outline'} size={size} color={color} />
           ),
         }}
@@ -67,7 +73,7 @@ export default function TabLayout() {
         name="reminders"
         options={{
           title: 'Reminders',
-          tabBarIcon: ({ color, size, focused }) => (
+          tabBarIcon: ({ color, size, focused }: TabIconProps) => (
             <Ionicons name={focused ? 'moon' : 'moon-outline'} size={size} color={color} />
           ),
         }}
@@ -76,7 +82,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size, focused }) => (
+          tabBarIcon: ({ color, size, focused }: TabIconProps) => (
             <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color} />
           ),
         }}
