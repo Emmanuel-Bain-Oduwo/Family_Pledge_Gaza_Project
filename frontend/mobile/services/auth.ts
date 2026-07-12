@@ -1,27 +1,28 @@
 import * as SecureStore from 'expo-secure-store';
+import { storage } from './webCompat';
 import { AuthTokens, User } from '../types';
 
 const TOKEN_KEY = 'family_pledge_token';
 const USER_KEY = 'family_pledge_user';
 
 export const saveToken = async (tokens: AuthTokens): Promise<void> => {
-  await SecureStore.setItemAsync(TOKEN_KEY, tokens.access_token);
+  await storage.setItem(TOKEN_KEY, tokens.access_token, SecureStore.setItemAsync);
 };
 
 export const getToken = async (): Promise<string | null> => {
-  return SecureStore.getItemAsync(TOKEN_KEY);
+  return storage.getItem(TOKEN_KEY, SecureStore.getItemAsync);
 };
 
 export const removeToken = async (): Promise<void> => {
-  await SecureStore.deleteItemAsync(TOKEN_KEY);
+  await storage.removeItem(TOKEN_KEY, SecureStore.deleteItemAsync);
 };
 
 export const saveUser = async (user: User): Promise<void> => {
-  await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
+  await storage.setItem(USER_KEY, JSON.stringify(user), SecureStore.setItemAsync);
 };
 
 export const getUser = async (): Promise<User | null> => {
-  const raw = await SecureStore.getItemAsync(USER_KEY);
+  const raw = await storage.getItem(USER_KEY, SecureStore.getItemAsync);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as User;
@@ -31,7 +32,7 @@ export const getUser = async (): Promise<User | null> => {
 };
 
 export const removeUser = async (): Promise<void> => {
-  await SecureStore.deleteItemAsync(USER_KEY);
+  await storage.removeItem(USER_KEY, SecureStore.deleteItemAsync);
 };
 
 export const isAuthenticated = async (): Promise<boolean> => {

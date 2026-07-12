@@ -170,3 +170,43 @@ eas build --platform ios
 ## Contributing
 
 This app is a NAMLEF initiative. All contributions must align with the project's humanitarian mission.
+
+## Mobile Web Preview Deployment (Vercel)
+
+This web build is a preview/demo deployment of the existing Expo mobile user app. It does **not** replace Android/iOS. Native app store builds should still be produced later with EAS for Google Play and Apple App Store submission.
+
+### Vercel project settings
+
+- **Root Directory:** `frontend/mobile`
+- **Build Command:** `npm run build:web`
+- **Output Directory:** `dist`
+- **Install Command:** `npm install`
+- **Framework Preset:** Other / `null`
+- **Environment Variable:** `EXPO_PUBLIC_API_URL=https://your-backend-domain.com/api/v1`
+
+### Run locally
+
+```bash
+npm install
+npm run web
+```
+
+### Build the static web preview
+
+```bash
+npm run build:web
+```
+
+Expo exports the browser preview into `dist/`.
+
+### Preview the exported `dist/`
+
+```bash
+npm run preview:web
+```
+
+### How this differs from Android/iOS EAS builds
+
+- Vercel serves a static browser preview of the Expo app for owner review and demos.
+- Native Android/iOS functionality remains in the Expo app and should be built with `eas build`.
+- Web skips native push-token registration and uses browser-safe fallbacks for storage, clipboard, sharing, and external links.

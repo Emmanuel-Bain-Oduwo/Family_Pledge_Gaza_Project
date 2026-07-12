@@ -1,6 +1,7 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, Linking, Alert } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { openExternalUrl } from '../services/webCompat';
 
 interface VideoButtonProps {
   url: string;
@@ -14,12 +15,7 @@ export default function VideoButton({ url, label }: VideoButtonProps) {
   const bgColor = isYouTube ? '#FF0000' : '#1C1C2E';
 
   const handlePress = async () => {
-    const supported = await Linking.canOpenURL(url);
-    if (supported) {
-      await Linking.openURL(url);
-    } else {
-      Alert.alert('Cannot open link', 'No app found to open this video.');
-    }
+    await openExternalUrl(url);
   };
 
   return (

@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppCard from './AppCard';
 import { Colors } from '../constants/colors';
 import { NamlefContent } from '../types';
+import { openExternalUrl } from '../services/webCompat';
 
 interface NamlefContentCardProps {
   content: NamlefContent;
@@ -50,7 +51,7 @@ export default function NamlefContentCard({ content, onPress }: NamlefContentCar
       <View style={styles.footer}>
         {content.video_url && (
           <TouchableOpacity
-            onPress={() => Linking.openURL(content.video_url!)}
+            onPress={() => openExternalUrl(content.video_url!)}
             style={[styles.mediaBtn, { backgroundColor: '#EF4444' }]}
           >
             <Ionicons name="play-circle" size={16} color={Colors.white} />
@@ -59,7 +60,7 @@ export default function NamlefContentCard({ content, onPress }: NamlefContentCar
         )}
         {content.audio_url && (
           <TouchableOpacity
-            onPress={() => Linking.openURL(content.audio_url!)}
+            onPress={() => openExternalUrl(content.audio_url!)}
             style={[styles.mediaBtn, { backgroundColor: Colors.primary }]}
           >
             <Ionicons name="musical-notes" size={16} color={Colors.white} />

@@ -5,11 +5,8 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
-  Share,
   TouchableOpacity,
   FlatList,
-  Alert,
-  Clipboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
@@ -20,6 +17,7 @@ import LoadingState from '../../components/LoadingState';
 import { getCollectorDashboard } from '../../services/api';
 import { CollectorDashboard, CircleMember } from '../../types';
 import { MOCK_COLLECTOR } from '../../constants/mockData';
+import { copyText, shareText } from '../../services/webCompat';
 
 const STATUS_COLOR: Record<string, string> = {
   paid: Colors.success,
@@ -50,21 +48,16 @@ export default function CollectorDashboardScreen() {
 
   const handleShareInvite = async () => {
     if (!data) return;
-    await Share.share({
-      message: `Join my Family Pledge circle for Gaza relief! 🌙\n\nUse my collector code: ${data.collector_code}\n\nSign up at familypledge.org — sign free or pledge USD 10/month for Palestine family support.\n\nOr use my invite link: ${data.invite_link}`,
-    });
+    await shareText(`Join my Family Pledge circle for Gaza relief! 🌙\n\nUse my collector code: ${data.collector_code}\n\nSign up at familypledge.org — sign free or pledge USD 10/month for Palestine family support.\n\nOr use my invite link: ${data.invite_link}`, 'Collector invite');
   };
 
   const handleCopyCode = () => {
     if (!data) return;
-    Clipboard.setString(data.collector_code);
-    Alert.alert('Copied!', `Code ${data.collector_code} copied to clipboard.`);
+    copyText('Collector code', data.collector_code);
   };
 
   const handleSendReminder = () => {
-    Share.share({
-      message: `As-salamu alaykum! 🌙\n\nThis is a gentle reminder to renew this month's Family Pledge or keep sharing awareness for Palestine.\n\nJazakallahu Khayran for your support of Gaza relief.\n\n— Your Family Pledge Collector`,
-    });
+    shareText(`As-salamu alaykum! 🌙\n\nThis is a gentle reminder to renew this month's Family Pledge or keep sharing awareness for Palestine.\n\nJazakallahu Khayran for your support of Gaza relief.\n\n— Your Family Pledge Collector`, 'Reminder');
   };
 
   if (loading) return <LoadingState fullScreen message="Loading collector dashboard..." />;

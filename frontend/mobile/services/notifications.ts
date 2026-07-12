@@ -4,15 +4,20 @@ import { savePushToken } from './api';
 
 const projectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID || 'family-pledge-namlef';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+}
 
 export const registerForPushNotifications = async (): Promise<string | null> => {
+  if (Platform.OS === 'web') {
+    return null;
+  }
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
 
@@ -56,6 +61,9 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
 };
 
 export const scheduleDailyReminder = async (): Promise<void> => {
+  if (Platform.OS === 'web') {
+    return;
+  }
   await Notifications.cancelAllScheduledNotificationsAsync();
   await Notifications.scheduleNotificationAsync({
     content: {
@@ -72,6 +80,9 @@ export const scheduleDailyReminder = async (): Promise<void> => {
 };
 
 export const scheduleFridayReminder = async (): Promise<void> => {
+  if (Platform.OS === 'web') {
+    return;
+  }
   await Notifications.scheduleNotificationAsync({
     content: {
       title: 'Friday Challenge 🕌',

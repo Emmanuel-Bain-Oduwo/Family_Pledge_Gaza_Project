@@ -6,11 +6,9 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Linking,
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Clipboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
@@ -19,6 +17,7 @@ import AppCard from '../../components/AppCard';
 import { createPledge, submitContribution } from '../../services/api';
 import { Config } from '../../constants/config';
 import { PAYMENT_SETTINGS, currentContributionMonth } from '../../constants/payment';
+import { copyText, openExternalUrl } from '../../services/webCompat';
 
 type PledgeOptionKey = 'kes10' | 'usd10' | 'usd20' | 'usd50' | 'open' | 'free';
 
@@ -39,11 +38,10 @@ export default function ContributeScreen() {
   const isFreePledge = selectedOption === 'free';
 
   const copy = (label: string, value: string) => {
-    Clipboard.setString(value);
-    Alert.alert('Copied', `${label} copied.`);
+    copyText(label, value);
   };
 
-  const handleOpenPaymentLink = () => Linking.openURL(Config.PAYMENT_LINK);
+  const handleOpenPaymentLink = () => openExternalUrl(Config.PAYMENT_LINK);
 
   const handleSubmit = async () => {
     if (!isFreePledge && (!amount || amount < 1)) {
