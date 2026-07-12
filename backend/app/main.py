@@ -1,7 +1,13 @@
-from fastapi import FastAPI
+import logging
+
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import inspect, text
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.config import settings
+from app.core.database import engine
 from app.api.routes import (
     admin,
     ai_assistant,
@@ -21,6 +27,18 @@ from app.api.routes import (
     users,
 )
 
+logger = logging.getLogger(__name__)
+
+CORE_TABLES = (
+    "users",
+    "campaigns",
+    "projects",
+    "daily_reminders",
+    "app_settings",
+    "contributions",
+    "pledges",
+)
+
 app = FastAPI(
     title="Family Pledge API",
     description="Family Pledge / NAMLEF Gaza Family Support backend for pledge signing, awareness content, contributions, reminders, collectors, and admin operations.",
@@ -34,6 +52,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
+    logger.exception("Unhandled database error on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Database operation failed"},
+    )
 
 ROUTERS = (
     mobile.router,
@@ -69,9 +96,35 @@ def health_check():
 
 
 @app.get("/ready", tags=["Health"])
-def readiness_check():
+def readiness_check(response: Response):
+    database_status = "failed"
+    migrations_status = "missing_tables"
+    missing_tables = list(CORE_TABLES)
+
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+            database_status = "connected"
+
+            existing_tables = set(inspect(connection).get_table_names())
+            missing_tables = [table for table in CORE_TABLES if table not in existing_tables]
+            migrations_status = "ok" if not missing_tables else "missing_tables"
+    except SQLAlchemyError:
+        logger.exception("Readiness check failed while checking database state")
+
+    status = (
+        "ready"
+        if database_status == "connected" and migrations_status == "ok"
+        else "not_ready"
+    )
+    if status != "ready":
+        response.status_code = 503
+
     return {
-        "status": "ready",
+        "status": status,
         "service": "family-pledge-api",
+        "database": database_status,
+        "migrations": migrations_status,
+        "missing_tables": missing_tables,
         "cors_origins_configured": len(settings.cors_origins_list),
     }
