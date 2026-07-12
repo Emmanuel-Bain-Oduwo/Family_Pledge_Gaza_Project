@@ -7,7 +7,9 @@ import {
   PaginatedResponse,
 } from '../types';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.familypledge.org/api/v1';
+const DEFAULT_API_URL = 'https://familypledgegazaproject-production.up.railway.app/api/v1';
+
+const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL).replace(/\/+$/, '');
 
 const unwrap = <T>(payload: T | { data: T }): T => {
   if (payload && typeof payload === 'object' && 'data' in payload) {
