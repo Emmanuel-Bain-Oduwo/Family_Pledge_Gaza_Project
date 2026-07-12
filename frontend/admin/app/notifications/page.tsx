@@ -31,7 +31,7 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     getNotifications()
-      .then(setNotifications)
+      .then((items) => setNotifications(Array.isArray(items) ? items : []))
       .catch(() => setNotifications(MOCK))
       .finally(() => setLoading(false));
   }, []);
@@ -66,7 +66,7 @@ export default function NotificationsPage() {
         </div>
         <div className="card p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center"><Clock size={20} className="text-amber-600" /></div>
-          <div><div className="text-2xl font-bold text-gray-900">{notifications[0] ? new Date(notifications[0].sent_at).toLocaleDateString() : '—'}</div><div className="text-xs text-gray-500">Last Sent</div></div>
+          <div><div className="text-2xl font-bold text-gray-900">{notifications[0]?.sent_at ? new Date(notifications[0].sent_at).toLocaleDateString() : '—'}</div><div className="text-xs text-gray-500">Last Sent</div></div>
         </div>
       </div>
 
@@ -114,7 +114,7 @@ export default function NotificationsPage() {
                     {n.sent_count !== undefined && (
                       <div className="text-sm font-semibold text-gray-900">{n.sent_count.toLocaleString()}</div>
                     )}
-                    <div className="text-xs text-gray-400">{formatDateTime(n.sent_at)}</div>
+                    <div className="text-xs text-gray-400">{n.sent_at ? formatDateTime(n.sent_at) : '—'}</div>
                   </div>
                 </div>
               </div>

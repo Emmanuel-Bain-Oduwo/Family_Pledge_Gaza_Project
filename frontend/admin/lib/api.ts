@@ -18,6 +18,46 @@ const unwrap = <T>(payload: T | { data: T }): T => {
   return payload as T;
 };
 
+type BackendContribution = Partial<Contribution> & {
+  user_full_name?: string | null;
+  user_phone?: string | null;
+  contribution_channel?: string | null;
+  transaction_reference?: string | null;
+  proof_image_url?: string | null;
+  contribution_month?: string | null;
+  created_at?: string | null;
+  confirmed_at?: string | null;
+  confirmed_by?: string | null;
+};
+
+export const adaptContribution = (raw: BackendContribution): Contribution => {
+  const [yearPart, monthPart] = (raw.contribution_month || '').split('-');
+  const year = Number(yearPart) || new Date().getFullYear();
+  const monthIndex = Number(monthPart) - 1;
+  const month = monthIndex >= 0 && monthIndex <= 11
+    ? new Date(Date.UTC(year, monthIndex, 1)).toLocaleString('en-US', { month: 'long', timeZone: 'UTC' })
+    : raw.month || 'Unknown';
+
+  return {
+    ...raw,
+    id: raw.id || '',
+    user_id: raw.user_id || '',
+    donor_name: raw.user_full_name || raw.donor_name || 'Unknown donor',
+    donor_phone: raw.user_phone || raw.donor_phone || '—',
+    amount: raw.amount ?? 0,
+    currency: raw.currency || 'USD',
+    reference: raw.transaction_reference || raw.reference || '—',
+    proof_url: raw.proof_image_url || raw.proof_url,
+    payment_method: raw.contribution_channel || raw.payment_method || 'Not specified',
+    status: raw.status || 'submitted',
+    month,
+    year,
+    submitted_at: raw.created_at || raw.submitted_at || '',
+    reviewed_at: raw.confirmed_at || raw.reviewed_at,
+    reviewed_by: raw.confirmed_by || raw.reviewed_by,
+  };
+};
+
 const client: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   timeout: 20000,
@@ -82,8 +122,9 @@ export const getDonors = async (params?: Record<string, string>): Promise<{ item
 // ── Contributions ─────────────────────────────────────────────────────────────
 export const getContributions = async (params?: Record<string, string>): Promise<{ items: Contribution[]; data: Contribution[]; total: number }> => {
   try {
-    const { data } = await client.get<{ items: Contribution[]; total: number }>('/admin/contributions', { params });
-    return { ...data, data: data.items };
+    const { data } = await client.get<{ items: BackendContribution[]; total: number }>('/admin/contributions', { params });
+    const items = (data.items || []).map(adaptContribution);
+    return { ...data, items, data: items };
   } catch (e) { return handle(e); }
 };
 
@@ -92,22 +133,22 @@ export const reviewContribution = async (
   payload: { status: ContributionStatus; admin_note?: string }
 ): Promise<Contribution> => {
   try {
-    const { data } = await client.patch<Contribution | { data: Contribution }>(`/admin/contributions/${id}/review`, payload);
-    return unwrap(data);
+    const { data } = await client.patch<BackendContribution | { data: BackendContribution }>(`/admin/contributions/${id}/review`, payload);
+    return adaptContribution(unwrap(data));
   } catch (e) { return handle(e); }
 };
 
 export const confirmContribution = async (id: string): Promise<Contribution> => {
   try {
-    const { data } = await client.patch<Contribution | { data: Contribution }>(`/admin/contributions/${id}/confirm`);
-    return unwrap(data);
+    const { data } = await client.patch<BackendContribution | { data: BackendContribution }>(`/admin/contributions/${id}/confirm`);
+    return adaptContribution(unwrap(data));
   } catch (e) { return handle(e); }
 };
 
 export const rejectContribution = async (id: string, admin_note?: string): Promise<Contribution> => {
   try {
-    const { data } = await client.patch<Contribution | { data: Contribution }>(`/admin/contributions/${id}/reject`, { admin_note });
-    return unwrap(data);
+    const { data } = await client.patch<BackendContribution | { data: BackendContribution }>(`/admin/contributions/${id}/reject`, { admin_note });
+    return adaptContribution(unwrap(data));
   } catch (e) { return handle(e); }
 };
 
@@ -260,7 +301,7 @@ export const updateNamlefContent = async (id: string, payload: Partial<NamlefCon
 export const getNotifications = async (): Promise<PushNotification[]> => {
   try {
     const { data } = await client.get<PaginatedResponse<PushNotification> | PushNotification[]>('/admin/notifications');
-    return Array.isArray(data) ? data : data.data;
+    return Array.isArray(data) ? data : data.items || [];
   } catch (e) { return handle(e); }
 };
 

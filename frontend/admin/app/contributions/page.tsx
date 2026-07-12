@@ -54,7 +54,7 @@ export default function ContributionsPage() {
     setReviewing(true);
     try {
       const updated = await reviewContribution(modalItem.id, { status: reviewAction, admin_note: adminNote });
-      setContributions((prev) => prev.map((c) => c.id === updated.id ? updated : c));
+      setContributions((prev) => prev.map((c) => c.id === updated.id ? { ...updated, donor_name: c.donor_name, donor_phone: c.donor_phone, user_id: c.user_id } : c));
       toast.success(`Marked as ${reviewAction.replace(/_/g, ' ')}.`);
       setModalItem(null);
     } catch (e: any) {
