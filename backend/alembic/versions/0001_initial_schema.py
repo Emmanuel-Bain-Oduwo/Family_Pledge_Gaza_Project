@@ -18,24 +18,48 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+
+USER_ROLE = postgresql.ENUM("donor", "admin", "collector", "super_admin", name="user_role", create_type=False)
+PLEDGE_TYPE = postgresql.ENUM("monthly", "free_participant", name="pledge_type", create_type=False)
+PLEDGE_STATUS = postgresql.ENUM("active", "paused", "cancelled", name="pledge_status", create_type=False)
+CONTRIBUTION_STATUS = postgresql.ENUM("submitted", "confirmed", "rejected", "needs_follow_up", name="contribution_status", create_type=False)
+CAMPAIGN_TYPE = postgresql.ENUM("monthly", "friday", "emergency", "sponsorship", "food", "water", "clothing", "general", name="campaign_type", create_type=False)
+CAMPAIGN_STATUS = postgresql.ENUM("draft", "active", "completed", "archived", name="campaign_status", create_type=False)
+PROJECT_CATEGORY = postgresql.ENUM("food", "water", "clothing", "emergency_cash", "orphans", "widows", "children", "general", name="project_category", create_type=False)
+PROJECT_STATUS = postgresql.ENUM("upcoming", "active", "completed", "archived", name="project_status", create_type=False)
+REMINDER_TYPE = postgresql.ENUM("quran", "hadith", "dua", "motivation", "friday", "sadaqah", name="reminder_type", create_type=False)
+REMINDER_STATUS = postgresql.ENUM("draft", "approved", "published", "archived", name="reminder_status", create_type=False)
+NOTIFICATION_TYPE = postgresql.ENUM("pledge", "campaign", "emergency", "reminder", "impact", "system", name="notification_type", create_type=False)
+NOTIFICATION_AUDIENCE = postgresql.ENUM("all_users", "pending_donors", "confirmed_donors", "collectors", "admins", name="notification_audience", create_type=False)
+NAMLEF_CONTENT_TYPE = postgresql.ENUM("video", "audio", "text", "link", name="namlef_content_type", create_type=False)
+NAMLEF_CONTENT_STATUS = postgresql.ENUM("draft", "published", "archived", name="namlef_content_status", create_type=False)
+AI_DRAFT_TYPE = postgresql.ENUM("reminder", "impact_update", "friday_challenge", "emergency_appeal", "weekly_summary", "collector_message", "social_caption", name="ai_draft_type", create_type=False)
+AI_DRAFT_STATUS = postgresql.ENUM("draft", "approved", "rejected", "published", name="ai_draft_status", create_type=False)
+
+ALL_ENUMS = (
+    USER_ROLE,
+    PLEDGE_TYPE,
+    PLEDGE_STATUS,
+    CONTRIBUTION_STATUS,
+    CAMPAIGN_TYPE,
+    CAMPAIGN_STATUS,
+    PROJECT_CATEGORY,
+    PROJECT_STATUS,
+    REMINDER_TYPE,
+    REMINDER_STATUS,
+    NOTIFICATION_TYPE,
+    NOTIFICATION_AUDIENCE,
+    NAMLEF_CONTENT_TYPE,
+    NAMLEF_CONTENT_STATUS,
+    AI_DRAFT_TYPE,
+    AI_DRAFT_STATUS,
+)
+
 def upgrade() -> None:
     # ── Enums ──────────────────────────────────────────────────────────────────
-    op.execute("DO $$ BEGIN CREATE TYPE user_role AS ENUM ('donor','admin','collector','super_admin'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
-    op.execute("DO $$ BEGIN CREATE TYPE pledge_type AS ENUM ('monthly','free_participant'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
-    op.execute("DO $$ BEGIN CREATE TYPE pledge_status AS ENUM ('active','paused','cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
-    op.execute("DO $$ BEGIN CREATE TYPE contribution_status AS ENUM ('submitted','confirmed','rejected','needs_follow_up'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
-    op.execute("DO $$ BEGIN CREATE TYPE campaign_type AS ENUM ('monthly','friday','emergency','sponsorship','food','water','clothing','general'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
-    op.execute("DO $$ BEGIN CREATE TYPE campaign_status AS ENUM ('draft','active','completed','archived'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
-    op.execute("DO $$ BEGIN CREATE TYPE project_category AS ENUM ('food','water','clothing','emergency_cash','orphans','widows','children','general'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
-    op.execute("DO $$ BEGIN CREATE TYPE project_status AS ENUM ('upcoming','active','completed','archived'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
-    op.execute("DO $$ BEGIN CREATE TYPE reminder_type AS ENUM ('quran','hadith','dua','motivation','friday','sadaqah'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
-    op.execute("DO $$ BEGIN CREATE TYPE reminder_status AS ENUM ('draft','approved','published','archived'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
-    op.execute("DO $$ BEGIN CREATE TYPE notification_type AS ENUM ('pledge','campaign','emergency','reminder','impact','system'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
-    op.execute("DO $$ BEGIN CREATE TYPE notification_audience AS ENUM ('all_users','pending_donors','confirmed_donors','collectors','admins'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
-    op.execute("DO $$ BEGIN CREATE TYPE namlef_content_type AS ENUM ('video','audio','text','link'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
-    op.execute("DO $$ BEGIN CREATE TYPE namlef_content_status AS ENUM ('draft','published','archived'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
-    op.execute("DO $$ BEGIN CREATE TYPE ai_draft_type AS ENUM ('reminder','impact_update','friday_challenge','emergency_appeal','weekly_summary','collector_message','social_caption'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
-    op.execute("DO $$ BEGIN CREATE TYPE ai_draft_status AS ENUM ('draft','approved','rejected','published'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
+    bind = op.get_bind()
+    for enum in ALL_ENUMS:
+        enum.create(bind, checkfirst=True)
 
     # ── users ─────────────────────────────────────────────────────────────────
     op.create_table(
@@ -48,7 +72,7 @@ def upgrade() -> None:
         sa.Column("country", sa.String(100), nullable=True),
         sa.Column("city", sa.String(100), nullable=True),
         sa.Column("password_hash", sa.String(255), nullable=False),
-        sa.Column("role", sa.Enum("donor","admin","collector","super_admin", name="user_role"), nullable=False, server_default="donor"),
+        sa.Column("role", USER_ROLE, nullable=False, server_default="donor"),
         sa.Column("anonymous_publicly", sa.Boolean, nullable=False, server_default="false"),
         sa.Column("public_display_name", sa.String(100), nullable=True),
         sa.Column("collector_code", sa.String(50), nullable=True, unique=True),
@@ -68,13 +92,13 @@ def upgrade() -> None:
         "campaigns",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("title", sa.String(255), nullable=False),
-        sa.Column("campaign_type", sa.Enum("monthly","friday","emergency","sponsorship","food","water","clothing","general", name="campaign_type"), nullable=False),
+        sa.Column("campaign_type", CAMPAIGN_TYPE, nullable=False),
         sa.Column("description", sa.Text, nullable=False),
         sa.Column("target_amount", sa.Numeric(12, 2), nullable=True),
         sa.Column("raised_amount", sa.Numeric(12, 2), nullable=False, server_default="0"),
         sa.Column("donor_target", sa.Integer, nullable=True),
         sa.Column("donor_count", sa.Integer, nullable=False, server_default="0"),
-        sa.Column("status", sa.Enum("draft","active","completed","archived", name="campaign_status"), nullable=False, server_default="draft"),
+        sa.Column("status", CAMPAIGN_STATUS, nullable=False, server_default="draft"),
         sa.Column("starts_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("ends_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("cover_image_url", sa.String(1024), nullable=True),
@@ -95,12 +119,12 @@ def upgrade() -> None:
         "projects",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("title", sa.String(255), nullable=False),
-        sa.Column("category", sa.Enum("food","water","clothing","emergency_cash","orphans","widows","children","general", name="project_category"), nullable=False),
+        sa.Column("category", PROJECT_CATEGORY, nullable=False),
         sa.Column("description", sa.Text, nullable=False),
         sa.Column("target_amount", sa.Numeric(12, 2), nullable=True),
         sa.Column("raised_amount", sa.Numeric(12, 2), nullable=False, server_default="0"),
         sa.Column("beneficiaries_count", sa.Integer, nullable=True),
-        sa.Column("status", sa.Enum("upcoming","active","completed","archived", name="project_status"), nullable=False, server_default="upcoming"),
+        sa.Column("status", PROJECT_STATUS, nullable=False, server_default="upcoming"),
         sa.Column("location", sa.String(255), nullable=True),
         sa.Column("cover_image_url", sa.String(1024), nullable=True),
         sa.Column("video_url", sa.String(1024), nullable=True),
@@ -121,8 +145,8 @@ def upgrade() -> None:
         sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
         sa.Column("amount", sa.Numeric(12, 2), nullable=False, server_default="10.00"),
         sa.Column("currency", sa.String(3), nullable=False, server_default="USD"),
-        sa.Column("pledge_type", sa.Enum("monthly","free_participant", name="pledge_type"), nullable=False, server_default="monthly"),
-        sa.Column("status", sa.Enum("active","paused","cancelled", name="pledge_status"), nullable=False, server_default="active"),
+        sa.Column("pledge_type", PLEDGE_TYPE, nullable=False, server_default="monthly"),
+        sa.Column("status", PLEDGE_STATUS, nullable=False, server_default="active"),
         sa.Column("start_date", sa.Date, nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
@@ -144,7 +168,7 @@ def upgrade() -> None:
         sa.Column("payment_link_used", sa.String(1024), nullable=True),
         sa.Column("transaction_reference", sa.String(255), nullable=True),
         sa.Column("proof_image_url", sa.String(1024), nullable=True),
-        sa.Column("status", sa.Enum("submitted","confirmed","rejected","needs_follow_up", name="contribution_status"), nullable=False, server_default="submitted"),
+        sa.Column("status", CONTRIBUTION_STATUS, nullable=False, server_default="submitted"),
         sa.Column("contribution_month", sa.String(7), nullable=False),
         sa.Column("admin_note", sa.Text, nullable=True),
         sa.Column("confirmed_by", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
@@ -184,13 +208,13 @@ def upgrade() -> None:
         "daily_reminders",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("title", sa.String(255), nullable=False),
-        sa.Column("reminder_type", sa.Enum("quran","hadith","dua","motivation","friday","sadaqah", name="reminder_type"), nullable=False),
+        sa.Column("reminder_type", REMINDER_TYPE, nullable=False),
         sa.Column("arabic_text", sa.Text, nullable=True),
         sa.Column("translation", sa.Text, nullable=True),
         sa.Column("explanation", sa.Text, nullable=True),
         sa.Column("source_reference", sa.String(255), nullable=True),
         sa.Column("image_url", sa.String(1024), nullable=True),
-        sa.Column("status", sa.Enum("draft","approved","published","archived", name="reminder_status"), nullable=False, server_default="draft"),
+        sa.Column("status", REMINDER_STATUS, nullable=False, server_default="draft"),
         sa.Column("scheduled_for", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_by", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="RESTRICT"), nullable=False),
         sa.Column("approved_by", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
@@ -208,12 +232,10 @@ def upgrade() -> None:
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("title", sa.String(255), nullable=False),
         sa.Column("body", sa.Text, nullable=False),
-        sa.Column("notification_type", sa.Enum("pledge","campaign","emergency","reminder","impact","system", name="notification_type"), nullable=False),
-        sa.Column("audience", sa.Enum("all_users","pending_donors","confirmed_donors","collectors","admins", name="notification_audience"), nullable=False),
+        sa.Column("notification_type", NOTIFICATION_TYPE, nullable=False),
+        sa.Column("audience", NOTIFICATION_AUDIENCE, nullable=False),
         sa.Column("sent_by", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="RESTRICT"), nullable=False),
         sa.Column("sent_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("sent_count", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("failure_count", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
     )
@@ -256,12 +278,12 @@ def upgrade() -> None:
         sa.Column("title", sa.String(255), nullable=False),
         sa.Column("speaker_name", sa.String(255), nullable=True),
         sa.Column("speaker_role", sa.String(255), nullable=True),
-        sa.Column("content_type", sa.Enum("video","audio","text","link", name="namlef_content_type"), nullable=False),
+        sa.Column("content_type", NAMLEF_CONTENT_TYPE, nullable=False),
         sa.Column("description", sa.Text, nullable=True),
         sa.Column("url", sa.String(1024), nullable=True),
         sa.Column("thumbnail_url", sa.String(1024), nullable=True),
         sa.Column("is_featured", sa.Boolean, nullable=False, server_default="false"),
-        sa.Column("status", sa.Enum("draft","published","archived", name="namlef_content_status"), nullable=False, server_default="draft"),
+        sa.Column("status", NAMLEF_CONTENT_STATUS, nullable=False, server_default="draft"),
         sa.Column("created_by", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="RESTRICT"), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
@@ -301,10 +323,10 @@ def upgrade() -> None:
         "ai_drafts",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("admin_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="RESTRICT"), nullable=False),
-        sa.Column("draft_type", sa.Enum("reminder","impact_update","friday_challenge","emergency_appeal","weekly_summary","collector_message","social_caption", name="ai_draft_type"), nullable=False),
+        sa.Column("draft_type", AI_DRAFT_TYPE, nullable=False),
         sa.Column("input_context", postgresql.JSONB, nullable=True),
         sa.Column("generated_text", sa.Text, nullable=False),
-        sa.Column("status", sa.Enum("draft","approved","rejected","published", name="ai_draft_status"), nullable=False, server_default="draft"),
+        sa.Column("status", AI_DRAFT_STATUS, nullable=False, server_default="draft"),
         sa.Column("approved_by", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="SET NULL"), nullable=True),
         sa.Column("published_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
@@ -318,3 +340,6 @@ def upgrade() -> None:
 def downgrade() -> None:
     pass
 
+    bind = op.get_bind()
+    for enum in reversed(ALL_ENUMS):
+        enum.drop(bind, checkfirst=True)

@@ -98,3 +98,21 @@ curl -X POST https://familypledgegazaproject-production.up.railway.app/api/v1/au
 - `cors_origins_configured` should be `2` for the two Vercel frontend origins listed above.
 
 Unhandled database exceptions are logged in Railway logs with request method/path context, while API responses return a generic database error and do not expose credentials or connection strings.
+
+## Alembic enum migration recovery
+
+If `alembic upgrade head` previously failed with an error like:
+
+```text
+psycopg2.errors.DuplicateObject: type "user_role" already exists
+```
+
+that means PostgreSQL is reachable, but revision `0001` encountered enum types that were already present from a partial migration attempt. Do **not** delete the Railway Postgres database, do **not** manually drop enum types, and do **not** stamp Alembic head unless the tables were actually created.
+
+After deploying the fixed migration, rerun:
+
+```bash
+railway run --service <backend-service-name> alembic upgrade head
+```
+
+The initial migration now creates PostgreSQL enum types with `checkfirst=True` and reuses those same enum objects in table columns, so existing enum types are detected and reused while missing application tables are still created.
