@@ -242,6 +242,17 @@ export interface AppSettings {
   app_notice: string;
   privacy_policy_url: string;
   terms_url: string;
+  payment_account_name?: string;
+  payment_account_number?: string;
+  payment_currency?: string;
+  payment_bank_name?: string;
+  payment_branch_name?: string;
+  payment_swift_code?: string;
+  payment_intermediary_bank?: string;
+  payment_intermediary_swift_code?: string;
+  payment_mpesa_paybill?: string;
+  payment_bank_code?: string;
+  payment_branch_code?: string;
 }
 
 export interface ApiResponse<T> {

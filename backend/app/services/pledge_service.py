@@ -21,7 +21,13 @@ def create_pledge(db: Session, user: User, data: PledgeCreate) -> Pledge:
         )
     )
     if existing:
-        raise HTTPException(400, "You already have an active pledge")
+        existing.amount = data.amount
+        existing.currency = data.currency
+        existing.pledge_type = data.pledge_type
+        existing.start_date = data.start_date
+        db.commit()
+        db.refresh(existing)
+        return existing
 
     pledge = Pledge(
         user_id=user.id,

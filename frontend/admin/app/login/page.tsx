@@ -1,10 +1,12 @@
 'use client';
+import Image from 'next/image';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { adminLogin } from '../../lib/api';
 import { saveToken, isAuthenticated } from '../../lib/auth';
+import { FAMILY_PLEDGE_LOGO_DATA_URI } from '../../lib/logo';
 
 interface LoginForm { email: string; password: string; }
 
@@ -32,8 +34,16 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gold mb-4">
-            <span className="text-primary-dark font-bold text-2xl">FP</span>
+          <div className="inline-flex items-center justify-center w-28 h-28 rounded-3xl bg-white mb-4 shadow-lg overflow-hidden">
+            <Image
+              src={FAMILY_PLEDGE_LOGO_DATA_URI}
+              alt="Family Pledge logo"
+              width={112}
+              height={112}
+              className="object-contain"
+              unoptimized
+              priority
+            />
           </div>
           <h1 className="text-2xl font-bold text-white">Family Pledge</h1>
           <p className="text-white/60 text-sm mt-1">Admin Dashboard · NAMLEF</p>

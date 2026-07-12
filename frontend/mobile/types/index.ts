@@ -187,11 +187,17 @@ export interface LoginPayload {
 
 export interface ContributionPayload {
   campaign_id?: string;
-  amount: number;
+  pledge_id?: string;
+  amount?: number;
   currency: string;
-  reference: string;
+  reference?: string;
   proof_url?: string;
-  payment_method: string;
+  payment_method?: string;
+  transaction_reference?: string;
+  proof_image_url?: string;
+  contribution_channel?: string;
+  contribution_month?: string;
+  payment_link_used?: string;
 }
 
 export interface ApiResponse<T> {

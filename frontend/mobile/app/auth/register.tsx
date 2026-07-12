@@ -15,6 +15,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
 import AppButton from '../../components/AppButton';
+import FamilyPledgeLogo from '../../components/FamilyPledgeLogo';
 import { register } from '../../services/api';
 import { saveToken } from '../../services/auth';
 
@@ -79,11 +80,9 @@ export default function RegisterScreen() {
     >
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.headerBlock}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="heart" size={28} color={Colors.primary} />
-          </View>
-          <Text style={styles.heading}>Join Family Pledge</Text>
-          <Text style={styles.subheading}>Pledge USD 10/month for Gaza relief</Text>
+          <FamilyPledgeLogo />
+          <Text style={styles.heading}>Sign Your Family Pledge</Text>
+          <Text style={styles.subheading}>Choose your pledge, receive daily reminders, and support Gaza relief with NAMLEF.</Text>
         </View>
 
         <View style={styles.section}>

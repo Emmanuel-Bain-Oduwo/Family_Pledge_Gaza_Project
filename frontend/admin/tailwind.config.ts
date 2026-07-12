@@ -10,17 +10,22 @@ const config: Config = {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#0B6B3A',
-          dark: '#064E2B',
-          light: '#1A8F50',
-          50: '#f0fdf4',
-          100: '#dcfce7',
+          DEFAULT: '#1F6D8C',
+          dark: '#15516B',
+          light: '#2F8FB3',
+          50: '#EFF8FC',
+          100: '#D9EEF7',
         },
-        cream: '#F8F4E8',
+        cream: '#F7F9FC',
+        pink: {
+          DEFAULT: '#E77BA3',
+          light: '#FCE7F0',
+          dark: '#C94F80',
+        },
         gold: {
-          DEFAULT: '#D6A437',
-          light: '#F0C060',
-          dark: '#B8861F',
+          DEFAULT: '#E77BA3',
+          light: '#F8B8CF',
+          dark: '#C94F80',
         },
         emergency: '#D94A38',
       },

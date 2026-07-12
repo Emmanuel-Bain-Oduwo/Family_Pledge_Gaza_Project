@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from app.models.enums import ContributionStatus
 
@@ -17,6 +17,20 @@ class ContributionSubmit(BaseModel):
     transaction_reference: Optional[str] = None
     proof_image_url: Optional[str] = None
     contribution_month: str  # YYYY-MM
+
+    @model_validator(mode="before")
+    @classmethod
+    def accept_mobile_legacy_aliases(cls, data):
+        if isinstance(data, dict):
+            aliases = {
+                "reference": "transaction_reference",
+                "proof_url": "proof_image_url",
+                "payment_method": "contribution_channel",
+            }
+            for old, new in aliases.items():
+                if old in data and new not in data:
+                    data[new] = data[old]
+        return data
 
     @field_validator("contribution_month")
     @classmethod

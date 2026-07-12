@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -6,6 +7,7 @@ import {
   Heart, BookOpen, UserCheck, Tv, Bell, Bot, Settings, LogOut,
 } from 'lucide-react';
 import { removeToken } from '../lib/auth';
+import { FAMILY_PLEDGE_LOGO_DATA_URI } from '../lib/logo';
 import { cn } from '../lib/utils';
 
 const NAV = [
@@ -37,8 +39,15 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="px-6 py-5 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center flex-shrink-0 border border-white/20">
-            <span className="text-primary font-black text-sm">FP</span>
+          <div className="w-11 h-11 rounded-2xl bg-white flex items-center justify-center flex-shrink-0 border border-white/20 overflow-hidden">
+            <Image
+              src={FAMILY_PLEDGE_LOGO_DATA_URI}
+              alt="Family Pledge logo"
+              width={44}
+              height={44}
+              className="object-contain"
+              unoptimized
+            />
           </div>
           <div>
             <div className="text-white font-black text-sm leading-tight tracking-wide">FAMILY PLEDGE</div>

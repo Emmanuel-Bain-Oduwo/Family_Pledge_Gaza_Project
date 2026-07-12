@@ -51,7 +51,7 @@ export default function CollectorDashboardScreen() {
   const handleShareInvite = async () => {
     if (!data) return;
     await Share.share({
-      message: `Join my Family Pledge circle for Gaza relief! 🌙\n\nUse my collector code: ${data.collector_code}\n\nSign up at familypledge.org — pledge USD 10/month and make a difference together.\n\nOr use my invite link: ${data.invite_link}`,
+      message: `Join my Family Pledge circle for Gaza relief! 🌙\n\nUse my collector code: ${data.collector_code}\n\nSign up at familypledge.org — sign free or pledge USD 10/month for Palestine family support.\n\nOr use my invite link: ${data.invite_link}`,
     });
   };
 
@@ -63,12 +63,14 @@ export default function CollectorDashboardScreen() {
 
   const handleSendReminder = () => {
     Share.share({
-      message: `As-salamu alaykum! 🌙\n\nThis is a friendly reminder that this month's Family Pledge contribution of USD 10 is due.\n\nJazakallahu Khayran for your support of Gaza relief.\n\n— Your Family Pledge Collector`,
+      message: `As-salamu alaykum! 🌙\n\nThis is a gentle reminder to renew this month's Family Pledge or keep sharing awareness for Palestine.\n\nJazakallahu Khayran for your support of Gaza relief.\n\n— Your Family Pledge Collector`,
     });
   };
 
   if (loading) return <LoadingState fullScreen message="Loading collector dashboard..." />;
   if (!data) return null;
+
+  const activePercent = data.total_registered ? Math.round((data.contributed_this_month / data.total_registered) * 100) : 0;
 
   return (
     <ScrollView
@@ -90,6 +92,11 @@ export default function CollectorDashboardScreen() {
         contributedThisMonth={data.contributed_this_month}
         pending={data.pending_this_month}
       />
+
+      <AppCard style={styles.motivationCard}>
+        <Text style={styles.motivationTitle}>May Allah reward your effort</Text>
+        <Text style={styles.motivationText}>Your invitation helped {data.total_registered} people join your circle. {activePercent}% are active this month — keep inviting with mercy and sincerity.</Text>
+      </AppCard>
 
       {/* Collector Code */}
       <AppCard style={styles.card}>
@@ -178,6 +185,9 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 22, fontWeight: '800', color: Colors.white },
   headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.75)' },
+  motivationCard: { marginHorizontal: 16, marginBottom: 16, backgroundColor: Colors.softPinkBg, borderColor: Colors.pinkLight },
+  motivationTitle: { fontSize: 16, fontWeight: '900', color: Colors.pinkDark, marginBottom: 6 },
+  motivationText: { fontSize: 13, lineHeight: 20, color: Colors.text.secondary, fontWeight: '600' },
   card: { marginHorizontal: 16, marginBottom: 16 },
   cardTitle: { fontSize: 15, fontWeight: '700', color: Colors.text.primary, marginBottom: 12 },
   codeBox: {

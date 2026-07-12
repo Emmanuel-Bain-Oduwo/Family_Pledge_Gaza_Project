@@ -11,10 +11,10 @@ import { formatDate, formatCurrency, pct } from '../../lib/utils';
 import toast from 'react-hot-toast';
 
 const MOCK: Project[] = [
-  { id: 'p1', title: 'Ramadan Food Packages', description: 'Monthly food packages for 500 families in Gaza', category: 'food', target_amount: 15000, raised_amount: 12400, beneficiaries_count: 500, location: 'Gaza City', status: 'active', created_at: '2025-03-01T10:00:00Z' },
-  { id: 'p2', title: 'Water Purification Units', description: 'Install 10 water purification units in Northern Gaza', category: 'water', target_amount: 8000, raised_amount: 8000, beneficiaries_count: 2000, location: 'North Gaza', status: 'completed', created_at: '2025-01-15T10:00:00Z' },
-  { id: 'p3', title: 'Orphan Sponsorship Program', description: 'Monthly stipend for orphaned children', category: 'orphans', target_amount: 20000, raised_amount: 11500, beneficiaries_count: 115, location: 'Rafah', status: 'active', created_at: '2025-02-01T10:00:00Z' },
-  { id: 'p4', title: 'Winter Clothing Drive', description: 'Warm clothing for families displaced by conflict', category: 'clothing', target_amount: 5000, raised_amount: 2100, beneficiaries_count: 300, location: 'Khan Yunis', status: 'paused', created_at: '2025-04-10T10:00:00Z' },
+  { id: 'p1', title: 'Awareness Bags for Family Homes', description: 'Books, videos, cards, articles, and games to keep Palestine present at home', category: 'food', target_amount: 15000, raised_amount: 12400, beneficiaries_count: 500, location: 'Gaza City', status: 'active', created_at: '2025-03-01T10:00:00Z' },
+  { id: 'p2', title: 'Plant a Tree in My Name', description: 'Symbolic Family Pledge project that connects supporters to Palestine with hope', category: 'water', target_amount: 8000, raised_amount: 8000, beneficiaries_count: 2000, location: 'North Gaza', status: 'completed', created_at: '2025-01-15T10:00:00Z' },
+  { id: 'p3', title: 'Women-Headed Family Support', description: 'Support Palestinian women who provide for and protect their families', category: 'orphans', target_amount: 20000, raised_amount: 11500, beneficiaries_count: 115, location: 'Rafah', status: 'active', created_at: '2025-02-01T10:00:00Z' },
+  { id: 'p4', title: 'Children’s Palestine Learning Pack', description: 'Child-friendly cards, comics, and activities about Jerusalem and Al-Aqsa', category: 'clothing', target_amount: 5000, raised_amount: 2100, beneficiaries_count: 300, location: 'Khan Yunis', status: 'paused', created_at: '2025-04-10T10:00:00Z' },
 ];
 
 const CATEGORIES = ['food', 'water', 'clothing', 'emergency_cash', 'orphans', 'widows', 'children', 'general'];
@@ -90,7 +90,7 @@ export default function ProjectsPage() {
   ];
 
   return (
-    <AdminLayout title="Projects" subtitle="Track aid projects and their funding progress">
+    <AdminLayout title="Projects" subtitle="Manage Family Pledge projects, awareness bags, and support programmes">
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <div className="flex flex-wrap gap-2 flex-1">
           <button onClick={() => setFilterCategory('')} className={`px-3 py-1.5 rounded-lg text-sm font-medium ${filterCategory === '' ? 'bg-primary text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>All</button>

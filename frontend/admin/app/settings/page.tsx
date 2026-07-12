@@ -1,10 +1,12 @@
 'use client';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { Save, ExternalLink } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import AdminLayout from '../../components/AdminLayout';
 import { getSettings, updateSettings } from '../../lib/api';
 import { AppSettings } from '../../types';
+import { FAMILY_PLEDGE_LOGO_DATA_URI } from '../../lib/logo';
 import toast from 'react-hot-toast';
 
 const MOCK_SETTINGS: AppSettings = {
@@ -15,6 +17,17 @@ const MOCK_SETTINGS: AppSettings = {
   app_notice: '',
   privacy_policy_url: 'https://familypledge.org/privacy',
   terms_url: 'https://familypledge.org/terms',
+  payment_account_name: 'NAMLEF GAZA FAMILY SUPPORT',
+  payment_account_number: '001505100664103',
+  payment_currency: 'KES',
+  payment_bank_name: 'DIB Bank Kenya Limited',
+  payment_branch_name: 'Upper Hill Branch',
+  payment_swift_code: 'DUIBKENA',
+  payment_intermediary_bank: 'J.P. Morgan Chase Bank, NY',
+  payment_intermediary_swift_code: 'CHASUS33',
+  payment_mpesa_paybill: '342342',
+  payment_bank_code: '75',
+  payment_branch_code: '001',
 };
 
 export default function SettingsPage() {
@@ -52,6 +65,22 @@ export default function SettingsPage() {
   return (
     <AdminLayout title="Settings" subtitle="App configuration and organization details">
       <form onSubmit={handleSubmit(onSubmit)} className="max-w-2xl space-y-6">
+        <div className="card p-6 flex items-center gap-4">
+          <div className="w-20 h-20 rounded-3xl bg-white border border-gray-100 shadow-sm flex items-center justify-center overflow-hidden">
+            <Image
+              src={FAMILY_PLEDGE_LOGO_DATA_URI}
+              alt="Family Pledge logo"
+              width={80}
+              height={80}
+              className="object-contain"
+              unoptimized
+            />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-gray-900">Family Pledge brand</h2>
+            <p className="text-sm text-gray-500 mt-1">Owner-provided logo and payment settings shown during the demo.</p>
+          </div>
+        </div>
 
         {/* Payment */}
         <div className="card p-6">
@@ -66,6 +95,57 @@ export default function SettingsPage() {
               <label className="label">Payment Instructions</label>
               <textarea {...register('payment_instructions')} className="input" rows={4} placeholder="Step-by-step instructions for M-PESA, bank, or paybill payments…" />
               <p className="text-xs text-gray-400 mt-1">Displayed in the Contribute Now flow in the mobile app.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bank / M-PESA */}
+        <div className="card p-6">
+          <h2 className="text-base font-bold text-gray-900 mb-1">DIB Bank / M-PESA Details</h2>
+          <p className="text-xs text-gray-400 mb-4">Admin-managed payment details used for owner demo and donor payment guidance.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="label">Account Name</label>
+              <input {...register('payment_account_name')} className="input" />
+            </div>
+            <div>
+              <label className="label">Account Number</label>
+              <input {...register('payment_account_number')} className="input" />
+            </div>
+            <div>
+              <label className="label">Currency</label>
+              <input {...register('payment_currency')} className="input" />
+            </div>
+            <div>
+              <label className="label">M-PESA PayBill</label>
+              <input {...register('payment_mpesa_paybill')} className="input" />
+            </div>
+            <div>
+              <label className="label">Bank Name</label>
+              <input {...register('payment_bank_name')} className="input" />
+            </div>
+            <div>
+              <label className="label">Branch Name</label>
+              <input {...register('payment_branch_name')} className="input" />
+            </div>
+            <div>
+              <label className="label">SWIFT Code</label>
+              <input {...register('payment_swift_code')} className="input" />
+            </div>
+            <div>
+              <label className="label">Intermediary SWIFT</label>
+              <input {...register('payment_intermediary_swift_code')} className="input" />
+            </div>
+            <div>
+              <label className="label">Intermediary Bank</label>
+              <input {...register('payment_intermediary_bank')} className="input" />
+            </div>
+            <div>
+              <label className="label">Bank / Branch Codes</label>
+              <div className="grid grid-cols-2 gap-2">
+                <input {...register('payment_bank_code')} className="input" placeholder="Bank code" />
+                <input {...register('payment_branch_code')} className="input" placeholder="Branch code" />
+              </div>
             </div>
           </div>
         </div>

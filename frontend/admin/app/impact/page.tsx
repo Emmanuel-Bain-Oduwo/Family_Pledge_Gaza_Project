@@ -9,9 +9,9 @@ import { formatDate } from '../../lib/utils';
 import toast from 'react-hot-toast';
 
 const MOCK: ImpactCard[] = [
-  { id: 'i1', title: 'Family of 7 receives food package', story: 'The Al-Masri family, displaced from Gaza City, received their first food package in weeks. The children had not eaten properly for days. With your pledge, they had bread, rice, and lentils for the first time this Ramadan.', beneficiaries_count: 7, location: 'Rafah', published: true, completed_date: '2025-06-01', created_at: '2025-06-02T10:00:00Z' },
-  { id: 'i2', title: 'Water well reaches 200 families', story: 'The water purification unit installed in Beit Lahiya is now providing clean water daily to over 200 families. Children who once walked 2km for water now have it at their doorstep.', beneficiaries_count: 200, location: 'Beit Lahiya', published: true, completed_date: '2025-05-20', created_at: '2025-05-21T08:00:00Z' },
-  { id: 'i3', title: 'Orphan education fund disbursed', story: 'This month\'s orphan sponsorship enabled 12 children to continue their education with books and supplies purchased from the fund.', beneficiaries_count: 12, location: 'Khan Yunis', published: false, created_at: '2025-06-08T14:00:00Z' },
+  { id: 'i1', title: '3,200 awareness bags prepared', story: 'Books, videos, podcasts, cards, articles, and games were prepared so families can teach children about Palestine, Jerusalem, and Al-Aqsa.', beneficiaries_count: 3200, location: 'Global pledge families', published: true, completed_date: '2025-06-01', created_at: '2025-06-02T10:00:00Z' },
+  { id: 'i2', title: '25,048 pledge signatures milestone', story: 'Families worldwide are signing the pledge for free or with monthly support, turning awareness into a visible global community.', beneficiaries_count: 25048, location: 'Worldwide', published: true, completed_date: '2025-05-20', created_at: '2025-05-21T08:00:00Z' },
+  { id: 'i3', title: 'Women-headed family support story', story: 'Consistent monthly pledges support Palestinian women who carry their families through hardship with dignity and resilience.', beneficiaries_count: 640, location: 'Palestine', published: false, created_at: '2025-06-08T14:00:00Z' },
 ];
 
 type ModalMode = 'create' | 'edit' | null;
@@ -152,7 +152,7 @@ export default function ImpactPage() {
             </div>
           ))}
           {cards.length === 0 && (
-            <div className="col-span-2 card p-10 text-center text-gray-400">No impact cards yet. Create one to inspire donors.</div>
+            <div className="col-span-2 card p-10 text-center text-gray-400">No impact cards yet. Create an awareness, pledge community, or family support story to inspire donors.</div>
           )}
         </div>
       )}
