@@ -152,14 +152,14 @@ export default function ImpactPage() {
             </div>
           ))}
           {cards.length === 0 && (
-            <div className="col-span-2 card p-10 text-center text-gray-400">No impact cards yet. Create an awareness, pledge community, or family support story to inspire donors.</div>
+            <div className="md:col-span-2 card p-10 text-center text-gray-400">No impact cards yet. Create an awareness, pledge community, or family support story to inspire donors.</div>
           )}
         </div>
       )}
 
       {modalMode && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-2xl my-4">
+        <div className="modal-shell">
+          <div className="modal-panel">
             <h3 className="text-lg font-bold text-gray-900 mb-4">{modalMode === 'create' ? 'Create Impact Card' : 'Edit Impact Card'}</h3>
             <div className="space-y-4">
               <div>
@@ -170,7 +170,7 @@ export default function ImpactPage() {
                 <label className="label">Story *</label>
                 <textarea value={form.story} onChange={(e) => setForm((f) => ({ ...f, story: e.target.value }))} className="input" rows={4} placeholder="Tell the human story behind this impact…" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="label">Beneficiaries</label>
                   <input type="number" value={form.beneficiaries_count} onChange={(e) => setForm((f) => ({ ...f, beneficiaries_count: e.target.value }))} className="input" placeholder="0" />
@@ -203,7 +203,7 @@ export default function ImpactPage() {
                 <input type="checkbox" checked={form.published} onChange={(e) => setForm((f) => ({ ...f, published: e.target.checked }))} className="w-4 h-4 accent-primary" />
                 <span className="text-sm text-gray-700">Publish immediately to the app</span>
               </label>
-              <div className="flex gap-3 pt-2">
+              <div className="modal-actions">
                 <button onClick={handleSave} disabled={saving} className="btn-primary flex-1">{saving ? 'Saving…' : 'Save'}</button>
                 <button onClick={closeModal} className="btn-ghost">Cancel</button>
               </div>

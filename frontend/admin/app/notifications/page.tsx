@@ -55,7 +55,7 @@ export default function NotificationsPage() {
   return (
     <AdminLayout title="Push Notifications" subtitle="Send targeted push notifications to donors and collectors">
       {/* Stats row */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <div className="card p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><Bell size={20} className="text-primary" /></div>
           <div><div className="text-2xl font-bold text-gray-900">{notifications.length}</div><div className="text-xs text-gray-500">Notifications Sent</div></div>
@@ -81,8 +81,8 @@ export default function NotificationsPage() {
 
       {/* Compose form */}
       {showForm && (
-        <div className="card p-6 mb-5 border-2 border-primary/20">
-          <div className="flex items-center justify-between mb-4">
+        <div className="card p-4 sm:p-6 mb-5 border-2 border-primary/20">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
             <h3 className="text-base font-bold text-gray-900 flex items-center gap-2"><Send size={16} className="text-primary" /> New Push Notification</h3>
             <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 text-sm">Cancel</button>
           </div>
@@ -101,7 +101,7 @@ export default function NotificationsPage() {
           <div className="space-y-3">
             {notifications.map((n) => (
               <div key={n.id} className="card p-4">
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-gray-900">{n.title}</span>
@@ -110,7 +110,7 @@ export default function NotificationsPage() {
                     </div>
                     <p className="text-sm text-gray-600 mt-1 leading-relaxed">{n.body}</p>
                   </div>
-                  <div className="text-right flex-shrink-0">
+                  <div className="text-left sm:text-right flex-shrink-0">
                     {n.sent_count !== undefined && (
                       <div className="text-sm font-semibold text-gray-900">{n.sent_count.toLocaleString()}</div>
                     )}

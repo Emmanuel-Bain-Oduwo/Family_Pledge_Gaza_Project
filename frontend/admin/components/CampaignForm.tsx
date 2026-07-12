@@ -128,7 +128,7 @@ export default function CampaignForm({ initial, onSuccess, onCancel }: CampaignF
         </div>
       </div>
 
-      <div className="flex gap-3 pt-2 border-t border-gray-100">
+      <div className="flex flex-col gap-3 pt-2 border-t border-gray-100 sm:flex-row">
         <button type="submit" disabled={isSubmitting} className="btn-primary">
           {isSubmitting ? 'Saving…' : initial?.id ? 'Update Campaign' : 'Create Campaign'}
         </button>

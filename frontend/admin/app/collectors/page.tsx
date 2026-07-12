@@ -67,7 +67,7 @@ export default function CollectorsPage() {
 
   return (
     <AdminLayout title="Collectors" subtitle="Manage community collectors and their pledge circles">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard label="Total Collectors" value={collectors.length} icon={Users} color="green" />
         <StatCard label="Total Registered" value={totalRegistered} icon={Users} color="blue" />
         <StatCard label="Paid This Month" value={totalContributed} icon={Users} color="green" />
@@ -75,8 +75,8 @@ export default function CollectorsPage() {
       </div>
 
       <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="w-full overflow-x-auto">
+          <table className="min-w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="table-th">Collector</th>
