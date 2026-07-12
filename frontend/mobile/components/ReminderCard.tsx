@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Share, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppCard from './AppCard';
 import { Colors } from '../constants/colors';
 import { Reminder } from '../types';
+import { shareText } from '../services/webCompat';
 
 interface ReminderCardProps {
   reminder: Reminder;
@@ -22,9 +23,7 @@ export default function ReminderCard({ reminder, onPress }: ReminderCardProps) {
   const cfg = TYPE_CONFIG[reminder.type] || TYPE_CONFIG.motivation;
 
   const handleShare = async () => {
-    await Share.share({
-      message: `${reminder.arabic_text ? reminder.arabic_text + '\n\n' : ''}${reminder.text}${reminder.source_reference ? '\n\n— ' + reminder.source_reference : ''}\n\nFamily Pledge for Gaza 🌙`,
-    });
+    await shareText(`${reminder.arabic_text ? reminder.arabic_text + '\n\n' : ''}${reminder.text}${reminder.source_reference ? '\n\n— ' + reminder.source_reference : ''}\n\nFamily Pledge for Gaza 🌙`, 'Reminder');
   };
 
   return (

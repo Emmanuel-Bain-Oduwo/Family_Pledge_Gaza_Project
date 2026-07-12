@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Share,
   RefreshControl,
 } from 'react-native';
 import { router } from 'expo-router';
@@ -16,6 +15,7 @@ import LoadingState from '../../components/LoadingState';
 import { getCampaigns } from '../../services/api';
 import { Campaign } from '../../types';
 import { MOCK_CAMPAIGNS } from '../../constants/mockData';
+import { shareText } from '../../services/webCompat';
 
 const GOAL = 200;
 
@@ -40,10 +40,7 @@ export default function FridayChallengeScreen() {
   useEffect(() => { load(); }, []);
 
   const handleShare = async () => {
-    await Share.share({
-      message:
-        `🕌 Friday Challenge for Gaza!\n\nJoin me in pledging USD 10 this month for Gaza relief.\n\nOur goal: ${GOAL} donors today.\nCurrent: ${campaign?.current_donors || 0} donors.\n\nSign up at familypledge.org and make a difference!\n\n#FamilyPledge #GazaRelief #NAMLEF`,
-    });
+    await shareText(`🕌 Friday Challenge for Gaza!\n\nJoin me in pledging USD 10 this month for Gaza relief.\n\nOur goal: ${GOAL} donors today.\nCurrent: ${campaign?.current_donors || 0} donors.\n\nSign up at familypledge.org and make a difference!\n\n#FamilyPledge #GazaRelief #NAMLEF`, 'Friday Challenge');
   };
 
   if (loading) return <LoadingState fullScreen message="Loading Friday Challenge..." />;

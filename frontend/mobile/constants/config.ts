@@ -1,5 +1,3 @@
-import Constants from 'expo-constants';
-
 export const Config = {
   API_URL: process.env.EXPO_PUBLIC_API_URL || 'https://api.familypledge.org/api/v1',
   APP_NAME: 'Family Pledge',
