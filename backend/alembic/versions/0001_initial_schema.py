@@ -4,6 +4,7 @@ Revision ID: 0001
 Revises:
 Create Date: 2025-06-30
 
+
 """
 from typing import Sequence, Union
 
@@ -19,22 +20,22 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # ── Enums ──────────────────────────────────────────────────────────────────
-    op.execute("CREATE TYPE IF NOT EXISTS user_role AS ENUM ('donor','admin','collector','super_admin')")
-    op.execute("CREATE TYPE IF NOT EXISTS pledge_type AS ENUM ('monthly','free_participant')")
-    op.execute("CREATE TYPE IF NOT EXISTS pledge_status AS ENUM ('active','paused','cancelled')")
-    op.execute("CREATE TYPE IF NOT EXISTS contribution_status AS ENUM ('submitted','confirmed','rejected','needs_follow_up')")
-    op.execute("CREATE TYPE IF NOT EXISTS campaign_type AS ENUM ('monthly','friday','emergency','sponsorship','food','water','clothing','general')")
-    op.execute("CREATE TYPE IF NOT EXISTS campaign_status AS ENUM ('draft','active','completed','archived')")
-    op.execute("CREATE TYPE IF NOT EXISTS project_category AS ENUM ('food','water','clothing','emergency_cash','orphans','widows','children','general')")
-    op.execute("CREATE TYPE IF NOT EXISTS project_status AS ENUM ('upcoming','active','completed','archived')")
-    op.execute("CREATE TYPE IF NOT EXISTS reminder_type AS ENUM ('quran','hadith','dua','motivation','friday','sadaqah')")
-    op.execute("CREATE TYPE IF NOT EXISTS reminder_status AS ENUM ('draft','approved','published','archived')")
-    op.execute("CREATE TYPE IF NOT EXISTS notification_type AS ENUM ('pledge','campaign','emergency','reminder','impact','system')")
-    op.execute("CREATE TYPE IF NOT EXISTS notification_audience AS ENUM ('all_users','pending_donors','confirmed_donors','collectors','admins')")
-    op.execute("CREATE TYPE IF NOT EXISTS namlef_content_type AS ENUM ('video','audio','text','link')")
-    op.execute("CREATE TYPE IF NOT EXISTS namlef_content_status AS ENUM ('draft','published','archived')")
-    op.execute("CREATE TYPE IF NOT EXISTS ai_draft_type AS ENUM ('reminder','impact_update','friday_challenge','emergency_appeal','weekly_summary','collector_message','social_caption')")
-    op.execute("CREATE TYPE IF NOT EXISTS ai_draft_status AS ENUM ('draft','approved','rejected','published')")
+    op.execute("DO $$ BEGIN CREATE TYPE user_role AS ENUM ('donor','admin','collector','super_admin'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
+    op.execute("DO $$ BEGIN CREATE TYPE pledge_type AS ENUM ('monthly','free_participant'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
+    op.execute("DO $$ BEGIN CREATE TYPE pledge_status AS ENUM ('active','paused','cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
+    op.execute("DO $$ BEGIN CREATE TYPE contribution_status AS ENUM ('submitted','confirmed','rejected','needs_follow_up'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
+    op.execute("DO $$ BEGIN CREATE TYPE campaign_type AS ENUM ('monthly','friday','emergency','sponsorship','food','water','clothing','general'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
+    op.execute("DO $$ BEGIN CREATE TYPE campaign_status AS ENUM ('draft','active','completed','archived'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
+    op.execute("DO $$ BEGIN CREATE TYPE project_category AS ENUM ('food','water','clothing','emergency_cash','orphans','widows','children','general'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
+    op.execute("DO $$ BEGIN CREATE TYPE project_status AS ENUM ('upcoming','active','completed','archived'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
+    op.execute("DO $$ BEGIN CREATE TYPE reminder_type AS ENUM ('quran','hadith','dua','motivation','friday','sadaqah'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
+    op.execute("DO $$ BEGIN CREATE TYPE reminder_status AS ENUM ('draft','approved','published','archived'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
+    op.execute("DO $$ BEGIN CREATE TYPE notification_type AS ENUM ('pledge','campaign','emergency','reminder','impact','system'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
+    op.execute("DO $$ BEGIN CREATE TYPE notification_audience AS ENUM ('all_users','pending_donors','confirmed_donors','collectors','admins'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
+    op.execute("DO $$ BEGIN CREATE TYPE namlef_content_type AS ENUM ('video','audio','text','link'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
+    op.execute("DO $$ BEGIN CREATE TYPE namlef_content_status AS ENUM ('draft','published','archived'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
+    op.execute("DO $$ BEGIN CREATE TYPE ai_draft_type AS ENUM ('reminder','impact_update','friday_challenge','emergency_appeal','weekly_summary','collector_message','social_caption'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
+    op.execute("DO $$ BEGIN CREATE TYPE ai_draft_status AS ENUM ('draft','approved','rejected','published'); EXCEPTION WHEN duplicate_object THEN null; END $$;")
 
     # ── users ─────────────────────────────────────────────────────────────────
     op.create_table(
@@ -311,57 +312,9 @@ def upgrade() -> None:
     )
     op.create_index("ix_ai_drafts_admin_id", "ai_drafts", ["admin_id"])
     op.create_index("ix_ai_drafts_status", "ai_drafts", ["status"])
-    op.create_index("ix_ai_drafts_type", "ai_drafts", ["draft_type"])
-    op.create_index("ix_ai_drafts_approved_by", "ai_drafts", ["approved_by"])
-
-    # ── admin_audit_logs ──────────────────────────────────────────────────────
-    op.create_table(
-        "admin_audit_logs",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("admin_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="RESTRICT"), nullable=False),
-        sa.Column("action", sa.String(100), nullable=False),
-        sa.Column("entity_type", sa.String(100), nullable=False),
-        sa.Column("entity_id", sa.String(36), nullable=True),
-        sa.Column("metadata", postgresql.JSONB, nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-    )
-    op.create_index("ix_audit_logs_admin_id", "admin_audit_logs", ["admin_id"])
-    op.create_index("ix_audit_logs_entity_type", "admin_audit_logs", ["entity_type"])
-    op.create_index("ix_audit_logs_entity_id", "admin_audit_logs", ["entity_id"])
-    op.create_index("ix_audit_logs_action", "admin_audit_logs", ["action"])
-    op.create_index("ix_audit_logs_created_at", "admin_audit_logs", ["created_at"])
+    op.create_index("ix_ai_drafts_draft_type", "ai_drafts", ["draft_type"])
 
 
 def downgrade() -> None:
-    op.drop_table("admin_audit_logs")
-    op.drop_table("ai_drafts")
-    op.drop_table("user_badges")
-    op.drop_table("badges")
-    op.drop_table("namlef_content")
-    op.drop_table("collector_members")
-    op.drop_table("collectors")
-    op.drop_table("notifications")
-    op.drop_table("daily_reminders")
-    op.drop_table("impact_cards")
-    op.drop_table("contributions")
-    op.drop_table("pledges")
-    op.drop_table("projects")
-    op.drop_table("campaigns")
-    op.drop_table("users")
+    pass
 
-    op.execute("DROP TYPE IF EXISTS ai_draft_status")
-    op.execute("DROP TYPE IF EXISTS ai_draft_type")
-    op.execute("DROP TYPE IF EXISTS namlef_content_status")
-    op.execute("DROP TYPE IF EXISTS namlef_content_type")
-    op.execute("DROP TYPE IF EXISTS notification_audience")
-    op.execute("DROP TYPE IF EXISTS notification_type")
-    op.execute("DROP TYPE IF EXISTS reminder_status")
-    op.execute("DROP TYPE IF EXISTS reminder_type")
-    op.execute("DROP TYPE IF EXISTS project_status")
-    op.execute("DROP TYPE IF EXISTS project_category")
-    op.execute("DROP TYPE IF EXISTS campaign_status")
-    op.execute("DROP TYPE IF EXISTS campaign_type")
-    op.execute("DROP TYPE IF EXISTS contribution_status")
-    op.execute("DROP TYPE IF EXISTS pledge_status")
-    op.execute("DROP TYPE IF EXISTS pledge_type")
-    op.execute("DROP TYPE IF EXISTS user_role")
