@@ -84,26 +84,40 @@ def _user(session: Session, *, email: str, phone: str, name: str, role: UserRole
     return user
 
 
+def _ensure_demo_admin(
+    session: Session, *, admin_email: str, admin_phone: str, admin_password: str
+) -> User:
+    admin = session.scalar(select(User).where(User.email == admin_email))
+    if admin:
+        return admin
+
+    admin = User(
+        full_name="Family Pledge Demo Admin",
+        email=admin_email,
+        phone=admin_phone,
+        password_hash=hash_password(admin_password),
+        role=UserRole.super_admin,
+        country="Kenya",
+        city="Nairobi",
+        is_active=True,
+    )
+    session.add(admin)
+    session.flush()
+    return admin
+
+
 def seed() -> None:
     engine = create_engine(_database_url(), pool_pre_ping=True)
     month = current_month()
 
     with Session(engine) as session:
         admin_email = os.getenv("DEMO_ADMIN_EMAIL", "demo.admin@familypledge.org")
-        admin = session.scalar(select(User).where(User.email == admin_email))
-        if not admin:
-            admin = User(
-                full_name="Family Pledge Demo Admin",
-                email=admin_email,
-                phone=os.getenv("DEMO_ADMIN_PHONE", "+254700000001"),
-                password_hash=hash_password(os.getenv("DEMO_ADMIN_PASSWORD", "ChangeMeDemo123!")),
-                role=UserRole.super_admin,
-                country="Kenya",
-                city="Nairobi",
-                is_active=True,
-            )
-            session.add(admin)
-            session.flush()
+        admin = _ensure_demo_admin(
+            session,
+            admin_email=admin_email,
+            admin_phone=os.getenv("DEMO_ADMIN_PHONE", "+254700000001"),
+            admin_password=os.getenv("DEMO_ADMIN_PASSWORD", "ChangeMeDemo123!"),
+        )
 
         donors = [
             _user(session, email="amina.demo@familypledge.org", phone="+254700000101", name="Amina Demo Donor", role=UserRole.donor),
@@ -262,7 +276,7 @@ def seed() -> None:
         session.commit()
 
     print("Demo seed complete.")
-    print(f"Admin login: {admin_email} / {os.getenv('DEMO_ADMIN_PASSWORD', 'ChangeMeDemo123!')}")
+    print(f"Demo admin email: {admin_email}")
     print("Seeded: settings, admin, donors, pledges, contributions, campaign, project, impact, reminders, awareness content, collector circle.")
 
 

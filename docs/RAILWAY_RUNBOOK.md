@@ -116,3 +116,33 @@ railway run --service <backend-service-name> alembic upgrade head
 ```
 
 The initial migration now creates PostgreSQL enum types with `checkfirst=True` and reuses those same enum objects in table columns, so existing enum types are detected and reused while missing application tables are still created.
+
+## Password hash migration verification
+
+The backend now creates new password hashes with pwdlib's recommended Argon2id hasher. Before deciding whether legacy bcrypt compatibility is needed, inspect the deployed database for existing bcrypt password hashes:
+
+```bash
+railway run --service <backend-service-name> python - <<'PY'
+from sqlalchemy import create_engine, text
+from app.core.config import settings
+
+engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
+with engine.connect() as conn:
+    row = conn.execute(text("""
+        SELECT
+            COUNT(*) AS total_users,
+            COUNT(*) FILTER (
+                WHERE password_hash LIKE '$2a$%'
+                   OR password_hash LIKE '$2b$%'
+                   OR password_hash LIKE '$2y$%'
+            ) AS bcrypt_users,
+            COUNT(*) FILTER (WHERE password_hash LIKE '$argon2id$%') AS argon2id_users
+        FROM users
+    """)).mappings().one()
+    print(dict(row))
+PY
+```
+
+- If `bcrypt_users` is `0`, no legacy bcrypt compatibility is needed.
+- If `bcrypt_users` is greater than `0`, do not delete users or reset real passwords automatically. Add an isolated legacy verification and rehash-on-success path before removing bcrypt support.
+- Do not print or export actual `password_hash` values.
