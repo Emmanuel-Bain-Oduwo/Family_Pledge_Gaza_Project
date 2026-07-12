@@ -1,9 +1,19 @@
 export interface Admin {
   id: string;
-  name: string;
-  email: string;
-  role: 'super_admin' | 'admin' | 'moderator';
+  full_name?: string | null;
+  nickname?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  role: string;
+  is_active: boolean;
   created_at: string;
+}
+
+export interface AdminProfileUpdate {
+  full_name?: string | null;
+  nickname?: string | null;
+  email?: string | null;
+  phone?: string | null;
 }
 
 export interface AuthTokens {

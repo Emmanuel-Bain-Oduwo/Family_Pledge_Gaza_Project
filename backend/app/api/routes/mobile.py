@@ -139,9 +139,7 @@ def mobile_dashboard(
 
     # Latest impact card
     impact_db = db.scalar(
-        select(ImpactCard).where(
-            ImpactCard.deleted_at.is_(None),
-        ).order_by(ImpactCard.created_at.desc())
+        select(ImpactCard).order_by(ImpactCard.created_at.desc())
     )
 
     # Monthly progress — total active donors who contributed this month

@@ -87,8 +87,18 @@ def _user(session: Session, *, email: str, phone: str, name: str, role: UserRole
 def _ensure_demo_admin(
     session: Session, *, admin_email: str, admin_phone: str, admin_password: str
 ) -> User:
-    admin = session.scalar(select(User).where(User.email == admin_email))
+    admin = session.scalar(
+        select(User).where(
+            User.role.in_([UserRole.admin, UserRole.super_admin]),
+            User.is_active.is_(True),
+        )
+    )
+    if not admin:
+        admin = session.scalar(select(User).where(User.email == admin_email))
     if admin:
+        if admin.role == UserRole.super_admin:
+            admin.role = UserRole.admin
+            session.flush()
         return admin
 
     admin = User(
@@ -96,7 +106,7 @@ def _ensure_demo_admin(
         email=admin_email,
         phone=admin_phone,
         password_hash=hash_password(admin_password),
-        role=UserRole.super_admin,
+        role=UserRole.admin,
         country="Kenya",
         city="Nairobi",
         is_active=True,

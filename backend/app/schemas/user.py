@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
 
 from app.models.enums import UserRole
 
@@ -37,9 +37,19 @@ class UserPublicOut(BaseModel):
 class UserUpdateRequest(BaseModel):
     full_name: Optional[str] = None
     nickname: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
     country: Optional[str] = None
     city: Optional[str] = None
     public_display_name: Optional[str] = None
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def strip_email(cls, value: Optional[str]) -> Optional[str]:
+        if isinstance(value, str):
+            value = value.strip()
+            return value or None
+        return value
 
 
 class EmailPreferenceRequest(BaseModel):

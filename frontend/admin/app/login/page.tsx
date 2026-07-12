@@ -4,11 +4,12 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { adminLogin } from '../../lib/api';
-import { saveToken, isAuthenticated } from '../../lib/auth';
+import { adminLogin, getAdminMe } from '../../lib/api';
+import { saveToken, isAuthenticated, removeToken } from '../../lib/auth';
 import { FAMILY_PLEDGE_LOGO_DATA_URI } from '../../lib/logo';
+import { isAdminRole } from '../../lib/adminDisplay';
 
-interface LoginForm { email: string; password: string; }
+interface LoginForm { identifier: string; password: string; }
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,6 +23,13 @@ export default function LoginPage() {
     try {
       const tokens = await adminLogin(values);
       saveToken(tokens.access_token);
+      const admin = await getAdminMe();
+      if (!isAdminRole(admin)) {
+        removeToken();
+        toast.error('Admin access required.');
+        router.replace('/login');
+        return;
+      }
       toast.success('Welcome back!');
       router.replace('/dashboard');
     } catch (e: any) {
@@ -54,15 +62,15 @@ export default function LoginPage() {
           <h2 className="text-xl font-bold text-gray-900 mb-6">Sign In</h2>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div>
-              <label className="label">Email Address</label>
+              <label className="label">Email or phone</label>
               <input
-                type="email"
-                {...register('email', { required: 'Email is required' })}
+                type="text"
+                {...register('identifier', { required: 'Email or phone is required' })}
                 className="input"
-                placeholder="admin@familypledge.org"
-                autoComplete="email"
+                placeholder="admin@familypledge.org or +254700000001"
+                autoComplete="username"
               />
-              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
+              {errors.identifier && <p className="text-red-500 text-xs mt-1">{errors.identifier.message}</p>}
             </div>
 
             <div>
