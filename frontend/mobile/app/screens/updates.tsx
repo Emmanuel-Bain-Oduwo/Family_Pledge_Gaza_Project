@@ -18,11 +18,10 @@ import { MOCK_IMPACT_CARDS } from '../../constants/mockData';
 
 const CATEGORY_FILTERS = [
   { key: 'all', label: 'All' },
-  { key: 'food', label: 'Food' },
-  { key: 'medical', label: 'Medical' },
-  { key: 'shelter', label: 'Shelter' },
-  { key: 'water', label: 'Water' },
-  { key: 'education', label: 'Education' },
+  { key: 'education', label: 'Bags' },
+  { key: 'widows', label: 'Women' },
+  { key: 'children', label: 'Children' },
+  { key: 'community', label: 'Community' },
 ];
 
 export default function UpdatesScreen() {
@@ -107,7 +106,7 @@ export default function UpdatesScreen() {
           <EmptyState
             icon="images-outline"
             title="No Updates Yet"
-            description="Impact reports and project updates will appear here."
+            description="Awareness bag releases, pledge community updates, and family support stories will appear here."
           />
         }
         refreshControl={

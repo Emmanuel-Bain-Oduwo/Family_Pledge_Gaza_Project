@@ -30,7 +30,7 @@ export default function PledgeStatusCard({ status, donorNumber, totalDonors }: P
       <View style={styles.pledgeHeader}>
         <View>
           <Text style={styles.kicker}>Your Monthly Pledge</Text>
-          <Text style={styles.amount}>$10 <Text style={styles.period}>/ month</Text></Text>
+          <Text style={styles.amount}>Monthly <Text style={styles.period}>pledge</Text></Text>
         </View>
         <View style={[styles.statusPill, { backgroundColor: cfg.bg }]}>
           <Ionicons name={cfg.icon as any} size={14} color={cfg.color} />
@@ -39,7 +39,7 @@ export default function PledgeStatusCard({ status, donorNumber, totalDonors }: P
       </View>
 
       <View style={styles.body}>
-        <Text style={styles.thanks}>Thank you for your support!</Text>
+        <Text style={styles.thanks}>Your contribution progress is shown as a percentage; admins verify the monthly amount securely.</Text>
         {donorNumber && totalDonors && (
           <View style={styles.donorBlock}>
             <View>
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   },
   amount: {
     color: Colors.white,
-    fontSize: 30,
+    fontSize: 25,
     fontWeight: '900',
   },
   period: {

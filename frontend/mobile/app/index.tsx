@@ -11,6 +11,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
 import AppButton from '../components/AppButton';
+import FamilyPledgeLogo from '../components/FamilyPledgeLogo';
 import { isAuthenticated } from '../services/auth';
 
 const { width } = Dimensions.get('window');
@@ -33,10 +34,10 @@ export default function OnboardingScreen() {
     return (
       <View style={styles.splash}>
         <StatusBar style="light" />
-        <View style={styles.logoMark}>
-          <Ionicons name="heart" size={44} color={Colors.primary} />
+        <View style={styles.splashLogoCard}>
+          <FamilyPledgeLogo />
         </View>
-        <Text style={styles.splashTitle}>Family Pledge</Text>
+        <Text style={styles.splashTitle}>Family Pledge Gaza Support</Text>
       </View>
     );
   }
@@ -49,30 +50,21 @@ export default function OnboardingScreen() {
     >
       <StatusBar style="dark" />
 
+      <View style={styles.logoHero}>
+        <FamilyPledgeLogo />
+        <Text style={styles.initiative}>An initiative with</Text>
+        <Text style={styles.namlef}>NAMLEF Gaza Family Support</Text>
+      </View>
+
       <View style={styles.badgeRail}>
-        <TrustBadge icon="heart" title="Free to Join" text="$10 / month" />
-        <TrustBadge icon="shield-checkmark" title="100% Impact" text="For Gaza Relief" />
+        <TrustBadge icon="heart" title="$10 or Free" text="Sign the pledge" />
+        <TrustBadge icon="shield-checkmark" title="25k+ Signatures" text="Global family pledge" />
       </View>
-
-      <View style={styles.brandRow}>
-        <View style={styles.logoMark}>
-          <Ionicons name="home" size={34} color={Colors.primary} />
-          <Ionicons name="leaf" size={18} color={Colors.gold} style={styles.logoLeaf} />
-        </View>
-        <View>
-          <Text style={styles.brandFamily}>FAMILY</Text>
-          <Text style={styles.brandPledge}>PLEDGE</Text>
-        </View>
-      </View>
-
-      <Text style={styles.initiative}>A initiative under</Text>
-      <Text style={styles.namlef}>NAMLEF</Text>
 
       <View style={styles.heroCopy}>
-        <Text style={styles.title}>Small Pledge,{`\n`}Big Impact</Text>
+        <Text style={styles.title}>Support the Children,{`\n`}of Palestine</Text>
         <Text style={styles.description}>
-          Your monthly $10 pledge helps provide food, water, clothing,
-          emergency cash assistance and hope to families in Gaza.
+          Sign the pledge for free or with the $10 monthly commitment, receive family awareness content, and help keep Palestine present in every home.
         </Text>
       </View>
 
@@ -94,8 +86,8 @@ export default function OnboardingScreen() {
       </View>
 
       <View style={styles.secondaryRail}>
-        <TrustBadge icon="lock-closed" title="Secure & Private" text="Your data is safe" compact />
-        <TrustBadge icon="globe" title="Global Community" text="Be part of change" compact />
+        <TrustBadge icon="book-outline" title="Awareness Bags" text="Books, videos, cards" compact />
+        <TrustBadge icon="people-outline" title="Families Worldwide" text="Support together" compact />
       </View>
 
       <View style={styles.skylineCard}>
@@ -105,7 +97,7 @@ export default function OnboardingScreen() {
         <View style={styles.tower} />
         <View style={styles.towerTop} />
         <View style={styles.cityLine} />
-        <Text style={styles.skylineText}>Gaza Relief • Transparent Impact • Daily Reminders</Text>
+        <Text style={styles.skylineText}>Pledge • Awareness • Palestinian Family Support</Text>
       </View>
     </ScrollView>
   );
@@ -138,14 +130,14 @@ function TrustBadge({
 const styles = StyleSheet.create({
   splash: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primaryDark,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 16,
   },
   container: {
     flex: 1,
-    backgroundColor: '#F4F8F6',
+    backgroundColor: Colors.cream,
   },
   content: {
     minHeight: '100%',
@@ -210,6 +202,24 @@ const styles = StyleSheet.create({
     gap: 14,
     marginBottom: 10,
   },
+  splashLogoCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 32,
+    paddingHorizontal: 24,
+    paddingVertical: 18,
+  },
+  logoHero: {
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: 30,
+    padding: 20,
+    marginBottom: 26,
+    shadowColor: '#1F6D8C',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 5,
+  },
   logoMark: {
     width: 66,
     height: 66,
@@ -241,16 +251,16 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   initiative: {
-    color: Colors.black,
+    color: Colors.text.secondary,
     fontSize: 14,
     marginTop: 2,
-    marginLeft: 82,
+    textAlign: 'center',
     fontWeight: '600',
   },
   namlef: {
     color: Colors.primary,
-    fontSize: 22,
-    marginLeft: 82,
+    fontSize: 18,
+    textAlign: 'center',
     fontWeight: '900',
     letterSpacing: 0.8,
   },

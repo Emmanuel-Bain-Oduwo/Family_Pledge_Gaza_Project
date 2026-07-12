@@ -7,8 +7,10 @@ import {
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
 import NamlefContentCard from '../../components/NamlefContentCard';
+import FamilyPledgeLogo from '../../components/FamilyPledgeLogo';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
 import { getNamlefContent } from '../../services/api';
@@ -56,14 +58,21 @@ export default function NamlefScreen() {
     >
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.logoCircle}>
-          <Text style={styles.logoText}>N</Text>
+        <View style={styles.logoCard}>
+          <FamilyPledgeLogo compact />
         </View>
         <Text style={styles.headerTitle}>NAMLEF</Text>
         <Text style={styles.headerSub}>National Muslim Leaders Forum</Text>
         <Text style={styles.headerDesc}>
-          NAMLEF is committed to mobilising Muslim communities for humanitarian causes. Family Pledge is our flagship Gaza relief programme.
+          NAMLEF Gaza Family Support helps families sign the pledge, contribute if able, and receive awareness content that keeps Palestine present at home.
         </Text>
+      </View>
+
+
+      <View style={styles.aboutCards}>
+        <AboutCard icon="people-outline" title="Who we are" text="Families making a covenant to keep Palestine present at home." />
+        <AboutCard icon="gift-outline" title="What we do" text="Share reminders, awareness bags, projects, and simple ways to pledge." />
+        <AboutCard icon="heart-circle-outline" title="Why it matters" text="Small steady commitments strengthen Palestinian family support." />
       </View>
 
       {/* Filter */}
@@ -89,7 +98,7 @@ export default function NamlefScreen() {
         <EmptyState
           icon="information-circle-outline"
           title="No Content"
-          description="NAMLEF messages and updates will appear here."
+          description="NAMLEF messages, partner voices, and Family Pledge guidance will appear here."
         />
       ) : (
         filtered.map((c) => <NamlefContentCard key={c.id} content={c} />)
@@ -97,6 +106,19 @@ export default function NamlefScreen() {
 
       <View style={{ height: 32 }} />
     </ScrollView>
+  );
+}
+
+
+function AboutCard({ icon, title, text }: { icon: keyof typeof Ionicons.glyphMap; title: string; text: string }) {
+  return (
+    <View style={styles.aboutCard}>
+      <View style={styles.aboutIcon}><Ionicons name={icon} size={19} color={Colors.pinkDark} /></View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.aboutTitle}>{title}</Text>
+        <Text style={styles.aboutText}>{text}</Text>
+      </View>
+    </View>
   );
 }
 
@@ -111,18 +133,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     marginBottom: 0,
   },
-  logoCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: Colors.gold,
+  logoCard: {
+    width: 112,
+    height: 92,
+    borderRadius: 24,
+    backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.45)',
   },
-  logoText: { fontSize: 28, fontWeight: '900', color: Colors.primaryDark },
   headerTitle: { fontSize: 24, fontWeight: '800', color: Colors.white, marginBottom: 4 },
   headerSub: { fontSize: 14, color: Colors.gold, fontWeight: '600', marginBottom: 12 },
   headerDesc: {
@@ -131,6 +152,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
+  aboutCards: { paddingHorizontal: 16, gap: 10, marginTop: 16, marginBottom: 8 },
+  aboutCard: { flexDirection: 'row', gap: 12, alignItems: 'center', backgroundColor: Colors.white, borderRadius: 18, padding: 14, borderWidth: 1, borderColor: Colors.border.light },
+  aboutIcon: { width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.softPinkBg, alignItems: 'center', justifyContent: 'center' },
+  aboutTitle: { fontSize: 14, fontWeight: '900', color: Colors.text.primary, marginBottom: 3 },
+  aboutText: { fontSize: 12, lineHeight: 17, color: Colors.text.secondary, fontWeight: '600' },
   filterScroll: { maxHeight: 52 },
   filters: {
     paddingHorizontal: 16,

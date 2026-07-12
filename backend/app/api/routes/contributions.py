@@ -125,3 +125,25 @@ def admin_needs_follow_up(
         from fastapi import HTTPException
         raise HTTPException(403, "Admin access required")
     return contribution_service.needs_follow_up(db, current_user, contribution_id, data.admin_note)
+
+
+@router.patch("/admin/contributions/{contribution_id}/review", response_model=ContributionOut)
+def admin_review_contribution(
+    contribution_id: UUID,
+    data: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.models.enums import UserRole
+    from fastapi import HTTPException
+    if current_user.role not in (UserRole.admin, UserRole.super_admin):
+        raise HTTPException(403, "Admin access required")
+    status = data.get("status")
+    admin_note = data.get("admin_note")
+    if status == ContributionStatus.confirmed.value:
+        return contribution_service.confirm(db, current_user, contribution_id)
+    if status == ContributionStatus.rejected.value:
+        return contribution_service.reject(db, current_user, contribution_id, admin_note)
+    if status == ContributionStatus.needs_follow_up.value:
+        return contribution_service.needs_follow_up(db, current_user, contribution_id, admin_note)
+    raise HTTPException(400, "Unsupported contribution review status")

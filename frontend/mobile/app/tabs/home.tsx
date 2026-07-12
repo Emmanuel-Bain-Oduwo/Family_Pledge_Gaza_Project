@@ -15,6 +15,7 @@ import CampaignProgressCard from '../../components/CampaignProgressCard';
 import EmergencyBanner from '../../components/EmergencyBanner';
 import ImpactCard from '../../components/ImpactCard';
 import ReminderCard from '../../components/ReminderCard';
+import FamilyPledgeLogo from '../../components/FamilyPledgeLogo';
 import LoadingState from '../../components/LoadingState';
 import { getDashboard } from '../../services/api';
 import { getUser } from '../../services/auth';
@@ -62,6 +63,12 @@ export default function HomeScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
       showsVerticalScrollIndicator={false}
     >
+      <View style={styles.brandHero}>
+        <FamilyPledgeLogo compact />
+        <Text style={styles.brandTitle}>Family Pledge</Text>
+        <Text style={styles.brandMessage}>A family covenant for Palestine — pledge, remember, share, and support with mercy.</Text>
+      </View>
+
       {/* Greeting */}
       <View style={styles.greetingSection}>
         <View>
@@ -105,14 +112,13 @@ export default function HomeScreen() {
 
       {/* Monthly Progress */}
       {dashboard?.monthly_progress && (
-        <Section title="This Month's Progress" icon="bar-chart-outline">
+        <Section title="This Month's Pledge Progress" icon="bar-chart-outline">
           <View style={styles.monthlyCard}>
             <View style={styles.monthlyRow}>
-              <Text style={styles.monthlyCount}>
-                <Text style={styles.monthlyNum}>{dashboard.monthly_progress.current}</Text>
-                {'  '}donors
+              <Text style={styles.monthlyCount}>Community progress</Text>
+              <Text style={styles.monthlyTarget}>
+                {Math.round(Math.min((dashboard.monthly_progress.current / dashboard.monthly_progress.target) * 100, 100))}%
               </Text>
-              <Text style={styles.monthlyTarget}>Goal: {dashboard.monthly_progress.target}</Text>
             </View>
             <View style={styles.progressBar}>
               <View
@@ -213,16 +219,43 @@ function QuickAction({
 
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: Colors.cream },
-  content: { paddingBottom: 24 },
+  content: { paddingBottom: 24, paddingTop: 14 },
+  brandHero: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+    borderRadius: 28,
+    padding: 18,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    shadowColor: Colors.primaryDark,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 4,
+  },
+  brandTitle: {
+    marginTop: 8,
+    fontSize: 24,
+    fontWeight: '900',
+    color: Colors.primary,
+  },
+  brandMessage: {
+    marginTop: 6,
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+    color: Colors.text.secondary,
+    fontWeight: '600',
+  },
   greetingSection: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primaryDark,
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 28,
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: -12,
+    marginBottom: 6,
   },
   greeting: {
     fontSize: 20,
@@ -285,13 +318,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   monthlyNum: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: Colors.primary,
+    fontSize: 30,
+    fontWeight: '900',
+    color: Colors.pinkDark,
   },
   monthlyTarget: {
-    fontSize: 13,
-    color: Colors.text.secondary,
+    fontSize: 26,
+    fontWeight: '900',
+    color: Colors.pinkDark,
   },
   progressBar: {
     height: 10,
@@ -301,7 +335,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primaryDark,
     borderRadius: 5,
   },
   quickActions: {

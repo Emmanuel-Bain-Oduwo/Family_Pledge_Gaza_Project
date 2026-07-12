@@ -16,7 +16,7 @@ import AppCard from '../../components/AppCard';
 import PledgeStatusCard from '../../components/PledgeStatusCard';
 import LoadingState from '../../components/LoadingState';
 import EmptyState from '../../components/EmptyState';
-import { getPledgeStatus, getMyPledges, updateAnonymousPreference } from '../../services/api';
+import { getPledgeStatus, getMyPledges, updateAnonymousPreference, updatePledge } from '../../services/api';
 import { getUser, saveUser } from '../../services/auth';
 import { Pledge, PledgeStatus, PledgeStatusOut, User } from '../../types';
 import { MOCK_PLEDGE_STATUS } from '../../constants/mockData';
@@ -39,6 +39,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 function derivePledgeStatusStr(statusOut: PledgeStatusOut): PledgeStatus {
   if (!statusOut.has_active_pledge) return 'none';
+  if (statusOut.pledge?.pledge_type === 'free_participant') return 'free_participant';
   return statusOut.current_month_contributed ? 'paid' : 'pending';
 }
 
@@ -50,6 +51,7 @@ export default function PledgeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [updatingAnon, setUpdatingAnon] = useState(false);
+  const [updatingPledge, setUpdatingPledge] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -86,6 +88,24 @@ export default function PledgeScreen() {
       Alert.alert('Error', 'Could not update preference. Please try again.');
     } finally {
       setUpdatingAnon(false);
+    }
+  };
+
+  const increasePledge = async (amount: number) => {
+    const pledgeId = pledgeStatus?.pledge?.id || history.find((p) => p.status === 'active')?.id;
+    if (!pledgeId) {
+      router.push('/screens/contribute');
+      return;
+    }
+    setUpdatingPledge(true);
+    try {
+      await updatePledge(pledgeId, { amount });
+      Alert.alert('Pledge Updated', `Your monthly pledge is now USD ${amount}. May Allah reward your intention.`);
+      await load();
+    } catch {
+      Alert.alert('Could not update pledge', 'Please try again or use the contribution screen for an open amount.');
+    } finally {
+      setUpdatingPledge(false);
     }
   };
 
@@ -136,6 +156,34 @@ export default function PledgeScreen() {
           icon={<Ionicons name="megaphone-outline" size={18} color={Colors.primary} />}
         />
       </View>
+
+      <AppCard style={styles.increaseCard} borderColor={Colors.pink}>
+        <View style={styles.increaseHeader}>
+          <Ionicons name="trending-up-outline" size={20} color={Colors.pinkDark} />
+          <Text style={styles.increaseTitle}>Increase or change your pledge</Text>
+        </View>
+        <Text style={styles.increaseDesc}>
+          Choose a higher monthly pledge here, or use the contribution screen for a custom open amount.
+        </Text>
+        <View style={styles.increaseActions}>
+          {[20, 50].map((amount) => (
+            <AppButton
+              key={amount}
+              title={`USD ${amount}`}
+              onPress={() => increasePledge(amount)}
+              loading={updatingPledge}
+              variant="outline"
+              style={styles.increaseButton}
+            />
+          ))}
+        </View>
+        <AppButton
+          title="Open amount"
+          onPress={() => router.push('/screens/contribute')}
+          variant="secondary"
+          style={{ marginTop: 10 }}
+        />
+      </AppCard>
 
       {/* Anonymous Toggle */}
       <AppCard style={styles.anonCard}>
@@ -257,6 +305,12 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   actions: { marginBottom: 16 },
+  increaseCard: { marginBottom: 16 },
+  increaseHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  increaseTitle: { fontSize: 16, fontWeight: '800', color: Colors.text.primary },
+  increaseDesc: { fontSize: 13, color: Colors.text.secondary, lineHeight: 19, marginBottom: 12 },
+  increaseActions: { flexDirection: 'row', gap: 10 },
+  increaseButton: { flex: 1 },
   anonCard: { marginBottom: 24 },
   anonRow: {
     flexDirection: 'row',

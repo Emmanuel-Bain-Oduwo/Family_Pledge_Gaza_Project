@@ -11,10 +11,10 @@ import { formatDate } from '../../lib/utils';
 import toast from 'react-hot-toast';
 
 const MOCK: NamlefContent[] = [
-  { id: 'n1', speaker_name: 'Sheikh Abdulrahman Al-Sudais', speaker_role: 'Imam of Masjid Al-Haram', content_type: 'video', title: 'Standing with Gaza — Friday Khutbah', description: 'A powerful reminder of our obligation to the people of Palestine.', featured: true, status: 'published', created_at: '2025-06-07T12:00:00Z' },
-  { id: 'n2', speaker_name: 'Dr. Bilal Philips', speaker_role: 'Islamic Online University', content_type: 'audio', title: 'The Virtue of Sadaqah in Times of Crisis', description: 'Understanding the spiritual rewards of giving during hardship.', featured: false, status: 'published', created_at: '2025-05-30T10:00:00Z' },
-  { id: 'n3', speaker_name: 'NAMLEF Secretariat', content_type: 'text', title: 'Ramadan Appeal — Gaza Emergency', description: 'Official statement and appeal from the National Muslim Leaders Forum East Africa.', featured: true, status: 'published', created_at: '2025-05-10T08:00:00Z' },
-  { id: 'n4', speaker_name: 'Sheikh Hamza Yusuf', speaker_role: 'Zaytuna College', content_type: 'link', title: 'Humanitarian Crisis — Background and Context', description: 'Educational resource on the history and current state of Palestine.', featured: false, status: 'draft', created_at: '2025-06-08T16:00:00Z' },
+  { id: 'n1', speaker_name: 'Sheikh Abdur Rahman Ishaq', speaker_role: 'Imam of Parklands Mosque, Nairobi', content_type: 'video', title: 'Palestine Is a Trust', description: 'A local partner message inviting families to join the pledge and contribute consistently if able.', featured: true, status: 'published', created_at: '2025-06-07T12:00:00Z' },
+  { id: 'n2', speaker_name: 'Family Pledge Secretariat', speaker_role: 'Awareness Programme', content_type: 'audio', title: 'What Families Receive After Signing', description: 'Books, videos, podcasts, comics, cards, articles, and games for monthly Palestine awareness.', featured: false, status: 'published', created_at: '2025-05-30T10:00:00Z' },
+  { id: 'n3', speaker_name: 'NAMLEF Gaza Family Support', content_type: 'text', title: 'About Family Pledge', description: 'Simple family covenant: sign for free or donate USD 10 monthly to support Palestinian families.', featured: true, status: 'published', created_at: '2025-05-10T08:00:00Z' },
+  { id: 'n4', speaker_name: 'Global Family Pledge Partners', speaker_role: 'Jerusalem and Palestine Supporters', content_type: 'link', title: 'Support for Palestinian Women', description: 'Partner voices about strengthening Palestinian women and family resilience.', featured: false, status: 'draft', created_at: '2025-06-08T16:00:00Z' },
 ];
 
 const CONTENT_TYPES: NamlefContentType[] = ['video', 'audio', 'text', 'link'];

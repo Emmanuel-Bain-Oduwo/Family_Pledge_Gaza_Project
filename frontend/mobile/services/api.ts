@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { Config } from '../constants/config';
+import { currentContributionMonth } from '../constants/payment';
 import { getToken } from './auth';
 import {
   User,
@@ -110,6 +111,15 @@ export const createPledge = async (payload: { pledge_type?: string; amount?: num
   }
 };
 
+export const updatePledge = async (id: string, payload: { amount?: number; status?: string }): Promise<Pledge> => {
+  try {
+    const { data } = await client.patch<Pledge>(`/pledges/${id}`, payload);
+    return data;
+  } catch (e) {
+    return handleApiError(e);
+  }
+};
+
 export const getMyPledges = async (): Promise<Pledge[]> => {
   try {
     const { data } = await client.get<Pledge[]>('/pledges/me');
@@ -142,8 +152,19 @@ export const updateAnonymousPreference = async (anonymous: boolean): Promise<Use
 // ── Contributions ─────────────────────────────────────────────────────────────
 
 export const submitContribution = async (payload: ContributionPayload): Promise<void> => {
+  const normalized = {
+    pledge_id: payload.pledge_id,
+    campaign_id: payload.campaign_id,
+    amount: payload.amount,
+    currency: payload.currency,
+    contribution_channel: payload.contribution_channel || payload.payment_method,
+    payment_link_used: payload.payment_link_used,
+    transaction_reference: payload.transaction_reference || payload.reference,
+    proof_image_url: payload.proof_image_url || payload.proof_url,
+    contribution_month: payload.contribution_month || currentContributionMonth(),
+  };
   try {
-    await client.post('/contributions/submit', payload);
+    await client.post('/contributions/submit', normalized);
   } catch (e) {
     return handleApiError(e);
   }

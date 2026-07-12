@@ -31,6 +31,7 @@ from .namlef import NamlefContent  # noqa: F401
 from .badge import Badge, UserBadge  # noqa: F401
 from .ai_draft import AiDraft  # noqa: F401
 from .audit import AdminAuditLog  # noqa: F401
+from .settings import AppSettings  # noqa: F401
 
 __all__ = [
     "Base",
@@ -69,4 +70,5 @@ __all__ = [
     "UserBadge",
     "AiDraft",
     "AdminAuditLog",
+    "AppSettings",
 ]

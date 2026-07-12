@@ -16,13 +16,14 @@ from app.api.routes import (
     notifications,
     pledges,
     projects,
+    settings as settings_routes,
     storage,
     users,
 )
 
 app = FastAPI(
     title="Family Pledge API",
-    description="NAMLEF-linked humanitarian app backend for Gaza relief fundraising.",
+    description="Family Pledge / NAMLEF Gaza Family Support backend for pledge signing, awareness content, contributions, reminders, collectors, and admin operations.",
     version="1.0.0",
 )
 
@@ -48,6 +49,7 @@ ROUTERS = (
     collectors.router,
     notifications.router,
     ai_assistant.router,
+    settings_routes.router,
     storage.router,
     admin.router,
 )
@@ -58,4 +60,18 @@ for router in ROUTERS:
 
 @app.get("/health", tags=["Health"])
 def health_check():
-    return {"status": "ok", "version": "1.0.0"}
+    return {
+        "status": "ok",
+        "version": "1.0.0",
+        "environment": settings.APP_ENV,
+        "api_prefix": settings.API_V1_PREFIX,
+    }
+
+
+@app.get("/ready", tags=["Health"])
+def readiness_check():
+    return {
+        "status": "ready",
+        "service": "family-pledge-api",
+        "cors_origins_configured": len(settings.cors_origins_list),
+    }

@@ -19,9 +19,10 @@ import { MOCK_CAMPAIGNS } from '../../constants/mockData';
 
 const FILTERS = [
   { key: 'all', label: 'All' },
-  { key: 'friday_challenge', label: 'Friday' },
+  { key: 'monthly', label: 'Pledge' },
+  { key: 'general', label: 'Awareness' },
+  { key: 'sponsorship', label: 'Families' },
   { key: 'emergency', label: 'Emergency' },
-  { key: 'monthly', label: 'Monthly' },
 ];
 
 export default function CampaignsScreen() {
@@ -93,7 +94,7 @@ export default function CampaignsScreen() {
           <EmptyState
             icon="megaphone-outline"
             title="No Campaigns Found"
-            description="Check back later for active campaigns."
+            description="Website-aligned pledge campaigns, awareness bags, and family support appeals will appear here."
           />
         }
         refreshControl={

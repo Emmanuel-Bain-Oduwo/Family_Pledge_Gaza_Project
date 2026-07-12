@@ -16,11 +16,11 @@ const MOCK: DashboardStats = {
   active_campaigns: 4,
   collectors_count: 38,
   recent_activity: [
-    { id: '1', type: 'contribution', message: 'Ahmed Hassan submitted a contribution — KES 1,200 (Ref: QKR7XNPK)', timestamp: new Date(Date.now() - 5 * 60000).toISOString() },
+    { id: '1', type: 'contribution', message: 'Ahmed Hassan signed the pledge and submitted KES 1,200 (Ref: QKR7XNPK)', timestamp: new Date(Date.now() - 5 * 60000).toISOString() },
     { id: '2', type: 'donor', message: 'New donor registered: Fatima Noor (Kenya)', timestamp: new Date(Date.now() - 12 * 60000).toISOString() },
     { id: '3', type: 'contribution', message: 'Contribution confirmed: Yusuf Omar — April pledge', timestamp: new Date(Date.now() - 34 * 60000).toISOString() },
-    { id: '4', type: 'campaign', message: 'Friday Challenge reached 142/200 donors', timestamp: new Date(Date.now() - 60 * 60000).toISOString() },
-    { id: '5', type: 'reminder', message: 'Quran reminder published for today', timestamp: new Date(Date.now() - 2 * 3600000).toISOString() },
+    { id: '4', type: 'campaign', message: 'Awareness Bags campaign reached 3,125/5,000 families', timestamp: new Date(Date.now() - 60 * 60000).toISOString() },
+    { id: '5', type: 'reminder', message: 'Family awareness reminder published for today', timestamp: new Date(Date.now() - 2 * 3600000).toISOString() },
   ],
 };
 
@@ -43,7 +43,7 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <AdminLayout title="Dashboard" subtitle="Family Pledge Gaza Relief — Overview">
+    <AdminLayout title="Dashboard" subtitle="Family Pledge Palestine Support — live operations overview">
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard label="Total Donors" value={formatNumber(stats.total_donors)} icon={Users} color="green" />
@@ -101,7 +101,7 @@ export default function DashboardPage() {
           {/* Gaza Solidarity */}
           <div className="mt-6 p-4 bg-primary-dark rounded-xl text-center">
             <div className="text-white text-2xl font-bold mb-1">{formatCurrency(stats.total_raised_tracked)}</div>
-            <div className="text-white/70 text-xs">Total Tracked for Gaza Relief</div>
+            <div className="text-white/70 text-xs">Total tracked for Family Pledge support</div>
             <div className="mt-2 h-1.5 bg-white/20 rounded-full overflow-hidden">
               <div className="h-full bg-gold rounded-full" style={{ width: `${Math.min((stats.active_pledges / stats.total_donors) * 100, 100)}%` }} />
             </div>
