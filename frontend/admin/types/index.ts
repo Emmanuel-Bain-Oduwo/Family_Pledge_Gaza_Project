@@ -198,8 +198,8 @@ export interface PushNotification {
   notification_type: string;
   audience: NotificationAudience;
   sent_count?: number;
-  sent_at: string;
-  sent_by: string;
+  sent_at?: string;
+  sent_by?: string;
 }
 
 export interface DashboardStats {
@@ -272,9 +272,9 @@ export interface ApiResponse<T> {
 }
 
 export interface PaginatedResponse<T> {
-  data: T[];
+  items: T[];
   total: number;
   page: number;
-  per_page: number;
-  has_more: boolean;
+  size: number;
+  pages: number;
 }
