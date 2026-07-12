@@ -7,23 +7,6 @@ import { getDashboardStats } from '../../lib/api';
 import { DashboardStats } from '../../types';
 import { formatDateTime, formatCurrency, formatNumber } from '../../lib/utils';
 
-const MOCK: DashboardStats = {
-  total_donors: 1247,
-  active_pledges: 893,
-  contributions_this_month: 156,
-  pending_contributions: 43,
-  total_raised_tracked: 18720,
-  active_campaigns: 4,
-  collectors_count: 38,
-  recent_activity: [
-    { id: '1', type: 'contribution', message: 'Ahmed Hassan signed the pledge and submitted KES 1,200 (Ref: QKR7XNPK)', timestamp: new Date(Date.now() - 5 * 60000).toISOString() },
-    { id: '2', type: 'donor', message: 'New donor registered: Fatima Noor (Kenya)', timestamp: new Date(Date.now() - 12 * 60000).toISOString() },
-    { id: '3', type: 'contribution', message: 'Contribution confirmed: Yusuf Omar — April pledge', timestamp: new Date(Date.now() - 34 * 60000).toISOString() },
-    { id: '4', type: 'campaign', message: 'Awareness Bags campaign reached 3,125/5,000 families', timestamp: new Date(Date.now() - 60 * 60000).toISOString() },
-    { id: '5', type: 'reminder', message: 'Family awareness reminder published for today', timestamp: new Date(Date.now() - 2 * 3600000).toISOString() },
-  ],
-};
-
 const TYPE_COLORS: Record<string, string> = {
   contribution: 'bg-green-100 text-green-700',
   donor: 'bg-blue-100 text-blue-700',
@@ -32,18 +15,23 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats>(MOCK);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     getDashboardStats()
       .then(setStats)
-      .catch(() => setStats(MOCK))
+      .catch((e) => setError(e.message || 'Unable to load dashboard data.'))
       .finally(() => setLoading(false));
   }, []);
 
   return (
     <AdminLayout title="Dashboard" subtitle="Family Pledge Palestine Support — live operations overview">
+      {loading && <div className="card p-10 text-center text-gray-400">Loading dashboard…</div>}
+      {error && <div className="card p-10 text-center text-red-600">{error}</div>}
+      {!loading && !error && stats && (
+      <>
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard label="Total Donors" value={formatNumber(stats.total_donors)} icon={Users} color="green" />
@@ -111,6 +99,8 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      </>
+      )}
     </AdminLayout>
   );
 }

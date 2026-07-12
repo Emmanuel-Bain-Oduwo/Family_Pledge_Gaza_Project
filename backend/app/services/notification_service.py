@@ -21,7 +21,7 @@ def _audience_query(audience: NotificationAudience):
         User.push_token.is_not(None),
     )
     if audience == NotificationAudience.admins:
-        return query.where(User.role.in_([UserRole.admin, UserRole.super_admin]))
+        return query.where(User.role == UserRole.admin)
     if audience == NotificationAudience.collectors:
         return query.where(User.role == UserRole.collector)
     if audience == NotificationAudience.confirmed_donors:

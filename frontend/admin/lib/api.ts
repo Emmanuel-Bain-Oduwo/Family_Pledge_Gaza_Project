@@ -1,13 +1,15 @@
 import axios, { AxiosInstance } from 'axios';
-import { getToken } from './auth';
+import { getToken, removeToken } from './auth';
 import {
-  Admin, AuthTokens, Donor, Contribution, ContributionStatus,
+  Admin, AdminProfileUpdate, AuthTokens, Donor, Contribution, ContributionStatus,
   Campaign, Project, ImpactCard, Reminder, Collector, CollectorMember,
   NamlefContent, PushNotification, DashboardStats, AiDraft, AppSettings,
   PaginatedResponse,
 } from '../types';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.familypledge.org/api/v1';
+const DEFAULT_API_URL = 'https://familypledgegazaproject-production.up.railway.app/api/v1';
+
+const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL).replace(/\/+$/, '');
 
 const unwrap = <T>(payload: T | { data: T }): T => {
   if (payload && typeof payload === 'object' && 'data' in payload) {
@@ -30,6 +32,9 @@ client.interceptors.request.use((config) => {
 
 const handle = (e: unknown): never => {
   if (axios.isAxiosError(e)) {
+    if (e.response?.status === 401 || e.response?.status === 403) {
+      removeToken();
+    }
     const msg = (e.response?.data as any)?.detail || (e.response?.data as any)?.message || e.message;
     throw new Error(msg);
   }
@@ -37,9 +42,9 @@ const handle = (e: unknown): never => {
 };
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
-export const adminLogin = async (payload: { email: string; password: string }): Promise<AuthTokens> => {
+export const adminLogin = async (payload: { identifier: string; password: string }): Promise<AuthTokens> => {
   try {
-    const { data } = await client.post<AuthTokens>('/auth/login', { identifier: payload.email, password: payload.password });
+    const { data } = await client.post<AuthTokens>('/auth/login', { identifier: payload.identifier, password: payload.password });
     return data;
   } catch (e) { return handle(e); }
 };
@@ -47,6 +52,13 @@ export const adminLogin = async (payload: { email: string; password: string }): 
 export const getAdminMe = async (): Promise<Admin> => {
   try {
     const { data } = await client.get<Admin>('/auth/me');
+    return data;
+  } catch (e) { return handle(e); }
+};
+
+export const updateAdminProfile = async (payload: AdminProfileUpdate): Promise<Admin> => {
+  try {
+    const { data } = await client.patch<Admin>('/users/me', payload);
     return data;
   } catch (e) { return handle(e); }
 };

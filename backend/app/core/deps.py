@@ -34,18 +34,12 @@ def get_current_user(
 
 
 def require_admin(user: User = Depends(get_current_user)) -> User:
-    if user.role not in (UserRole.admin, UserRole.super_admin):
+    if user.role != UserRole.admin:
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
 
 
-def require_super_admin(user: User = Depends(get_current_user)) -> User:
-    if user.role != UserRole.super_admin:
-        raise HTTPException(status_code=403, detail="Super admin access required")
-    return user
-
-
 def require_collector(user: User = Depends(get_current_user)) -> User:
-    if user.role not in (UserRole.collector, UserRole.admin, UserRole.super_admin):
+    if user.role not in (UserRole.collector, UserRole.admin):
         raise HTTPException(status_code=403, detail="Collector access required")
     return user
