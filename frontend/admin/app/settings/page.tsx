@@ -4,43 +4,33 @@ import { useEffect, useState } from 'react';
 import { Save, ExternalLink } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import AdminLayout from '../../components/AdminLayout';
-import { getSettings, updateSettings } from '../../lib/api';
-import { AppSettings } from '../../types';
+import { getAdminMe, getSettings, updateAdminProfile, updateSettings } from '../../lib/api';
+import { AdminProfileUpdate, AppSettings } from '../../types';
 import { FAMILY_PLEDGE_LOGO_DATA_URI } from '../../lib/logo';
 import toast from 'react-hot-toast';
 
-const MOCK_SETTINGS: AppSettings = {
-  payment_link: 'https://pay.familypledge.org',
-  payment_instructions: 'Send KES equivalent of USD 10 to Paybill 123456, Account: GAZA. Then submit your M-PESA reference code in the app.',
-  org_contact_email: 'support@familypledge.org',
-  org_contact_phone: '+254 700 000 000',
-  app_notice: '',
-  privacy_policy_url: 'https://familypledge.org/privacy',
-  terms_url: 'https://familypledge.org/terms',
-  payment_account_name: 'NAMLEF GAZA FAMILY SUPPORT',
-  payment_account_number: '001505100664103',
-  payment_currency: 'KES',
-  payment_bank_name: 'DIB Bank Kenya Limited',
-  payment_branch_name: 'Upper Hill Branch',
-  payment_swift_code: 'DUIBKENA',
-  payment_intermediary_bank: 'J.P. Morgan Chase Bank, NY',
-  payment_intermediary_swift_code: 'CHASUS33',
-  payment_mpesa_paybill: '342342',
-  payment_bank_code: '75',
-  payment_branch_code: '001',
-};
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const { register, handleSubmit, reset, formState: { isDirty } } = useForm<AppSettings>();
+  const { register: registerProfile, handleSubmit: handleProfileSubmit, reset: resetProfile, formState: { errors: profileErrors, isDirty: isProfileDirty } } = useForm<AdminProfileUpdate>();
 
   useEffect(() => {
-    getSettings()
-      .then((s) => reset(s))
-      .catch(() => reset(MOCK_SETTINGS))
+    Promise.all([
+      getSettings().then((s) => reset(s)),
+      getAdminMe().then((admin) => resetProfile({
+        full_name: admin.full_name || '',
+        nickname: admin.nickname || '',
+        email: admin.email || '',
+        phone: admin.phone || '',
+      })),
+    ])
+      .catch((e) => setLoadError(e.message || 'Unable to load settings.'))
       .finally(() => setLoading(false));
-  }, [reset]);
+  }, [reset, resetProfile]);
 
   const onSubmit = async (values: AppSettings) => {
     setSaving(true);
@@ -48,11 +38,36 @@ export default function SettingsPage() {
       await updateSettings(values);
       reset(values);
       toast.success('Settings saved.');
-    } catch {
-      reset(values);
-      toast.success('Settings saved.');
+    } catch (e: any) {
+      toast.error(e.message || 'Unable to save settings.');
     } finally {
       setSaving(false);
+    }
+  };
+
+
+  const onProfileSubmit = async (values: AdminProfileUpdate) => {
+    const payload = {
+      full_name: values.full_name?.trim() || null,
+      nickname: values.nickname?.trim() || null,
+      email: values.email?.trim().toLowerCase() || null,
+      phone: values.phone?.trim() || null,
+    };
+    setProfileSaving(true);
+    try {
+      const updated = await updateAdminProfile(payload);
+      resetProfile({
+        full_name: updated.full_name || '',
+        nickname: updated.nickname || '',
+        email: updated.email || '',
+        phone: updated.phone || '',
+      });
+      window.dispatchEvent(new Event('admin-profile-updated'));
+      toast.success('Admin profile saved.');
+    } catch (e: any) {
+      toast.error(e.message || 'Unable to save admin profile.');
+    } finally {
+      setProfileSaving(false);
     }
   };
 
@@ -62,9 +77,51 @@ export default function SettingsPage() {
     </AdminLayout>
   );
 
+  if (loadError) return (
+    <AdminLayout title="Settings" subtitle="App configuration and organization details">
+      <div className="card p-10 text-center text-red-600">{loadError}</div>
+    </AdminLayout>
+  );
+
   return (
     <AdminLayout title="Settings" subtitle="App configuration and organization details">
-      <form onSubmit={handleSubmit(onSubmit)} className="max-w-2xl space-y-6">
+
+      <div className="max-w-2xl space-y-6">
+        <form onSubmit={handleProfileSubmit(onProfileSubmit)} className="card p-6 space-y-4">
+          <div>
+            <h2 className="text-base font-bold text-gray-900">Admin Profile</h2>
+            <p className="text-sm text-gray-500 mt-1">Your email and phone number can be used for future admin sign-ins.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="label">Full name</label>
+              <input {...registerProfile('full_name')} className="input" placeholder="Full name" />
+            </div>
+            <div>
+              <label className="label">Nickname</label>
+              <input {...registerProfile('nickname')} className="input" placeholder="Nickname" />
+            </div>
+            <div>
+              <label className="label">Email address</label>
+              <input
+                {...registerProfile('email', { pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid email address' } })}
+                type="email"
+                className="input"
+                placeholder="admin@familypledge.org"
+              />
+              {profileErrors.email && <p className="text-red-500 text-xs mt-1">{profileErrors.email.message}</p>}
+            </div>
+            <div>
+              <label className="label">Phone number</label>
+              <input {...registerProfile('phone')} className="input" placeholder="+254700000001" />
+            </div>
+          </div>
+          <button type="submit" disabled={profileSaving || !isProfileDirty} className="btn-primary flex items-center gap-2">
+            <Save size={16} /> {profileSaving ? 'Saving profile…' : 'Save Admin Profile'}
+          </button>
+        </form>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="card p-6 flex items-center gap-4">
           <div className="w-20 h-20 rounded-3xl bg-white border border-gray-100 shadow-sm flex items-center justify-center overflow-hidden">
             <Image
@@ -200,7 +257,8 @@ export default function SettingsPage() {
           </button>
           {!isDirty && <span className="text-sm text-gray-400">No unsaved changes.</span>}
         </div>
-      </form>
+        </form>
+      </div>
     </AdminLayout>
   );
 }

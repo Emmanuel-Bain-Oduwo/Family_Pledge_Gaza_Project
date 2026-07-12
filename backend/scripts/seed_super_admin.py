@@ -1,12 +1,12 @@
 """
-Seed the first super admin user.
+Seed the first admin user.
 
 Usage:
     DATABASE_URL=postgresql://... python scripts/seed_super_admin.py
 
 Environment variables (all required):
     DATABASE_URL       - PostgreSQL connection string
-    ADMIN_FULL_NAME    - Full name of the super admin
+    ADMIN_FULL_NAME    - Full name of the admin
     ADMIN_EMAIL        - Email address (must be unique)
     ADMIN_PHONE        - Phone number in E.164 format, e.g. +256700000000
     ADMIN_PASSWORD     - Plain-text password (hashed before storage)
@@ -51,7 +51,7 @@ def seed() -> None:
         ).first()
 
         if existing:
-            print(f"Super admin with email '{email}' already exists (id={existing.id}). Skipping.")
+            print(f"Admin with email '{email}' already exists (id={existing.id}). Skipping.")
             return
 
         admin = User(
@@ -59,7 +59,7 @@ def seed() -> None:
             email=email,
             phone=phone,
             password_hash=pwd_context.hash(password),
-            role=UserRole.super_admin,
+            role=UserRole.admin,
             is_active=True,
             anonymous_publicly=False,
         )
@@ -67,7 +67,7 @@ def seed() -> None:
         session.commit()
         session.refresh(admin)
 
-    print(f"Super admin created successfully.")
+    print(f"Admin created successfully.")
     print(f"  id    : {admin.id}")
     print(f"  name  : {admin.full_name}")
     print(f"  email : {admin.email}")

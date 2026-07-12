@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_admin
 from app.models.enums import ContributionStatus
 from app.models.user import User
 from app.schemas.common import PaginatedResponse, make_page
@@ -60,15 +60,9 @@ def admin_list_contributions(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     status: Optional[ContributionStatus] = Query(None),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    from app.core.deps import require_admin
-    from app.models.enums import UserRole
-    if current_user.role not in (UserRole.admin, UserRole.super_admin):
-        from fastapi import HTTPException
-        raise HTTPException(403, "Admin access required")
-
     skip, limit = offset_limit(page, size)
     items, total = contribution_service.admin_list(db, skip, limit, status)
 
@@ -87,13 +81,9 @@ def admin_list_contributions(
 @router.patch("/admin/contributions/{contribution_id}/confirm", response_model=ContributionOut)
 def admin_confirm(
     contribution_id: UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    from app.models.enums import UserRole
-    if current_user.role not in (UserRole.admin, UserRole.super_admin):
-        from fastapi import HTTPException
-        raise HTTPException(403, "Admin access required")
     return contribution_service.confirm(db, current_user, contribution_id)
 
 
@@ -101,13 +91,9 @@ def admin_confirm(
 def admin_reject(
     contribution_id: UUID,
     data: AdminNoteRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    from app.models.enums import UserRole
-    if current_user.role not in (UserRole.admin, UserRole.super_admin):
-        from fastapi import HTTPException
-        raise HTTPException(403, "Admin access required")
     return contribution_service.reject(db, current_user, contribution_id, data.admin_note)
 
 
@@ -117,13 +103,9 @@ def admin_reject(
 def admin_needs_follow_up(
     contribution_id: UUID,
     data: AdminNoteRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    from app.models.enums import UserRole
-    if current_user.role not in (UserRole.admin, UserRole.super_admin):
-        from fastapi import HTTPException
-        raise HTTPException(403, "Admin access required")
     return contribution_service.needs_follow_up(db, current_user, contribution_id, data.admin_note)
 
 
@@ -131,13 +113,10 @@ def admin_needs_follow_up(
 def admin_review_contribution(
     contribution_id: UUID,
     data: dict,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    from app.models.enums import UserRole
     from fastapi import HTTPException
-    if current_user.role not in (UserRole.admin, UserRole.super_admin):
-        raise HTTPException(403, "Admin access required")
     status = data.get("status")
     admin_note = data.get("admin_note")
     if status == ContributionStatus.confirmed.value:
