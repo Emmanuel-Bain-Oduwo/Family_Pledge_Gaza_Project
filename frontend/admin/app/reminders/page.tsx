@@ -105,7 +105,7 @@ export default function RemindersPage() {
             <button key={t} onClick={() => setFilterType(t)} className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize ${filterType === t ? 'bg-primary text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{t}</button>
           ))}
         </div>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="input w-36">
+        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="input w-full sm:w-36">
           <option value="">All Statuses</option>
           <option value="draft">Draft</option>
           <option value="approved">Approved</option>
@@ -122,8 +122,8 @@ export default function RemindersPage() {
       </div>
 
       {modalMode && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-2xl my-4">
+        <div className="modal-shell">
+          <div className="modal-panel">
             <h3 className="text-lg font-bold text-gray-900 mb-4">{modalMode === 'create' ? 'Create Reminder' : 'Edit Reminder'}</h3>
             <ReminderForm initial={editItem || undefined} onSuccess={handleSuccess} onCancel={closeModal} />
           </div>

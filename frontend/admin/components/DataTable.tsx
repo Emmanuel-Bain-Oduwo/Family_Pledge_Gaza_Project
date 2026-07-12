@@ -25,8 +25,8 @@ export default function DataTable<T extends Record<string, any>>({
   emptyMessage = 'No records found.',
 }: DataTableProps<T>) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+    <div className="w-full overflow-x-auto">
+      <table className="min-w-full text-sm">
         <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
             {columns.map((col) => (

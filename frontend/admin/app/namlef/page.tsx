@@ -93,7 +93,7 @@ export default function NamlefPage() {
   return (
     <AdminLayout title="NAMLEF Content" subtitle="Manage content from national Muslim leaders for donors">
       {/* Header banner */}
-      <div className="card bg-primary-dark p-5 mb-5 flex items-center justify-between">
+      <div className="card bg-primary-dark p-5 mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="text-white font-bold text-lg">National Muslim Leaders Forum — East Africa</div>
           <div className="text-white/60 text-sm mt-0.5">Share guidance from scholars and leaders to inspire and educate donors</div>
@@ -116,8 +116,8 @@ export default function NamlefPage() {
       </div>
 
       {modalMode && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-2xl my-4">
+        <div className="modal-shell">
+          <div className="modal-panel">
             <h3 className="text-lg font-bold text-gray-900 mb-4">{modalMode === 'create' ? 'Add NAMLEF Content' : 'Edit Content'}</h3>
             <NamlefContentForm initial={editItem || undefined} onSuccess={handleSuccess} onCancel={closeModal} />
           </div>

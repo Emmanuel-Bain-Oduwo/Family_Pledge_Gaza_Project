@@ -65,7 +65,7 @@ export default function DonorsPage() {
     <AdminLayout title="Donors" subtitle={`${donors.length} registered donors`}>
       {/* Filters */}
       <div className="card p-4 mb-5 flex flex-wrap gap-3 items-center">
-        <div className="relative flex-1 min-w-48">
+        <div className="relative flex-1 min-w-full sm:min-w-48">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             value={search}
@@ -74,11 +74,11 @@ export default function DonorsPage() {
             className="input pl-9"
           />
         </div>
-        <select value={filterCountry} onChange={(e) => setFilterCountry(e.target.value)} className="input w-40">
+        <select value={filterCountry} onChange={(e) => setFilterCountry(e.target.value)} className="input w-full sm:w-40">
           <option value="">All Countries</option>
           {countries.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="input w-44">
+        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="input w-full sm:w-44">
           <option value="">All Statuses</option>
           <option value="paid">Paid</option>
           <option value="pending">Pending</option>

@@ -49,7 +49,7 @@ function ReminderForm({ onGenerated }: { onGenerated: (d: AiDraft) => void }) {
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="label">Audience</label>
           <input className="input" value={form.audience} onChange={(e) => setForm((f) => ({ ...f, audience: e.target.value }))} placeholder="e.g. donors, collectors" />
@@ -63,7 +63,7 @@ function ReminderForm({ onGenerated }: { onGenerated: (d: AiDraft) => void }) {
           </select>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="label">Campaign title (optional)</label>
           <input className="input" value={form.campaign_title || ''} onChange={(e) => setForm((f) => ({ ...f, campaign_title: e.target.value || undefined }))} placeholder="e.g. Ramadan Relief 2025" />
@@ -79,8 +79,8 @@ function ReminderForm({ onGenerated }: { onGenerated: (d: AiDraft) => void }) {
       </div>
       <div>
         <label className="label">Key points to include</label>
-        <div className="flex gap-2">
-          <input className="input flex-1" value={keyPointInput} onChange={(e) => setKeyPointInput(e.target.value)}
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input className="input flex-1 min-w-0" value={keyPointInput} onChange={(e) => setKeyPointInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addKP(); } }}
             placeholder="Add a key point and press Enter" />
           <button type="button" onClick={addKP} className="btn-secondary">Add</button>
@@ -132,7 +132,7 @@ function ImpactForm({ onGenerated }: { onGenerated: (d: AiDraft) => void }) {
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="label">Project title *</label>
           <input className="input" value={form.project_title} onChange={(e) => setForm((f) => ({ ...f, project_title: e.target.value }))} placeholder="e.g. Gaza Food Package Drive" />
@@ -142,7 +142,7 @@ function ImpactForm({ onGenerated }: { onGenerated: (d: AiDraft) => void }) {
           <input className="input" value={form.category || ''} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value || undefined }))} placeholder="e.g. food, water, orphans" />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="label">Beneficiaries reached (optional)</label>
           <input type="number" className="input" value={form.beneficiaries_count ?? ''} onChange={(e) => setForm((f) => ({ ...f, beneficiaries_count: e.target.value ? parseInt(e.target.value) : undefined }))} placeholder="e.g. 500" />
@@ -158,8 +158,8 @@ function ImpactForm({ onGenerated }: { onGenerated: (d: AiDraft) => void }) {
       </div>
       <div>
         <label className="label">Verified facts (AI uses only these — do not add unverified claims)</label>
-        <div className="flex gap-2">
-          <input className="input flex-1" value={factInput} onChange={(e) => setFactInput(e.target.value)}
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input className="input flex-1 min-w-0" value={factInput} onChange={(e) => setFactInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addFact(); } }}
             placeholder="Add a verified fact and press Enter" />
           <button type="button" onClick={addFact} className="btn-secondary">Add</button>
@@ -240,7 +240,7 @@ function CollectorForm({ onGenerated }: { onGenerated: (d: AiDraft) => void }) {
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="label">Group name *</label>
           <input className="input" value={form.group_name} onChange={(e) => setForm((f) => ({ ...f, group_name: e.target.value }))} placeholder="e.g. Kampala Circle" />
@@ -264,7 +264,7 @@ function CollectorForm({ onGenerated }: { onGenerated: (d: AiDraft) => void }) {
           <input type="number" className="input" value={form.pending_count ?? ''} onChange={(e) => setForm((f) => ({ ...f, pending_count: e.target.value ? parseInt(e.target.value) : undefined }))} placeholder="6" />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="label">Campaign (optional)</label>
           <input className="input" value={form.campaign_title || ''} onChange={(e) => setForm((f) => ({ ...f, campaign_title: e.target.value || undefined }))} placeholder="e.g. June Gaza Relief" />

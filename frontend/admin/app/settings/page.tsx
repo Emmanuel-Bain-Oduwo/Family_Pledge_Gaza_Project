@@ -86,7 +86,7 @@ export default function SettingsPage() {
   return (
     <AdminLayout title="Settings" subtitle="App configuration and organization details">
 
-      <div className="max-w-2xl space-y-6">
+      <div className="max-w-2xl space-y-6 min-w-0">
         <form onSubmit={handleProfileSubmit(onProfileSubmit)} className="card p-6 space-y-4">
           <div>
             <h2 className="text-base font-bold text-gray-900">Admin Profile</h2>
@@ -122,7 +122,7 @@ export default function SettingsPage() {
         </form>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div className="card p-6 flex items-center gap-4">
+        <div className="card p-6 flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="w-20 h-20 rounded-3xl bg-white border border-gray-100 shadow-sm flex items-center justify-center overflow-hidden">
             <Image
               src={FAMILY_PLEDGE_LOGO_DATA_URI}
@@ -199,7 +199,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <label className="label">Bank / Branch Codes</label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <input {...register('payment_bank_code')} className="input" placeholder="Bank code" />
                 <input {...register('payment_branch_code')} className="input" placeholder="Branch code" />
               </div>

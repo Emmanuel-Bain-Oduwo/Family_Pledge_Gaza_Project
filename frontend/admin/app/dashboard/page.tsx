@@ -33,7 +33,7 @@ export default function DashboardPage() {
       {!loading && !error && stats && (
       <>
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard label="Total Donors" value={formatNumber(stats.total_donors)} icon={Users} color="green" />
         <StatCard label="Active Pledges" value={formatNumber(stats.active_pledges)} icon={Heart} color="green" trend="12%" trendUp />
         <StatCard label="Contributions This Month" value={formatNumber(stats.contributions_this_month)} icon={TrendingUp} color="blue" />

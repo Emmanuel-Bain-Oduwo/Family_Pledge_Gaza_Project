@@ -42,3 +42,41 @@
     @apply border-b border-gray-100 hover:bg-gray-50 transition-colors;
   }
 }
+
+@layer base {
+  *, ::before, ::after { box-sizing: border-box; }
+  html, body { max-width: 100%; overflow-x: hidden; }
+  button, a, input, select, textarea { min-height: 44px; }
+  textarea { resize: vertical; }
+}
+
+@layer components {
+  .btn-primary, .btn-secondary, .btn-danger, .btn-ghost {
+    @apply inline-flex min-h-11 items-center justify-center whitespace-normal break-words;
+  }
+  .input {
+    @apply min-w-0 max-w-full;
+  }
+  .card {
+    @apply min-w-0;
+  }
+  .table-th, .table-td {
+    @apply whitespace-nowrap align-top;
+  }
+  .table-td {
+    @apply break-words;
+  }
+  .modal-shell {
+    @apply fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-3 sm:p-4;
+  }
+  .modal-panel {
+    @apply my-4 max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-4 shadow-2xl sm:p-6;
+  }
+  .modal-actions {
+    @apply flex flex-col gap-3 pt-2 sm:flex-row;
+  }
+}
+
+@media (max-width: 640px) {
+  .table-th, .table-td { padding-left: 0.75rem; padding-right: 0.75rem; }
+}
