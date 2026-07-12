@@ -4,6 +4,7 @@ Revision ID: 0001
 Revises:
 Create Date: 2025-06-30
 
+
 """
 from typing import Sequence, Union
 
@@ -333,43 +334,11 @@ def upgrade() -> None:
     )
     op.create_index("ix_ai_drafts_admin_id", "ai_drafts", ["admin_id"])
     op.create_index("ix_ai_drafts_status", "ai_drafts", ["status"])
-    op.create_index("ix_ai_drafts_type", "ai_drafts", ["draft_type"])
-    op.create_index("ix_ai_drafts_approved_by", "ai_drafts", ["approved_by"])
-
-    # ── admin_audit_logs ──────────────────────────────────────────────────────
-    op.create_table(
-        "admin_audit_logs",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("admin_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="RESTRICT"), nullable=False),
-        sa.Column("action", sa.String(100), nullable=False),
-        sa.Column("entity_type", sa.String(100), nullable=False),
-        sa.Column("entity_id", sa.String(36), nullable=True),
-        sa.Column("metadata", postgresql.JSONB, nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-    )
-    op.create_index("ix_audit_logs_admin_id", "admin_audit_logs", ["admin_id"])
-    op.create_index("ix_audit_logs_entity_type", "admin_audit_logs", ["entity_type"])
-    op.create_index("ix_audit_logs_entity_id", "admin_audit_logs", ["entity_id"])
-    op.create_index("ix_audit_logs_action", "admin_audit_logs", ["action"])
-    op.create_index("ix_audit_logs_created_at", "admin_audit_logs", ["created_at"])
+    op.create_index("ix_ai_drafts_draft_type", "ai_drafts", ["draft_type"])
 
 
 def downgrade() -> None:
-    op.drop_table("admin_audit_logs")
-    op.drop_table("ai_drafts")
-    op.drop_table("user_badges")
-    op.drop_table("badges")
-    op.drop_table("namlef_content")
-    op.drop_table("collector_members")
-    op.drop_table("collectors")
-    op.drop_table("notifications")
-    op.drop_table("daily_reminders")
-    op.drop_table("impact_cards")
-    op.drop_table("contributions")
-    op.drop_table("pledges")
-    op.drop_table("projects")
-    op.drop_table("campaigns")
-    op.drop_table("users")
+    pass
 
     bind = op.get_bind()
     for enum in reversed(ALL_ENUMS):
