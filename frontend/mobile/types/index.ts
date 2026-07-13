@@ -176,8 +176,6 @@ export interface RegisterPayload {
   country: string;
   city?: string;
   password: string;
-  anonymous_publicly: boolean;
-  collector_code?: string;
 }
 
 export interface LoginPayload {
