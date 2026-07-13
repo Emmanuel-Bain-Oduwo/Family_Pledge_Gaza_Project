@@ -54,9 +54,24 @@ const handleApiError = (error: unknown): never => {
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
+const optionalTrimmed = (value?: string): string | undefined => {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+};
+
 export const register = async (payload: RegisterPayload): Promise<AuthTokens> => {
+  const normalized = {
+    full_name: payload.full_name.trim(),
+    phone: payload.phone.trim(),
+    email: optionalTrimmed(payload.email),
+    password: payload.password,
+    country: payload.country.trim(),
+    city: optionalTrimmed(payload.city),
+    nickname: optionalTrimmed(payload.nickname),
+  };
+
   try {
-    const { data } = await client.post<AuthTokens>('/auth/register', payload);
+    const { data } = await client.post<AuthTokens>('/auth/register', normalized);
     return data;
   } catch (e) {
     return handleApiError(e);
@@ -64,8 +79,13 @@ export const register = async (payload: RegisterPayload): Promise<AuthTokens> =>
 };
 
 export const login = async (payload: LoginPayload): Promise<AuthTokens> => {
+  const normalized = {
+    identifier: payload.phone_or_email.trim(),
+    password: payload.password,
+  };
+
   try {
-    const { data } = await client.post<AuthTokens>('/auth/login', payload);
+    const { data } = await client.post<AuthTokens>('/auth/login', normalized);
     return data;
   } catch (e) {
     return handleApiError(e);

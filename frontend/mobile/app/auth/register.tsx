@@ -61,8 +61,6 @@ export default function RegisterScreen() {
         country: form.country.trim(),
         city: form.city.trim() || undefined,
         password: form.password,
-        anonymous_publicly: form.anonymous_publicly,
-        collector_code: form.collector_code.trim() || undefined,
       });
       await saveToken(tokens);
       router.replace('/tabs/home');
