@@ -143,3 +143,46 @@ def admin_list(
         ).all()
     )
     return items, total
+
+def _validate_transaction_reference_unique(db: Session, transaction_reference: str | None) -> None:
+    """
+    Raise a 400 HTTPException if a Contribution with this transaction reference already exists.
+    Leading/trailing whitespace is stripped before comparison.
+    """
+    if transaction_reference is None:
+        return
+    cleaned = transaction_reference.strip()
+    if not cleaned:
+        return
+    exists = db.scalar(
+        select(func.count()).select_from(
+            select(Contribution).where(
+                func.trim(Contribution.transaction_reference) == cleaned
+            ).subquery()
+        )
+    )
+    if exists:
+        raise HTTPException(status_code=400, detail="Duplicate transaction reference detected")
+
+
+def submit(db: Session, user: User, data: ContributionSubmit) -> Contribution:
+    # Duplicate transaction protection
+    _validate_transaction_reference_unique(db, data.transaction_reference)
+
+    contribution = Contribution(
+        user_id=user.id,
+        pledge_id=data.pledge_id,
+        campaign_id=data.campaign_id,
+        amount=data.amount,
+        currency=data.currency,
+        contribution_channel=data.contribution_channel,
+        payment_link_used=data.payment_link_used,
+        transaction_reference=data.transaction_reference,
+        proof_image_url=data.proof_image_url,
+        status=ContributionStatus.submitted,
+        contribution_month=data.contribution_month,
+    )
+    db.add(contribution)
+    db.commit()
+    db.refresh(contribution)
+    return contribution
