@@ -5,7 +5,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.rate_limit import rate_limiter
 from app.models.user import User
-from app.schemas.auth import LoginRequest, PushTokenRequest, RegisterRequest, TokenResponse
+from app.schemas.auth import LoginRequest, PushTokenRequest, RegisterRequest, TokenResponse, PasswordResetRequest, PasswordResetConfirm
 from app.schemas.common import MessageResponse
 from app.schemas.user import UserOut
 from app.services import auth_service
