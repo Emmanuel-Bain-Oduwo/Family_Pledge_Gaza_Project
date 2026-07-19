@@ -9,6 +9,8 @@ on:
 jobs:
   backend-checks:
     runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: backend
     services:
       postgres:
         image: postgres:15
