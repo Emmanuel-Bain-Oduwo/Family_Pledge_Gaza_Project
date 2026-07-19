@@ -1,8 +1,10 @@
 import logging
 
+import sentry_sdk
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sqlalchemy import inspect, text
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -28,6 +30,18 @@ from app.api.routes import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Sentry initialization
+if settings.SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        integrations=[FastApiIntegration()],
+        traces_sample_rate=1.0,
+        environment=settings.APP_ENV,
+    )
+    logger.info("Sentry initialized (environment: %s)", settings.APP_ENV)
+else:
+    logger.warning("SENTRY_DSN not set – monitoring disabled")
 
 CORE_TABLES = (
     "users",
@@ -115,27 +129,13 @@ def readiness_check(response: Response):
     status = (
         "ready"
         if database_status == "connected" and migrations_status == "ok"
-        else "not_ready"
+        else "unavailable"
     )
-    if status != "ready":
-        response.status_code = 503
+    response.status_code = 200 if status == "ready" else 503
 
     return {
         "status": status,
-        "service": "family-pledge-api",
         "database": database_status,
         "migrations": migrations_status,
         "missing_tables": missing_tables,
-        "cors_origins_configured": len(settings.cors_origins_list),
     }
-
-# Sentry monitoring
-if settings.SENTRY_DSN:
-    import sentry_sdk
-    from sentry_sdk.integrations.fastapi import FastApiIntegration
-    sentry_sdk.init(
-        dsn=settings.SENTRY_DSN,
-        integrations=[FastApiIntegration()],
-        traces_sample_rate=1.0,
-    )
-    logger.info("Sentry initialized successfully")

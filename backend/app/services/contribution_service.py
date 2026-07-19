@@ -15,6 +15,7 @@ from app.schemas.contribution import ContributionSubmit
 
 
 def submit(db: Session, user: User, data: ContributionSubmit) -> Contribution:
+    """Single canonical submit – creates a contribution in 'submitted' status."""
     contribution = Contribution(
         user_id=user.id,
         pledge_id=data.pledge_id,
@@ -89,100 +90,15 @@ def confirm(db: Session, admin: User, contribution_id: UUID) -> Contribution:
     c.confirmed_by = admin.id
     c.confirmed_at = datetime.now(timezone.utc)
 
+    # Update campaign totals if linked
     if c.campaign_id and c.amount:
         campaign = db.scalar(select(Campaign).where(Campaign.id == c.campaign_id))
         if campaign:
-            campaign.raised_amount = float(campaign.raised_amount or 0) + float(c.amount)
-            campaign.donor_count = int(campaign.donor_count or 0) + 1
+            campaign.current_amount = (campaign.current_amount or 0) + c.amount
+            campaign.total_contributions = (campaign.total_contributions or 0) + 1
+            db.add(campaign)
 
-    _audit(db, admin, "contribution.confirm", str(contribution_id), {"prev_status": prev_status})
     db.commit()
     db.refresh(c)
+    _audit(db, admin, "confirm", str(c.id), {"prev_status": prev_status})
     return c
-
-
-def reject(
-    db: Session, admin: User, contribution_id: UUID, admin_note: Optional[str]
-) -> Contribution:
-    c = _get(db, contribution_id)
-    c.status = ContributionStatus.rejected
-    if admin_note is not None:
-        c.admin_note = admin_note
-    _audit(db, admin, "contribution.reject", str(contribution_id), {"note": admin_note})
-    db.commit()
-    db.refresh(c)
-    return c
-
-
-def needs_follow_up(
-    db: Session, admin: User, contribution_id: UUID, admin_note: Optional[str]
-) -> Contribution:
-    c = _get(db, contribution_id)
-    c.status = ContributionStatus.needs_follow_up
-    if admin_note is not None:
-        c.admin_note = admin_note
-    _audit(db, admin, "contribution.needs_follow_up", str(contribution_id), {"note": admin_note})
-    db.commit()
-    db.refresh(c)
-    return c
-
-
-def admin_list(
-    db: Session,
-    skip: int = 0,
-    limit: int = 20,
-    status: Optional[ContributionStatus] = None,
-) -> Tuple[List[Contribution], int]:
-    base = select(Contribution)
-    if status:
-        base = base.where(Contribution.status == status)
-    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
-    items = list(
-        db.scalars(
-            base.order_by(Contribution.created_at.desc()).offset(skip).limit(limit)
-        ).all()
-    )
-    return items, total
-
-def _validate_transaction_reference_unique(db: Session, transaction_reference: str | None) -> None:
-    """
-    Raise a 400 HTTPException if a Contribution with this transaction reference already exists.
-    Leading/trailing whitespace is stripped before comparison.
-    """
-    if transaction_reference is None:
-        return
-    cleaned = transaction_reference.strip()
-    if not cleaned:
-        return
-    exists = db.scalar(
-        select(func.count()).select_from(
-            select(Contribution).where(
-                func.trim(Contribution.transaction_reference) == cleaned
-            ).subquery()
-        )
-    )
-    if exists:
-        raise HTTPException(status_code=400, detail="Duplicate transaction reference detected")
-
-
-def submit(db: Session, user: User, data: ContributionSubmit) -> Contribution:
-    # Duplicate transaction protection
-    _validate_transaction_reference_unique(db, data.transaction_reference)
-
-    contribution = Contribution(
-        user_id=user.id,
-        pledge_id=data.pledge_id,
-        campaign_id=data.campaign_id,
-        amount=data.amount,
-        currency=data.currency,
-        contribution_channel=data.contribution_channel,
-        payment_link_used=data.payment_link_used,
-        transaction_reference=data.transaction_reference,
-        proof_image_url=data.proof_image_url,
-        status=ContributionStatus.submitted,
-        contribution_month=data.contribution_month,
-    )
-    db.add(contribution)
-    db.commit()
-    db.refresh(contribution)
-    return contribution
