@@ -129,7 +129,7 @@ def confirm(db: Session, admin: User, contribution_id: UUID) -> Contribution:
     _audit(db, admin, "confirm", str(c.id), {
         "previous_status": prev_status,
         "new_status": c.status.value,
-        "amount": c.amount,
+        "amount": str(c.amount) if c.amount is not None else None,
         "currency": c.currency,
         "transaction_reference": c.transaction_reference
     })
@@ -152,7 +152,7 @@ def reject(db: Session, admin: User, contribution_id: UUID, admin_note: Optional
         "previous_status": prev_status,
         "new_status": c.status.value,
         "admin_note": admin_note,
-        "amount": c.amount,
+        "amount": str(c.amount) if c.amount is not None else None,
         "currency": c.currency,
         "transaction_reference": c.transaction_reference
     })
@@ -175,7 +175,7 @@ def needs_follow_up(db: Session, admin: User, contribution_id: UUID, admin_note:
         "previous_status": prev_status,
         "new_status": c.status.value,
         "admin_note": admin_note,
-        "amount": c.amount,
+        "amount": str(c.amount) if c.amount is not None else None,
         "currency": c.currency,
         "transaction_reference": c.transaction_reference
     })
