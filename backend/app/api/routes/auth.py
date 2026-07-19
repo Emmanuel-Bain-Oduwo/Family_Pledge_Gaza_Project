@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.rate_limit import rate_limiter
 from app.models.user import User
 from app.schemas.auth import LoginRequest, PushTokenRequest, RegisterRequest, TokenResponse
 from app.schemas.common import MessageResponse
@@ -13,7 +14,11 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post("/register", response_model=TokenResponse, status_code=201)
-def register(data: RegisterRequest, db: Session = Depends(get_db)):
+def register(
+    data: RegisterRequest,
+    db: Session = Depends(get_db),
+    _: None = Depends(rate_limiter.limit(max_requests=5, window_seconds=60)),
+):
     user = auth_service.register(db, data)
     from app.core.security import create_access_token
     token = create_access_token(str(user.id))
@@ -21,7 +26,11 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(data: LoginRequest, db: Session = Depends(get_db)):
+def login(
+    data: LoginRequest,
+    db: Session = Depends(get_db),
+    _: None = Depends(rate_limiter.limit(max_requests=5, window_seconds=60)),
+):
     _, token = auth_service.login(db, data)
     return TokenResponse(access_token=token)
 
