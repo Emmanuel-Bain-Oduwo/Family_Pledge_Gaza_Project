@@ -90,15 +90,57 @@ def confirm(db: Session, admin: User, contribution_id: UUID) -> Contribution:
     c.confirmed_by = admin.id
     c.confirmed_at = datetime.now(timezone.utc)
 
-    # Update campaign totals if linked
-    if c.campaign_id and c.amount:
-        campaign = db.scalar(select(Campaign).where(Campaign.id == c.campaign_id))
-        if campaign:
-            campaign.current_amount = (campaign.current_amount or 0) + c.amount
-            campaign.total_contributions = (campaign.total_contributions or 0) + 1
-            db.add(campaign)
+    # Update campaign totals
+    campaign = db.scalar(select(Campaign).where(Campaign.id == c.campaign_id))
+    if campaign:
+        campaign.raised_amount += c.amount
+        campaign.donor_count += 1
 
+    _audit(db, admin, "confirm", str(c.id), {"previous_status": prev_status})
     db.commit()
     db.refresh(c)
-    _audit(db, admin, "confirm", str(c.id), {"prev_status": prev_status})
     return c
+
+
+def reject(db: Session, admin: User, contribution_id: UUID, note: Optional[str] = None) -> Contribution:
+    c = _get(db, contribution_id)
+    if c.status == ContributionStatus.rejected:
+        raise HTTPException(400, "Contribution already rejected")
+
+    prev_status = c.status.value
+    c.status = ContributionStatus.rejected
+    c.rejected_by = admin.id
+    c.rejected_at = datetime.now(timezone.utc)
+    if note:
+        c.admin_note = note
+
+    _audit(db, admin, "reject", str(c.id), {"previous_status": prev_status, "note": note})
+    db.commit()
+    db.refresh(c)
+    return c
+
+
+def needs_follow_up(db: Session, admin: User, contribution_id: UUID) -> Contribution:
+    c = _get(db, contribution_id)
+    if c.status == ContributionStatus.needs_follow_up:
+        raise HTTPException(400, "Contribution already marked needs_follow_up")
+
+    prev_status = c.status.value
+    c.status = ContributionStatus.needs_follow_up
+
+    _audit(db, admin, "needs_follow_up", str(c.id), {"previous_status": prev_status})
+    db.commit()
+    db.refresh(c)
+    return c
+
+
+def admin_list(
+    db: Session, skip: int = 0, limit: int = 20, status: Optional[ContributionStatus] = None
+) -> Tuple[List[Contribution], int]:
+    query = select(Contribution)
+    if status:
+        query = query.where(Contribution.status == status)
+    base = query.order_by(Contribution.created_at.desc())
+    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    items = list(db.scalars(base.offset(skip).limit(limit)).all())
+    return items, total

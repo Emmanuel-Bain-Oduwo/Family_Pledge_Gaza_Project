@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Seed the database with demo content for development / staging environments.
-**DO NOT** run this script against production.
+Controlled by ALLOW_DEMO_SEED_IN_PRODUCTION to optionally allow in production.
 """
 
 import sys
@@ -12,8 +12,8 @@ from app.models.user import User
 # Import other models as needed for your seeding logic
 
 def main():
-    if settings.APP_ENV == "production":
-        print("ERROR: This script cannot be run in production!")
+    if not getattr(settings, "ALLOW_DEMO_SEED_IN_PRODUCTION", False):
+        print("ERROR: Seeding is not allowed. Set ALLOW_DEMO_SEED_IN_PRODUCTION=True to enable.")
         sys.exit(1)
 
     db = SessionLocal()
