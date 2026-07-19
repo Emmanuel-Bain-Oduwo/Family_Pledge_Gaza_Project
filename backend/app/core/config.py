@@ -17,6 +17,7 @@ def normalize_database_url(url: str) -> str:
 class Settings(BaseSettings):
     APP_ENV: str = "development"
     API_V1_PREFIX: str = "/api/v1"
+    SENTRY_DSN: str | None = None
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/familypledge"
     JWT_SECRET: str = "change-me-in-production"
     JWT_ALGORITHM: str = "HS256"
