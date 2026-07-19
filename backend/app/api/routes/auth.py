@@ -53,3 +53,23 @@ def save_push_token(
 ):
     auth_service.save_push_token(db, current_user, data.push_token)
     return MessageResponse(message="Push token saved")
+
+
+@router.post("/password-reset/request", response_model=MessageResponse)
+def password_reset_request(
+    data: PasswordResetRequest,
+    db: Session = Depends(get_db),
+    _: None = Depends(rate_limiter.limit(max_requests=3, window_seconds=300)),
+):
+    auth_service.request_password_reset(db, data.identifier)
+    return MessageResponse(message="If an account with that identifier exists, a reset link has been sent.")
+
+
+@router.post("/password-reset/confirm", response_model=MessageResponse)
+def password_reset_confirm(
+    data: PasswordResetConfirm,
+    db: Session = Depends(get_db),
+    _: None = Depends(rate_limiter.limit(max_requests=5, window_seconds=300)),
+):
+    auth_service.confirm_password_reset(db, data.token, data.new_password)
+    return MessageResponse(message="Password has been reset successfully.")

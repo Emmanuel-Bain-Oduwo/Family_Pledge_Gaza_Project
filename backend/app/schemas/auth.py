@@ -60,3 +60,29 @@ class PushTokenRequest(BaseModel):
         if len(v) > 512:
             raise ValueError("Push token is too long")
         return v
+
+
+class PasswordResetRequest(BaseModel):
+    identifier: str  # phone or email
+
+    @field_validator("identifier")
+    @classmethod
+    def identifier_not_empty(cls, v: str) -> str:
+        v = v.strip().lower()
+        if not v:
+            raise ValueError("Phone or email is required")
+        return v
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def password_length(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        if len(v) > 128:
+            raise ValueError("Password must be at most 128 characters")
+        return v
