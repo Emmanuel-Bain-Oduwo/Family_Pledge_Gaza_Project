@@ -128,3 +128,14 @@ def readiness_check(response: Response):
         "missing_tables": missing_tables,
         "cors_origins_configured": len(settings.cors_origins_list),
     }
+
+# Sentry monitoring
+if settings.SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        integrations=[FastApiIntegration()],
+        traces_sample_rate=1.0,
+    )
+    logger.info("Sentry initialized successfully")
