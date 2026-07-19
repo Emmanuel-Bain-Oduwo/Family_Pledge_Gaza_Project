@@ -1,0 +1,39 @@
+```python
+import time
+import threading
+from collections import defaultdict
+from fastapi import Depends, HTTPException, Request
+
+# In-memory rate limiting store and lock
+rate_limit_store = defaultdict(list)
+rate_limit_lock = threading.Lock()
+
+async def check_rate_limit(request: Request):
+    client_ip = request.client.host
+    path = request.url.path
+
+    # Determine limits per endpoint
+    if "/login" in path:
+        max_requests = 5
+    elif "/register" in path:
+        max_requests = 3
+    else:
+        # No rate limiting for other paths in this router
+        return
+
+    window = 60  # seconds
+    now = time.time()
+
+    with rate_limit_lock:
+        timestamps = rate_limit_store[client_ip]
+        # Remove timestamps outside the window
+        timestamps = [t for t in timestamps if now - t < window]
+        if len(timestamps) >= max_requests:
+            raise HTTPException(status_code=429, detail="Too many requests. Please try again later.")
+        timestamps.append(now)
+        rate_limit_store[client_ip] = timestamps
+
+# Add the rate limiter as a global dependency on the auth router
+# (Assumes the router variable `router = APIRouter()` exists)
+router.dependencies.append(Depends(check_rate_limit))
+```
