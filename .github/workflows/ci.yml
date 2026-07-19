@@ -1,0 +1,81 @@
+name: Production CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend-checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: familypledge
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+      - name: Compile check
+        run: |
+          cd backend
+          python -m compileall app scripts tests
+      - name: Alembic Upgrade Check
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/familypledge
+        run: |
+          cd backend
+          alembic upgrade head
+      - name: Run Pytest
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/familypledge
+        run: |
+          cd backend
+          pytest
+
+  admin-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Install and Build Admin
+        run: |
+          cd frontend/admin
+          npm install
+          npx tsc --noEmit
+          npm run build
+
+  mobile-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Install and Build Mobile Web Preview
+        run: |
+          cd frontend/mobile
+          npm install
+          npm run build:web
