@@ -21,7 +21,7 @@ const NAV = [
   { href: '/collectors', icon: UserCheck, label: 'Collectors' },
   { href: '/namlef', icon: Tv, label: 'NAMLEF' },
   { href: '/notifications', icon: Bell, label: 'Notifications' },
-  { href: '/ai-assistant', icon: Bot, label: 'AI Assistant' },
+  { href: '/ai', icon: Bot, label: 'AI Assistant' },
   { href: '/settings', icon: Settings, label: 'Settings' },
 ];
 

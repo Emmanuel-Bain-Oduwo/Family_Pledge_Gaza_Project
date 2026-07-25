@@ -123,3 +123,52 @@ class AiDraftStatus(str, enum.Enum):
     approved = "approved"
     rejected = "rejected"
     published = "published"
+
+
+class AiTaskType(str, enum.Enum):
+    content_generation = "content_generation"
+    donor_follow_up = "donor_follow_up"
+    contribution_review_summary = "contribution_review_summary"
+    campaign_summary = "campaign_summary"
+    reminder_generation = "reminder_generation"
+    weekly_report = "weekly_report"
+    custom_admin_task = "custom_admin_task"
+
+
+class AiTaskStatus(str, enum.Enum):
+    draft = "draft"
+    active = "active"
+    paused = "paused"
+    cancelled = "cancelled"
+
+
+class AiTaskRunStatus(str, enum.Enum):
+    planned = "planned"
+    validated = "validated"
+    waiting_approval = "waiting_approval"
+    executed = "executed"
+    failed = "failed"
+    cancelled = "cancelled"
+
+
+class AiContentStatus(str, enum.Enum):
+    draft = "draft"
+    pending_approval = "pending_approval"
+    approved = "approved"
+    scheduled = "scheduled"
+    published = "published"
+    rejected = "rejected"
+
+
+class AiFollowupStatus(str, enum.Enum):
+    new = "new"
+    approved = "approved"
+    sent = "sent"
+    dismissed = "dismissed"
+
+
+class AiPriority(str, enum.Enum):
+    low = "low"
+    medium = "medium"
+    high = "high"
+    urgent = "urgent"

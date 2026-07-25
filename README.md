@@ -555,3 +555,9 @@ Use responsibly.
 
 ```
 ```
+
+## AI Operations Assistant safety model
+
+The admin AI assistant is designed as a **suggest-only** operations helper. It can draft content, identify donor follow-up cases, summarize campaign progress, and create task-run plans, but Phase 1 does not auto-send notifications, approve contributions, reject contributions, delete donor data, or directly modify critical records. Admin review and approval are required before suggested content or follow-up messages can be used.
+
+The backend exposes admin-only AI operations endpoints under `/api/v1/admin/ai/*`. If an AI provider or `OPENAI_API_KEY` is unavailable, content draft generation falls back to deterministic templates so the app remains stable without exposing secrets.

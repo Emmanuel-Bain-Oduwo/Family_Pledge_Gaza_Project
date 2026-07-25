@@ -13,6 +13,7 @@ from app.core.database import engine
 from app.api.routes import (
     admin,
     ai_assistant,
+    ai_operations,
     auth,
     campaigns,
     collectors,
@@ -90,6 +91,7 @@ ROUTERS = (
     collectors.router,
     notifications.router,
     ai_assistant.router,
+    ai_operations.router,
     settings_routes.router,
     storage.router,
     admin.router,
