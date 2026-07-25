@@ -87,7 +87,8 @@ class AiFollowupSuggestion(Base, TimestampMixin):
     approved_by: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    user = relationship("User")
+    user = relationship("User", foreign_keys=[user_id])
+    approver = relationship("User", foreign_keys=[approved_by])
     contribution = relationship("Contribution")
     pledge = relationship("Pledge")
     __table_args__ = (Index("ix_ai_followup_suggestions_status", "status"), Index("ix_ai_followup_suggestions_user_id", "user_id"), Index("ix_ai_followup_suggestions_type", "suggestion_type"))
