@@ -2,6 +2,12 @@
 from .base import Base, SoftDeleteMixin, TimestampMixin  # noqa: F401
 from .enums import (  # noqa: F401
     AiDraftStatus,
+    AiTaskType,
+    AiTaskStatus,
+    AiTaskRunStatus,
+    AiContentStatus,
+    AiFollowupStatus,
+    AiPriority,
     AiDraftType,
     CampaignStatus,
     CampaignType,
@@ -30,6 +36,7 @@ from .collector import Collector, CollectorMember  # noqa: F401
 from .namlef import NamlefContent  # noqa: F401
 from .badge import Badge, UserBadge  # noqa: F401
 from .ai_draft import AiDraft  # noqa: F401
+from .ai_operations import AiTask, AiTaskRun, AiGeneratedContent, AiFollowupSuggestion  # noqa: F401
 from .audit import AdminAuditLog  # noqa: F401
 from .settings import AppSettings  # noqa: F401
 from .password_reset import PasswordResetToken  # noqa: F401
@@ -55,6 +62,12 @@ __all__ = [
     "NamlefContentStatus",
     "AiDraftType",
     "AiDraftStatus",
+    "AiPriority",
+    "AiFollowupStatus",
+    "AiContentStatus",
+    "AiTaskRunStatus",
+    "AiTaskStatus",
+    "AiTaskType",
     # Models
     "User",
     "Pledge",
@@ -70,6 +83,10 @@ __all__ = [
     "Badge",
     "UserBadge",
     "AiDraft",
+    "AiFollowupSuggestion",
+    "AiGeneratedContent",
+    "AiTaskRun",
+    "AiTask",
     "AdminAuditLog",
     "AppSettings",
     "PasswordResetToken",
