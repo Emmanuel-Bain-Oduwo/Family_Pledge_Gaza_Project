@@ -18,7 +18,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def _create_enum(name: str, values: list[str]):
     bind = op.get_bind()
-    enum = postgresql.ENUM(*values, name=name)
+    enum = postgresql.ENUM(*values, name=name, create_type=False)
     enum.create(bind, checkfirst=True)
     return enum
 
