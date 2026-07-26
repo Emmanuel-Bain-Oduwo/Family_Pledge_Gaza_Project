@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppCard from './AppCard';
 import { Colors } from '../constants/colors';
@@ -19,10 +19,20 @@ const TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }
 };
 
 export default function NamlefContentCard({ content, onPress }: NamlefContentCardProps) {
+  const [failedImage, setFailedImage] = useState<string | null>(null);
   const cfg = TYPE_CONFIG[content.type] || TYPE_CONFIG.about;
 
   return (
     <AppCard onPress={onPress} style={styles.card}>
+      {content.image_url && failedImage !== content.image_url && (
+        <Image
+          source={{ uri: content.image_url }}
+          style={styles.image}
+          resizeMode="cover"
+          onError={() => setFailedImage(content.image_url!)}
+          accessibilityLabel={`${content.title} thumbnail`}
+        />
+      )}
       <View style={styles.header}>
         <View style={[styles.typeBadge, { backgroundColor: cfg.color + '15' }]}>
           <Ionicons name={cfg.icon as any} size={14} color={cfg.color} />
@@ -81,6 +91,12 @@ const styles = StyleSheet.create({
   card: {
     marginHorizontal: 16,
     marginVertical: 8,
+  },
+  image: {
+    width: '100%',
+    height: 160,
+    borderRadius: 12,
+    marginBottom: 12,
   },
   header: {
     marginBottom: 10,

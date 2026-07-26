@@ -24,12 +24,31 @@ from app.models.reminder import DailyReminder
 from app.models.user import User
 from app.schemas.campaign import CampaignOut
 from app.schemas.impact_card import ImpactCardOut
+from app.schemas.common import PaginatedResponse, make_page
+from app.schemas.notification import NotificationOut
 from app.schemas.pledge import PledgeOut, PledgeStatusOut
 from app.schemas.reminder import ReminderOut
 from app.schemas.user import UserOut
 from app.utils.validators import current_month
+from app.services import notification_service
+from app.utils.pagination import offset_limit
 
 router = APIRouter(tags=["Mobile"])
+
+
+@router.get("/notifications", response_model=PaginatedResponse[NotificationOut])
+def user_notifications(
+    page: int = 1,
+    size: int = 50,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Persistent in-app feed for notifications sent to the current audience."""
+    page = max(page, 1)
+    size = min(max(size, 1), 100)
+    skip, limit = offset_limit(page, size)
+    items, total = notification_service.list_for_user(db, current_user, skip, limit)
+    return make_page([NotificationOut.model_validate(item) for item in items], total, page, size)
 
 
 class MonthlyProgress(BaseModel):

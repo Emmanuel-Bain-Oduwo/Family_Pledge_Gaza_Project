@@ -34,10 +34,14 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     EMAIL_FROM: str = ""
     WEEKLY_EMAILS_ENABLED: bool = False
-    # Cloudinary — for signed upload (optional)
-    CLOUDINARY_CLOUD_NAME: str = ""
-    CLOUDINARY_API_KEY: str = ""
-    CLOUDINARY_API_SECRET: str = ""
+    # Cloudflare R2 — S3-compatible direct browser uploads (backend secrets only)
+    R2_ACCOUNT_ID: str = ""
+    R2_ACCESS_KEY_ID: str = ""
+    R2_SECRET_ACCESS_KEY: str = ""
+    R2_BUCKET_NAME: str = ""
+    R2_PUBLIC_BASE_URL: str = ""
+    R2_MAX_UPLOAD_MB: int = 500
+    R2_ALLOWED_UPLOADS_MODE: str = "broad"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

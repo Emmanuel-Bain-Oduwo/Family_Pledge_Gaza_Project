@@ -40,6 +40,7 @@ from .ai_operations import AiTask, AiTaskRun, AiGeneratedContent, AiFollowupSugg
 from .audit import AdminAuditLog  # noqa: F401
 from .settings import AppSettings  # noqa: F401
 from .password_reset import PasswordResetToken  # noqa: F401
+from .media_asset import MediaAsset  # noqa: F401
 
 __all__ = [
     "Base",
@@ -90,4 +91,5 @@ __all__ = [
     "AdminAuditLog",
     "AppSettings",
     "PasswordResetToken",
+    "MediaAsset",
 ]

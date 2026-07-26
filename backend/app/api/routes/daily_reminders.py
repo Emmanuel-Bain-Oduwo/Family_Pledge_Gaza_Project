@@ -8,8 +8,10 @@ from app.core.database import get_db
 from app.core.deps import require_admin
 from app.models.user import User
 from app.schemas.common import MessageResponse, PaginatedResponse, make_page
+from app.models.enums import NotificationAudience, NotificationType
+from app.schemas.notification import NotificationSend
 from app.schemas.reminder import ReminderCreate, ReminderOut, ReminderUpdate
-from app.services import reminder_service
+from app.services import notification_service, reminder_service
 from app.utils.pagination import offset_limit
 
 router = APIRouter(tags=["Daily Reminders"])
@@ -59,4 +61,15 @@ def admin_publish_reminder(
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    return reminder_service.publish(db, admin, reminder_id)
+    reminder = reminder_service.publish(db, admin, reminder_id)
+    notification_service.send(
+        db,
+        admin,
+        NotificationSend(
+            title=reminder.title or "Daily Family Pledge Reminder",
+            body=reminder.translation or reminder.explanation or reminder.title,
+            notification_type=NotificationType.reminder,
+            audience=NotificationAudience.all_users,
+        ),
+    )
+    return reminder

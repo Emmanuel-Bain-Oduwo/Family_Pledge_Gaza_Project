@@ -92,8 +92,10 @@ export default function CampaignForm({ initial, onSuccess, onCancel }: CampaignF
                 label="Cover Image"
                 value={field.value || ''}
                 onChange={field.onChange}
-                accept={['cloudinary']}
+                accept={['r2']}
                 uploadFolder="projects"
+                relatedEntityType="campaign"
+                relatedEntityId={initial?.id}
               />
             )}
           />
@@ -108,9 +110,12 @@ export default function CampaignForm({ initial, onSuccess, onCancel }: CampaignF
                 label="Video URL"
                 value={field.value || ''}
                 onChange={field.onChange}
-                accept={['cloudinary', 'youtube']}
+                accept={['r2', 'youtube']}
                 showPreview={false}
-                hint="YouTube (unlisted) for long videos. Cloudinary for short clips (≤30s)."
+                uploadFolder="projects"
+                relatedEntityType="campaign"
+                relatedEntityId={initial?.id}
+                hint="Upload videos directly to R2, or keep an external video URL."
               />
             )}
           />

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import get_current_user, require_admin
+from app.models.enums import CampaignType
 from app.models.user import User
 from app.schemas.campaign import CampaignCreate, CampaignOut, CampaignUpdate
 from app.schemas.common import MessageResponse, PaginatedResponse, make_page
@@ -19,10 +20,11 @@ router = APIRouter(tags=["Campaigns"])
 def list_campaigns(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
+    campaign_type: CampaignType | None = Query(None),
     db: Session = Depends(get_db),
 ):
     skip, limit = offset_limit(page, size)
-    items, total = campaign_service.list_campaigns(db, skip, limit)
+    items, total = campaign_service.list_public_campaigns(db, skip, limit, campaign_type)
     return make_page([CampaignOut.model_validate(c) for c in items], total, page, size)
 
 
@@ -43,6 +45,19 @@ def admin_create_campaign(
     db: Session = Depends(get_db),
 ):
     return campaign_service.create(db, admin, data)
+
+
+@router.get("/admin/campaigns", response_model=PaginatedResponse[CampaignOut])
+def admin_list_campaigns(
+    page: int = Query(1, ge=1),
+    size: int = Query(100, ge=1, le=100),
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Return every non-deleted campaign, including drafts, for management."""
+    skip, limit = offset_limit(page, size)
+    items, total = campaign_service.list_campaigns(db, skip, limit)
+    return make_page([CampaignOut.model_validate(c) for c in items], total, page, size)
 
 
 @router.patch("/admin/campaigns/{campaign_id}", response_model=CampaignOut)

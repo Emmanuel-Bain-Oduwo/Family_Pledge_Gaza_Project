@@ -1,118 +1,42 @@
-# Media Storage Policy — Family Pledge for Gaza
+# Cloudflare R2 Storage Policy
 
-## Overview
+Cloudflare R2 is the production file and media store for Family Pledge. Cloudinary is deprecated and must not be used for new production uploads.
 
-Family Pledge uses two media storage approaches depending on content type:
+## Supported content
 
-| Content Type | Storage | Limit |
-|-------------|---------|-------|
-| Images (project covers, reminders, impact cards, NAMLEF thumbnails) | Cloudinary (free tier) | 25 GB free |
-| Short videos (≤ 30 seconds) | Cloudinary | 25 GB free |
-| Long videos (> 30 seconds) | YouTube (unlisted) | Unlimited |
-| Documents / proof files | Cloudinary | 25 GB free |
+Owners and administrators may upload images, videos, audio, PDFs, office documents, CSV/text files, and other recognized media. Videos are supported directly and are not restricted to YouTube. The broad policy blocks executable and server-side extensions such as `.exe`, `.bat`, `.cmd`, `.sh`, `.php`, `.js`, `.html`, `.py`, `.jar`, `.msi`, `.apk`, and `.ipa`.
 
----
+`R2_MAX_UPLOAD_MB` is a configurable safety ceiling (500 MB by default), not a small product limit. `R2_ALLOWED_UPLOADS_MODE` is reserved for selectable policy modes and defaults to `broad`.
 
-## Cloudinary
+## Upload and content flow
 
-### Why Cloudinary?
+1. An authenticated administrator selects a file.
+2. The admin client requests a short-lived presigned PUT URL from `POST /api/v1/admin/storage/r2-presigned-upload`.
+3. The browser uploads bytes directly to R2. Large bytes never pass through the backend API.
+4. The client confirms metadata through `POST /api/v1/admin/storage/r2-confirm-upload`.
+5. The upload URL is placed in the campaign, project, impact, reminder, or NAMLEF form field and saved with that record.
+6. PostgreSQL stores only the public URL, R2 object key, metadata, and usage record—never raw file bytes.
+7. Public APIs return the saved URL and the user application renders or links it. Contribution proofs remain private and are not included in public APIs.
 
-- Free tier provides 25 GB storage and 25 GB bandwidth/month — sufficient for Phase 1
-- Signed uploads prevent unauthorised access to the upload endpoint
-- Automatic image optimisation and format conversion (WebP, AVIF)
-- Fast CDN delivery globally
+The `media_assets` table tracks file count, declared object size, content type, folder, uploader, status, and related entity when known. The admin Storage Usage page is operational metadata; the Cloudflare dashboard remains the final source of truth for billing, requests, bandwidth, and stored bytes.
 
-### How Uploads Work
+## Object naming and access
 
-1. Admin selects an image in the dashboard
-2. Browser requests a signed upload signature from the backend (`POST /admin/storage/cloudinary-signature`)
-3. Backend generates a HMAC-SHA1 signature using the `CLOUDINARY_API_SECRET`
-4. Browser uploads directly to Cloudinary using the signed form data
-5. Cloudinary returns the `secure_url` — this URL is saved in the database
+Objects use `family-pledge/<folder>/<yyyy>/<mm>/<uuid>-<sanitized-filename>`. Filenames are sanitized, extensions normalized to lowercase, and UUIDs prevent collisions. Public content uses the absolute custom-domain URL configured in `R2_PUBLIC_BASE_URL`.
 
-This flow ensures the API secret is never exposed to the browser.
+R2 access keys are backend-only secrets. Never add them to frontend code or a `NEXT_PUBLIC_*` variable. Presigned URLs expire after 15 minutes. Admin authorization is required to sign, confirm, and inspect usage.
 
-### Folder Structure
+## Cloudflare setup
 
-```
-family-pledge/
-├── projects/      ← project cover images
-├── reminders/     ← reminder background images
-├── namlef/        ← NAMLEF speaker thumbnails and media
-└── impact/        ← impact story images and short videos
+1. Create a Cloudflare R2 bucket.
+2. Create an R2 API token limited to that bucket.
+3. Attach a public custom domain, for example `media.familypledge.org`.
+4. Set `R2_PUBLIC_BASE_URL=https://media.familypledge.org`.
+5. Configure bucket CORS to allow production and local admin origins to `PUT`, with `Content-Type` allowed. Example:
+
+```json
+[{"AllowedOrigins":["https://admin.familypledge.org","http://localhost:3000"],"AllowedMethods":["PUT"],"AllowedHeaders":["Content-Type"],"ExposeHeaders":["ETag"],"MaxAgeSeconds":3600}]
 ```
 
-### Accepted File Types
-
-| Type | Formats |
-|------|---------|
-| Images | JPEG, PNG, WebP, GIF |
-| Videos | MP4, MOV, WebM (≤ 30s for Cloudinary) |
-
-### URL Format
-
-All Cloudinary URLs begin with:
-```
-https://res.cloudinary.com/<cloud_name>/image/upload/...
-https://res.cloudinary.com/<cloud_name>/video/upload/...
-```
-
-The admin frontend validates URLs against this pattern before saving.
-
----
-
-## YouTube
-
-### Why YouTube for Long Videos?
-
-- No storage cost
-- Reliable streaming globally
-- Works on all mobile devices
-
-### Policy
-
-- All videos must be uploaded as **Unlisted** (not Public) to maintain controlled distribution
-- Videos should not include any content that violates YouTube's Terms of Service
-- The admin frontend validates YouTube URLs and accepts:
-  - `https://www.youtube.com/watch?v=...`
-  - `https://youtu.be/...`
-  - `https://www.youtube.com/embed/...`
-  - `https://www.youtube.com/shorts/...`
-
-### Mobile Playback
-
-On the mobile app, YouTube videos open in the device's browser or YouTube app via `Linking.openURL()`.
-
----
-
-## Security
-
-### Signed Uploads
-
-Cloudinary upload signatures expire after 1 hour. Each signature is tied to a specific upload folder, preventing uploads to unauthorized folders.
-
-### URL Validation
-
-Before saving any media URL to the database, the backend validates it is either:
-- A valid Cloudinary URL (`res.cloudinary.com`)
-- A valid YouTube URL (recognised patterns above)
-
-Arbitrary URLs cannot be saved as media fields — this prevents link injection attacks.
-
-### No Sensitive Data in Media
-
-- Media files must not contain personal donor information
-- Field reports containing personally identifiable information should be stored securely outside the app
-- Contribution proof images (receipts) are stored in Cloudinary but accessible only via the admin dashboard
-
----
-
-## Phase 2 Upgrades
-
-When Phase 1 storage limits are approached:
-
-1. **Cloudinary paid plan** — starting at $89/month for 225 GB
-2. **Amazon S3 + CloudFront** — more cost-effective at scale, requires migration
-3. **Self-hosted MinIO** — for maximum control and minimal cost
-
-No changes to the application code are required for a Cloudinary plan upgrade (only the API keys change).
+6. Put account ID, access key, and secret access key only in the backend environment.
+7. Verify uploads and public delivery, then monitor final usage and billing in Cloudflare.
