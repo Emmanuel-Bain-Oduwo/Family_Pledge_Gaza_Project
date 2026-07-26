@@ -8,7 +8,7 @@ SOURCE = MIGRATION.read_text()
 class AiOperationsMigrationSourceTests(TestCase):
     def test_revision_chain_is_correct(self):
         self.assertIn('revision: str = "0008"', SOURCE)
-        self.assertIn('down_revision: Union[str, None] = "0007"', SOURCE)
+        self.assertIn('down_revision: Union[str, None] = "0007_add_password_reset"', SOURCE)
 
     def test_migration_creates_phase_one_tables(self):
         for table in ["ai_tasks", "ai_task_runs", "ai_generated_content", "ai_followup_suggestions"]:
