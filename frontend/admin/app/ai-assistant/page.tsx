@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Sparkles, AlertTriangle, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import Link from 'next/link';
+import { Sparkles, AlertTriangle, RefreshCw, ChevronDown, ChevronUp, ArrowLeft, FileClock, Plus } from 'lucide-react';
 import AdminLayout from '../../components/AdminLayout';
 import AiDraftCard from '../../components/AiDraftCard';
 import {
@@ -401,7 +402,7 @@ function DraftList() {
       </div>
 
       {loading && <p className="text-sm text-gray-400 text-center py-4">Loading…</p>}
-      {!loading && drafts.length === 0 && <p className="text-sm text-gray-400 text-center py-8">No drafts found.</p>}
+      {!loading && drafts.length === 0 && <p className="text-sm text-gray-500 text-center py-8">No AI drafts yet. Create your first draft from the Generate tab.</p>}
 
       {!loading && drafts.length > 0 && (
         <div className="overflow-x-auto rounded-xl border border-gray-200">
@@ -466,15 +467,24 @@ export default function AiAssistantPage() {
     );
 
   return (
-    <AdminLayout title="AI Assistant" subtitle="Generate content drafts — all content requires admin review before publishing">
+    <AdminLayout title="AI Assistant" subtitle="Create donor reminders, impact updates, weekly summaries, and collector messages. Every AI draft requires admin review before use.">
+      <div className="mb-4 flex flex-wrap gap-2">
+        <Link href="/dashboard" className="btn-secondary inline-flex items-center gap-2">
+          <ArrowLeft size={16} /> Back to Dashboard
+        </Link>
+        <button type="button" onClick={() => setActiveTab('drafts')} className="btn-secondary inline-flex items-center gap-2">
+          <FileClock size={16} /> View Draft History
+        </button>
+        <button type="button" onClick={() => setActiveTab('generate')} className="btn-primary inline-flex items-center gap-2">
+          <Plus size={16} /> Create New Draft
+        </button>
+      </div>
+
       <div className="card p-4 mb-6 bg-amber-50 border border-amber-200 flex items-start gap-3">
         <AlertTriangle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
         <div>
-          <div className="font-semibold text-amber-800">Human approval required before any content is published or sent</div>
-          <div className="text-sm text-amber-700 mt-0.5">
-            AI drafts are starting points only. AI cannot invent donation amounts, beneficiary numbers, Quran verses, or hadiths.
-            The AI never confirms contributions or publishes automatically. Use the Approve → Publish flow in Draft History.
-          </div>
+          <div className="font-semibold text-amber-800">Admin review required</div>
+          <div className="text-sm text-amber-700 mt-0.5">AI helps prepare drafts only. It does not send messages, confirm contributions, or publish content automatically.</div>
         </div>
       </div>
 
@@ -495,42 +505,45 @@ export default function AiAssistantPage() {
       </div>
 
       {activeTab === 'generate' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <GeneratorSection
-            title="Islamic Reminder"
-            description="Generate a faith-based donor reminder for your audience"
-            latestDraft={latestDrafts['reminder']}
-            onStatusChange={updateLatest('reminder')}
-          >
-            <ReminderForm onGenerated={setLatest('reminder')} />
-          </GeneratorSection>
+        <div>
+          <p className="mb-4 text-sm text-gray-600">Use real verified information only. Review the draft before copying, approving, or publishing.</p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <GeneratorSection
+              title="Islamic Reminder"
+              description="Write a respectful donor reminder for a campaign or pledge update."
+              latestDraft={latestDrafts['reminder']}
+              onStatusChange={updateLatest('reminder')}
+            >
+              <ReminderForm onGenerated={setLatest('reminder')} />
+            </GeneratorSection>
 
-          <GeneratorSection
-            title="Impact Update"
-            description="Generate a multi-format update (app, WhatsApp, push) from verified project facts"
-            latestDraft={latestDrafts['impact_update']}
-            onStatusChange={updateLatest('impact_update')}
-          >
-            <ImpactForm onGenerated={setLatest('impact_update')} />
-          </GeneratorSection>
+            <GeneratorSection
+              title="Impact Update"
+              description="Turn verified project facts into an update for app, WhatsApp, or push."
+              latestDraft={latestDrafts['impact_update']}
+              onStatusChange={updateLatest('impact_update')}
+            >
+              <ImpactForm onGenerated={setLatest('impact_update')} />
+            </GeneratorSection>
 
-          <GeneratorSection
-            title="Weekly Summary"
-            description="Generate an internal summary using live platform stats — no manual data entry required"
-            latestDraft={latestDrafts['weekly_summary']}
-            onStatusChange={updateLatest('weekly_summary')}
-          >
-            <WeeklySummaryForm onGenerated={setLatest('weekly_summary')} />
-          </GeneratorSection>
+            <GeneratorSection
+              title="Weekly Summary"
+              description="Generate an internal weekly summary using platform stats."
+              latestDraft={latestDrafts['weekly_summary']}
+              onStatusChange={updateLatest('weekly_summary')}
+            >
+              <WeeklySummaryForm onGenerated={setLatest('weekly_summary')} />
+            </GeneratorSection>
 
-          <GeneratorSection
-            title="Collector Circle Message"
-            description="Generate a gentle follow-up message for a collector to send to their circle"
-            latestDraft={latestDrafts['collector_message']}
-            onStatusChange={updateLatest('collector_message')}
-          >
-            <CollectorForm onGenerated={setLatest('collector_message')} />
-          </GeneratorSection>
+            <GeneratorSection
+              title="Collector Circle Message"
+              description="Prepare a follow-up message for a collector to share with their circle."
+              latestDraft={latestDrafts['collector_message']}
+              onStatusChange={updateLatest('collector_message')}
+            >
+              <CollectorForm onGenerated={setLatest('collector_message')} />
+            </GeneratorSection>
+          </div>
         </div>
       )}
 
