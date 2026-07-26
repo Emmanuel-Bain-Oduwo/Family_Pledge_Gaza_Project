@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import List, Tuple
 
 import httpx
-from sqlalchemy import func, select
+from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -38,11 +38,27 @@ def _audience_query(audience: NotificationAudience):
     return query
 
 
-def _send_expo_push(tokens: List[str], title: str, body: str) -> tuple[int, int]:
+def _send_expo_push(
+    tokens: List[str], title: str, body: str, notification_type: str = "general"
+) -> tuple[int, int]:
     if not tokens:
         return 0, 0
+    channel_id = "emergency" if notification_type == "emergency" else (
+        "reminders" if notification_type == "reminder" else "default"
+    )
     messages = [
-        {"to": token, "title": title, "body": body, "sound": "default"}
+        {
+            "to": token,
+            "title": title,
+            "body": body,
+            "sound": "default",
+            "priority": "high",
+            "channelId": channel_id,
+            "data": {
+                "screen": "/screens/notifications",
+                "notification_type": notification_type,
+            },
+        }
         for token in tokens
     ]
     headers = {"Content-Type": "application/json"}
@@ -53,10 +69,10 @@ def _send_expo_push(tokens: List[str], title: str, body: str) -> tuple[int, int]
     with httpx.Client(timeout=20) as client:
         for index in range(0, len(messages), 100):
             batch = messages[index : index + 100]
-            response = client.post(
-                "https://exp.host/--/api/v2/push/send", json=batch, headers=headers
-            )
             try:
+                response = client.post(
+                    "https://exp.host/--/api/v2/push/send", json=batch, headers=headers
+                )
                 response.raise_for_status()
                 payload = response.json()
             except (httpx.HTTPError, ValueError):
@@ -73,7 +89,9 @@ def _send_expo_push(tokens: List[str], title: str, body: str) -> tuple[int, int]
 def send(db: Session, admin: User, data: NotificationSend) -> Notification:
     users = list(db.scalars(_audience_query(data.audience)).all())
     tokens = [user.push_token for user in users if user.push_token]
-    sent_count, failure_count = _send_expo_push(tokens, data.title, data.body)
+    sent_count, failure_count = _send_expo_push(
+        tokens, data.title, data.body, data.notification_type.value
+    )
     notification = Notification(
         title=data.title,
         body=data.body,
@@ -112,6 +130,42 @@ def list_notifications(
     items = list(
         db.scalars(
             base.order_by(Notification.created_at.desc()).offset(skip).limit(limit)
+        ).all()
+    )
+    return items, total
+
+
+def list_for_user(
+    db: Session, user: User, skip: int = 0, limit: int = 50
+) -> Tuple[List[Notification], int]:
+    """Return persisted notifications whose audience includes this user."""
+    audiences = [NotificationAudience.all_users]
+    if user.role == UserRole.admin:
+        audiences.append(NotificationAudience.admins)
+    if user.role == UserRole.collector:
+        audiences.append(NotificationAudience.collectors)
+
+    audience_filter = Notification.audience.in_(audiences)
+    if user.role == UserRole.donor:
+        has_confirmed = exists(
+            select(Contribution.id).where(
+                Contribution.user_id == user.id,
+                Contribution.status == ContributionStatus.confirmed,
+            )
+        )
+        audience_filter = or_(
+            audience_filter,
+            and_(Notification.audience == NotificationAudience.confirmed_donors, has_confirmed),
+            and_(Notification.audience == NotificationAudience.pending_donors, ~has_confirmed),
+        )
+
+    base = select(Notification).where(
+        Notification.sent_at.is_not(None), audience_filter
+    )
+    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    items = list(
+        db.scalars(
+            base.order_by(Notification.sent_at.desc()).offset(skip).limit(limit)
         ).all()
     )
     return items, total

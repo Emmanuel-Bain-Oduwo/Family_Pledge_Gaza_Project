@@ -80,10 +80,12 @@ export default function NamlefContentForm({ initial, onSuccess, onCancel }: Naml
                 label="URL (video / audio / link)"
                 value={field.value || ''}
                 onChange={field.onChange}
-                accept={['cloudinary', 'youtube']}
+                accept={['r2', 'youtube']}
                 showPreview={false}
                 uploadFolder="namlef"
-                hint="YouTube (unlisted) for Sheikh/NAMLEF talks. Cloudinary for short audio or clips."
+                relatedEntityType="namlef"
+                relatedEntityId={initial?.id}
+                hint="Upload NAMLEF audio or video directly to R2, or keep an external URL."
               />
             )}
           />
@@ -98,8 +100,10 @@ export default function NamlefContentForm({ initial, onSuccess, onCancel }: Naml
                 label="Thumbnail Image"
                 value={field.value || ''}
                 onChange={field.onChange}
-                accept={['cloudinary']}
+                accept={['r2']}
                 uploadFolder="namlef"
+                relatedEntityType="namlef"
+                relatedEntityId={initial?.id}
               />
             )}
           />

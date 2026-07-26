@@ -522,7 +522,7 @@ Never commit:
 * JWT secrets
 * API keys
 * SMTP passwords
-* Cloudinary secrets
+* Cloudflare R2 secrets
 * admin passwords
 * password hashes
 
