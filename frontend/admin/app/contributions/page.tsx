@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
-import { Check, X, AlertCircle, MessageSquare } from 'lucide-react';
+import { Check, X, AlertCircle, MessageSquare, RefreshCw, Image as ImageIcon } from 'lucide-react';
 import AdminLayout from '../../components/AdminLayout';
 import DataTable, { Column } from '../../components/DataTable';
 import StatusBadge from '../../components/StatusBadge';
@@ -8,14 +8,6 @@ import { getContributions, reviewContribution } from '../../lib/api';
 import { Contribution, ContributionStatus } from '../../types';
 import { formatDate, formatCurrency } from '../../lib/utils';
 import toast from 'react-hot-toast';
-
-const MOCK: Contribution[] = [
-  { id: 'c1', user_id: 'u1', donor_name: 'Ahmed Hassan', donor_phone: '+254700001', amount: 10, currency: 'USD', reference: 'QKR7XNPK', payment_method: 'mpesa', status: 'submitted', month: 'June', year: 2025, submitted_at: '2025-06-05T09:30:00Z' },
-  { id: 'c2', user_id: 'u2', donor_name: 'Fatima Noor', donor_phone: '+254700002', amount: 10, currency: 'USD', reference: 'MPF3BWKL', payment_method: 'bank', status: 'confirmed', month: 'June', year: 2025, submitted_at: '2025-06-03T11:00:00Z', reviewed_at: '2025-06-04T08:00:00Z' },
-  { id: 'c3', user_id: 'u3', donor_name: 'Ibrahim Omar', donor_phone: '+255700003', amount: 10, currency: 'USD', reference: 'TXN9923X', payment_method: 'paybill', status: 'needs_follow_up', admin_note: 'Reference not found in M-PESA statement', month: 'May', year: 2025, submitted_at: '2025-05-28T14:00:00Z' },
-  { id: 'c4', user_id: 'u4', donor_name: 'Maryam Said', donor_phone: '+256700004', amount: 10, currency: 'USD', reference: 'BWK229JK', payment_method: 'mpesa', status: 'rejected', admin_note: 'Duplicate submission', month: 'May', year: 2025, submitted_at: '2025-05-20T10:00:00Z' },
-  { id: 'c5', user_id: 'u5', donor_name: 'Yusuf Khalid', donor_phone: '+254700005', amount: 10, currency: 'USD', reference: 'INV00142', payment_method: 'link', status: 'submitted', month: 'June', year: 2025, submitted_at: '2025-06-08T16:00:00Z' },
-];
 
 export default function ContributionsPage() {
   const [contributions, setContributions] = useState<Contribution[]>([]);
@@ -33,15 +25,18 @@ export default function ContributionsPage() {
       if (filterStatus) params.status = filterStatus;
       const res = await getContributions(params);
       setContributions(res.data);
-    } catch {
-      const filtered = filterStatus ? MOCK.filter((c) => c.status === filterStatus) : MOCK;
-      setContributions(filtered);
+    } catch (e: any) {
+      toast.error(e.message || 'Could not load contributions.');
     } finally {
       setLoading(false);
     }
   }, [filterStatus]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    const timer = window.setInterval(load, 30_000);
+    return () => window.clearInterval(timer);
+  }, [load]);
 
   const openReview = (item: Contribution, action: ContributionStatus) => {
     setModalItem(item);
@@ -58,10 +53,7 @@ export default function ContributionsPage() {
       toast.success(`Marked as ${reviewAction.replace(/_/g, ' ')}.`);
       setModalItem(null);
     } catch (e: any) {
-      // Mock update for demo
-      setContributions((prev) => prev.map((c) => c.id === modalItem.id ? { ...c, status: reviewAction, admin_note: adminNote } : c));
-      toast.success(`Marked as ${reviewAction.replace(/_/g, ' ')}.`);
-      setModalItem(null);
+      toast.error(e.message || 'Could not update this contribution.');
     } finally {
       setReviewing(false);
     }
@@ -72,6 +64,7 @@ export default function ContributionsPage() {
     { key: 'amount', header: 'Amount', render: (c) => <span className="font-semibold">{formatCurrency(c.amount, c.currency)}</span> },
     { key: 'reference', header: 'Reference', render: (c) => <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">{c.reference}</span> },
     { key: 'payment_method', header: 'Method', render: (c) => <span className="text-xs capitalize">{c.payment_method.replace(/_/g, ' ')}</span> },
+    { key: 'proof_url', header: 'Proof', render: (c) => c.proof_url ? <a href={c.proof_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"><ImageIcon size={14} /> View screenshot</a> : <span className="text-xs text-gray-400">Message/reference</span> },
     { key: 'status', header: 'Status', render: (c) => <StatusBadge status={c.status} /> },
     { key: 'submitted_at', header: 'Submitted', render: (c) => formatDate(c.submitted_at) },
     {
@@ -103,16 +96,16 @@ export default function ContributionsPage() {
   ];
 
   const counts = {
-    submitted: MOCK.filter(c => c.status === 'submitted').length,
-    confirmed: MOCK.filter(c => c.status === 'confirmed').length,
-    rejected: MOCK.filter(c => c.status === 'rejected').length,
-    needs_follow_up: MOCK.filter(c => c.status === 'needs_follow_up').length,
+    submitted: contributions.filter(c => c.status === 'submitted').length,
+    confirmed: contributions.filter(c => c.status === 'confirmed').length,
+    rejected: contributions.filter(c => c.status === 'rejected').length,
+    needs_follow_up: contributions.filter(c => c.status === 'needs_follow_up').length,
   };
 
   return (
     <AdminLayout title="Contributions" subtitle="Review and manage contribution submissions">
       {/* Filter Tabs */}
-      <div className="flex flex-wrap gap-2 mb-5">
+      <div className="flex flex-wrap gap-2 items-center mb-5">
         {[
           { value: '', label: 'All' },
           { value: 'submitted', label: `Submitted (${counts.submitted})` },
@@ -128,6 +121,10 @@ export default function ContributionsPage() {
             {f.label}
           </button>
         ))}
+        <button onClick={load} disabled={loading} className="ml-auto inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50">
+          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> Refresh
+        </button>
+        <span className="w-full text-right text-xs text-gray-400">Automatically refreshes every 30 seconds</span>
       </div>
 
       <div className="card overflow-hidden">
@@ -144,6 +141,8 @@ export default function ContributionsPage() {
             <p className="text-sm text-gray-500 mb-4">
               Ref: <span className="font-mono font-semibold">{modalItem.reference}</span> · {modalItem.donor_name}
             </p>
+
+            {modalItem.proof_url && <a href={modalItem.proof_url} target="_blank" rel="noreferrer" className="mb-4 flex items-center justify-center gap-2 rounded-lg border border-gray-200 p-3 text-sm font-semibold text-primary hover:bg-gray-50"><ImageIcon size={17} /> Open payment screenshot</a>}
 
             <div className="mb-4">
               <label className="label">Admin Note {reviewAction ? '(optional)' : ''}</label>
