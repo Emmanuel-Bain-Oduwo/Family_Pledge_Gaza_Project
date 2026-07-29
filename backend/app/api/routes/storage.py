@@ -179,6 +179,12 @@ def create_stream_direct_upload(body: StreamDirectUploadRequest, admin: User = D
         thumbnail_url=f"{base}/thumbnails/thumbnail.jpg?time=1s&height=720",
     )
 
+def safe_filename(filename: str) -> str:
+    extension = _extension(filename)
+    stem = Path(filename.strip()).stem
+    stem = unicodedata.normalize("NFKD", stem).encode("ascii", "ignore").decode()
+    stem = re.sub(r"[^a-zA-Z0-9._-]+", "-", stem).strip("-._").lower()
+    return f"{stem[:120] or 'file'}{extension}"
 
 @router.post("/stream-confirm-upload", response_model=MediaAssetOut)
 def confirm_stream_upload(body: StreamConfirmUploadRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
@@ -192,6 +198,9 @@ def confirm_stream_upload(body: StreamConfirmUploadRequest, admin: User = Depend
     db.commit(); db.refresh(asset)
     return asset
 
+def make_object_key(folder: str, filename: str, now: datetime | None = None) -> str:
+    now = now or datetime.now(timezone.utc)
+    return f"family-pledge/{folder}/{now:%Y}/{now:%m}/{uuid.uuid4()}-{safe_filename(filename)}"
 
 def _extension(filename: str) -> str:
     return Path(filename.strip()).suffix.lower()
