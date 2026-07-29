@@ -184,16 +184,21 @@ export default function ImpactPage() {
                 label="Impact Image"
                 value={form.image_url}
                 onChange={(v) => setForm((f) => ({ ...f, image_url: v }))}
-                accept={['cloudinary']}
+                accept={['r2']}
                 uploadFolder="impact"
+                relatedEntityType="impact"
+                relatedEntityId={editItem?.id}
               />
               <MediaUrlInput
                 label="Video URL"
                 value={form.video_url}
                 onChange={(v) => setForm((f) => ({ ...f, video_url: v }))}
-                accept={['cloudinary', 'youtube']}
+                accept={['r2', 'youtube']}
                 showPreview={false}
-                hint="YouTube (unlisted) for longer videos. Cloudinary for short clips."
+                uploadFolder="impact"
+                relatedEntityType="impact"
+                relatedEntityId={editItem?.id}
+                hint="Upload videos directly to R2, or keep an external video URL."
               />
               <div>
                 <label className="label">Completion Date</label>

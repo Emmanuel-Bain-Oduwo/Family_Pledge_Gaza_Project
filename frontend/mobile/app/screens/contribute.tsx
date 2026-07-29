@@ -19,7 +19,7 @@ import { Config } from '../../constants/config';
 import { PAYMENT_SETTINGS, currentContributionMonth } from '../../constants/payment';
 import { copyText, openExternalUrl } from '../../services/webCompat';
 
-type PledgeOptionKey = 'kes10' | 'usd10' | 'usd20' | 'usd50' | 'open' | 'free';
+type PledgeOptionKey = 'kes10' | 'usd10' | 'usd20' | 'usd50' | 'usd100' | 'open' | 'free';
 
 export default function ContributeScreen() {
   const [selectedMethod, setSelectedMethod] = useState('mpesa');
@@ -137,7 +137,7 @@ export default function ContributeScreen() {
                 <Ionicons name="information-circle" size={20} color={Colors.pinkDark} />
                 <Text style={styles.instructTitle}>Copy-friendly payment details</Text>
               </View>
-              <PaymentDetails onCopy={copy} />
+              {selectedMethod === 'link' ? <Text style={styles.cardDesc}>Continue to the secure Family Pledge website, then return here to submit your payment reference.</Text> : <PaymentDetails method={selectedMethod} onCopy={copy} />}
               {selectedMethod === 'link' && (
                 <TouchableOpacity onPress={handleOpenPaymentLink} style={styles.linkBtn} activeOpacity={0.85}>
                   <Ionicons name="globe-outline" size={18} color={Colors.white} />
@@ -184,18 +184,23 @@ export default function ContributeScreen() {
   );
 }
 
-function PaymentDetails({ onCopy }: { onCopy: (label: string, value: string) => void }) {
+function PaymentDetails({ method, onCopy }: { method: string; onCopy: (label: string, value: string) => void }) {
   const b = PAYMENT_SETTINGS.bank;
-  const rows = [
+  const mpesaRows = [
+    ['M-PESA PayBill', b.mpesaPaybill],
+    ['Account Number', b.accountNumber],
+    ['Account Name', b.accountName],
+  ];
+  const bankRows = [
+    ['Bank', b.bankName],
     ['Account Name', b.accountName],
     ['Account Number', b.accountNumber],
-    ['M-PESA PayBill', b.mpesaPaybill],
-    ['Bank', b.bankName],
     ['Branch', b.branchName],
     ['SWIFT', b.swiftCode],
     ['Intermediary SWIFT', b.intermediarySwiftCode],
   ];
-  return <View style={styles.detailList}>{rows.map(([label, value]) => <TouchableOpacity key={label} style={styles.detailRow} onPress={() => onCopy(label, value)}><View style={{ flex: 1 }}><Text style={styles.detailLabel}>{label}</Text><Text style={styles.detailValue}>{value}</Text></View><Ionicons name="copy-outline" size={18} color={Colors.primary} /></TouchableOpacity>)}<Text style={styles.instructNote}>PayBill {b.mpesaPaybill}, then use the 15-digit DIB account number as the account. Currency: {b.currency}. Bank code {b.bankCode}, branch code {b.branchCode}.</Text></View>;
+  const isBank=method==='bank'; const rows=isBank?bankRows:mpesaRows;
+  return <View style={styles.detailList}><Text style={styles.paymentHeading}>{isBank?'Bank transfer details':'M-PESA PayBill — recommended'}</Text>{rows.map(([label,value],i)=><TouchableOpacity accessibilityRole="button" accessibilityLabel={`Copy ${label}`} key={label} style={styles.detailRow} onPress={()=>onCopy(label,value)}><View style={styles.stepCircle}><Text style={styles.stepText}>{i+1}</Text></View><View style={{flex:1}}><Text style={styles.detailLabel}>{label}</Text><Text selectable style={styles.detailValue}>{value}</Text></View><Ionicons name="copy-outline" size={18} color={Colors.primary}/></TouchableOpacity>)}<Text style={styles.instructNote}>{isBank?`Currency: ${b.currency}. Bank code ${b.bankCode}, branch code ${b.branchCode}.`:`PayBill ${b.mpesaPaybill}; use the full 15-digit account number exactly as shown.`}</Text></View>;
 }
 
 const styles = StyleSheet.create({
@@ -222,6 +227,9 @@ const styles = StyleSheet.create({
   instructHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   instructTitle: { fontSize: 15, fontWeight: '800', color: Colors.text.primary },
   detailList: { gap: 9 },
+  paymentHeading: { fontSize: 14, color: Colors.primaryDark, fontWeight: '900' },
+  stepCircle: { width: 24, height: 24, borderRadius: 12, backgroundColor: Colors.softPinkBg, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  stepText: { color: Colors.pinkDark, fontSize: 11, fontWeight: '900' },
   detailRow: { flexDirection: 'row', alignItems: 'center', padding: 12, borderWidth: 1, borderColor: Colors.border.light, borderRadius: 14, backgroundColor: Colors.gray[50] },
   detailLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6, color: Colors.text.muted, fontWeight: '800' },
   detailValue: { marginTop: 2, fontSize: 14, color: Colors.text.primary, fontWeight: '800' },

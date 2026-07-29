@@ -13,6 +13,7 @@ class ImpactCardCreate(BaseModel):
     image_url: Optional[str] = None
     video_url: Optional[str] = None
     completed_at: Optional[datetime] = None
+    published: bool = False
 
 
 class ImpactCardUpdate(BaseModel):
@@ -23,6 +24,7 @@ class ImpactCardUpdate(BaseModel):
     image_url: Optional[str] = None
     video_url: Optional[str] = None
     completed_at: Optional[datetime] = None
+    published: Optional[bool] = None
 
 
 class ImpactCardOut(BaseModel):
@@ -34,6 +36,7 @@ class ImpactCardOut(BaseModel):
     image_url: Optional[str] = None
     video_url: Optional[str] = None
     completed_at: Optional[datetime] = None
+    published: bool
     created_by: UUID
     created_at: datetime
     updated_at: datetime

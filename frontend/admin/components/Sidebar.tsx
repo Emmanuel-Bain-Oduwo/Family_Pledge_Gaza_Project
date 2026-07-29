@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, CreditCard, Megaphone, FolderOpen,
-  Heart, BookOpen, UserCheck, Tv, Bell, Bot, Settings, LogOut, X,
+  Heart, BookOpen, UserCheck, Tv, Bell, Bot, Settings, HardDrive, LogOut, X,
 } from 'lucide-react';
 import { removeToken } from '../lib/auth';
 import { FAMILY_PLEDGE_LOGO_DATA_URI } from '../lib/logo';
@@ -22,6 +22,7 @@ const NAV = [
   { href: '/namlef', icon: Tv, label: 'NAMLEF' },
   { href: '/notifications', icon: Bell, label: 'Notifications' },
   { href: '/ai-assistant', icon: Bot, label: 'AI Assistant' },
+  { href: '/storage', icon: HardDrive, label: 'Storage Usage' },
   { href: '/settings', icon: Settings, label: 'Settings' },
 ];
 

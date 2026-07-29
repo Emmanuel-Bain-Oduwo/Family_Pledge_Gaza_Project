@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppCard from './AppCard';
@@ -20,6 +20,7 @@ const TYPE_CONFIG: Record<string, { label: string; color: string; bg: string }> 
 };
 
 export default function ReminderCard({ reminder, onPress }: ReminderCardProps) {
+  const [failedImage, setFailedImage] = useState<string | null>(null);
   const cfg = TYPE_CONFIG[reminder.type] || TYPE_CONFIG.motivation;
 
   const handleShare = async () => {
@@ -28,14 +29,15 @@ export default function ReminderCard({ reminder, onPress }: ReminderCardProps) {
 
   return (
     <AppCard onPress={onPress} style={[styles.card, { backgroundColor: cfg.bg }]} borderColor={cfg.color}>
-      {reminder.image_url && (
+      {reminder.image_url && failedImage !== reminder.image_url && (
         <Image
           source={{ uri: reminder.image_url }}
           style={styles.image}
           resizeMode="cover"
+          onError={() => setFailedImage(reminder.image_url!)}
+          accessibilityLabel="Reminder image"
         />
-      )}
-      <View style={styles.content}>
+      )}      <View style={styles.content}>
         <View style={styles.header}>
           <View style={[styles.typeBadge, { backgroundColor: cfg.color }]}>
             <Text style={styles.typeLabel}>{cfg.label}</Text>

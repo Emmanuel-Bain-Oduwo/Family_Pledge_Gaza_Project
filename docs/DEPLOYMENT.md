@@ -8,7 +8,7 @@
 | Admin Dashboard | Vercel | https://admin.familypledge.org |
 | Mobile App | Expo EAS / App Stores | — |
 | Database | Railway PostgreSQL | (internal) |
-| Media Storage | Cloudinary | Free tier |
+| Media Storage | Cloudflare R2 | Usage-based |
 
 ---
 
@@ -40,9 +40,13 @@ ACCESS_TOKEN_EXPIRE_MINUTES=10080
 OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-4o-mini
 CORS_ORIGINS=https://admin.familypledge.org,https://familypledge.org,exp://localhost:8081
-CLOUDINARY_CLOUD_NAME=<your-cloud-name>
-CLOUDINARY_API_KEY=<your-api-key>
-CLOUDINARY_API_SECRET=<your-api-secret>
+R2_ACCOUNT_ID=<cloudflare-account-id>
+R2_ACCESS_KEY_ID=<bucket-limited-access-key>
+R2_SECRET_ACCESS_KEY=<bucket-limited-secret-key>
+R2_BUCKET_NAME=<bucket-name>
+R2_PUBLIC_BASE_URL=https://media.familypledge.org
+R2_MAX_UPLOAD_MB=500
+R2_ALLOWED_UPLOADS_MODE=broad
 SQL_ECHO=false
 ```
 
@@ -157,24 +161,13 @@ eas update --branch production --message "Fix: greeting and API routes"
 
 ---
 
-## 4. Cloudinary Setup (Free Tier)
+## 4. Cloudflare R2 Setup
 
-1. Sign up at https://cloudinary.com (free tier is sufficient for Phase 1)
-2. Go to **Settings → Upload → Upload Presets** — no preset needed (signed upload)
-3. Copy your **Cloud Name**, **API Key**, and **API Secret**
-4. Set them in Railway environment variables
+Create an R2 bucket and a bucket-limited API token, attach a public custom domain, and configure CORS for the admin origins and `PUT` requests with `Content-Type`. Set the backend-only R2 variables above. Never expose access keys through `NEXT_PUBLIC_*`. See [the storage policy](STORAGE_POLICY.md) for the complete setup and upload flow.
 
-### Folder Structure in Cloudinary
+### Native push notifications
 
-```
-family-pledge/
-├── projects/     ← project cover images
-├── reminders/    ← reminder images
-├── namlef/       ← NAMLEF content thumbnails
-└── impact/       ← impact card images
-```
-
----
+Push notifications require an EAS native build; Expo Go is not the production delivery target. Configure the EAS project UUID as `EXPO_PUBLIC_EAS_PROJECT_ID`, add APNs credentials for iOS and FCM credentials for Android in EAS, and set `EXPO_ACCESS_TOKEN` on the backend if Expo enhanced push security is enabled. Test foreground, background, and terminated-app delivery on physical iOS and Android devices. The app registers the token after sign-in, maintains Android emergency/reminder channels, schedules local daily and Friday reminders, and opens the persistent notification feed when a notification is tapped.
 
 ## 5. Local Development
 
@@ -231,7 +224,7 @@ For Expo development, add your local network IP (`exp://192.168.x.x:8081`).
 - [ ] Admin can log in at admin.familypledge.org
 - [ ] Mobile app connects to API (check network logs)
 - [ ] `/dashboard` returns data for a logged-in user
-- [ ] Cloudinary upload works (test via Admin → Impact Cards → Upload Image)
+- [ ] Cloudflare R2 direct upload works (test via Admin → Impact Cards → Upload Image)
 - [ ] Push notifications sent (test via Admin → Notifications → Send)
 - [ ] AI assistant responds (test via Admin → AI Assistant)
 - [ ] Alembic migrations applied (`alembic current` shows head)

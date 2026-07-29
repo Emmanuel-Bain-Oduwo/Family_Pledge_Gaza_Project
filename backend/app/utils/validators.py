@@ -14,7 +14,7 @@ def current_month() -> str:
 
 # ── Media URL validation ───────────────────────────────────────────────────────
 
-_CLOUDINARY_HOSTS = {"res.cloudinary.com", "cloudinary.com"}
+_CLOUDINARY_HOSTS = {"res.cloudinary.com", "cloudinary.com"}  # accepted only for legacy saved records
 
 _YOUTUBE_PATTERNS = [
     re.compile(r"^https?://(?:www\.)?youtube\.com/watch\?.*v=[\w-]+", re.I),
@@ -41,12 +41,13 @@ def is_youtube_url(url: str) -> bool:
 def is_valid_media_url(url: Optional[str]) -> bool:
     """
     Return True if the URL is acceptable for storage:
-    must be a Cloudinary URL or a YouTube link.
+    must be an absolute HTTPS media URL or a YouTube link.
     Empty/None values are valid (field is optional).
     """
     if not url:
         return True
-    return is_cloudinary_url(url) or is_youtube_url(url)
+    parsed = urlparse(url)
+    return (parsed.scheme == "https" and bool(parsed.netloc)) or is_youtube_url(url)
 
 
 def media_url_error(url: Optional[str]) -> Optional[str]:
@@ -56,6 +57,6 @@ def media_url_error(url: Optional[str]) -> Optional[str]:
     if is_valid_media_url(url):
         return None
     return (
-        "Invalid media URL. Use a Cloudinary URL (res.cloudinary.com) "
-        "or a YouTube link (youtube.com / youtu.be)."
+        "Invalid media URL. Use an absolute HTTPS Cloudflare R2/media URL "
+        "or a supported external media link."
     )

@@ -1,6 +1,6 @@
 from typing import Any, Dict, List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field
 
 
 class DashboardOut(BaseModel):
@@ -29,4 +29,17 @@ class AdminDonorOut(BaseModel):
     collector_code: str | None = None
     pledge_status: str
     donor_number: int | None = None
+    created_at: str
+
+class TrackedContactInput(BaseModel):
+    full_name: str = Field(min_length=1, max_length=255)
+    phone: str | None = Field(None, max_length=30)
+    email: EmailStr | None = None
+    country: str | None = Field(None, max_length=100)
+    status: str = Field("following_up", pattern="^(following_up|pledged|paid|paused)$")
+    notes: str | None = Field(None, max_length=2000)
+
+class TrackedContactOut(TrackedContactInput):
+    id: str
+    is_active: bool
     created_at: str
