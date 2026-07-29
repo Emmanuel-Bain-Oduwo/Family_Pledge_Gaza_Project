@@ -10,8 +10,10 @@ DATABASE_URL = settings.DATABASE_URL
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,  # reconnect on stale connections
-    pool_size=10,
-    max_overflow=20,
+    pool_size=settings.DB_POOL_SIZE,
+    max_overflow=settings.DB_MAX_OVERFLOW,
+    pool_timeout=settings.DB_POOL_TIMEOUT_SECONDS,
+    pool_recycle=1800,
     echo=settings.SQL_ECHO,
 )
 

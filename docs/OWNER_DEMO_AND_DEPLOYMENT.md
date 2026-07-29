@@ -25,7 +25,8 @@ Fallback content must be treated as presentation/demo content and should not be 
    - `DATABASE_URL=postgresql://...`
    - `JWT_SECRET` with 32+ random characters
    - `CORS_ORIGINS=https://your-admin-domain,https://your-mobile-web-preview-if-any`
-   - optional: `OPENAI_API_KEY`, `EXPO_ACCESS_TOKEN`, SMTP, Cloudinary keys
+   - optional: `OPENAI_API_KEY`, `EXPO_ACCESS_TOKEN`, SMTP
+   - uploads: backend-only Cloudflare R2 credentials and `R2_PUBLIC_BASE_URL`
 2. Run migrations from `backend/`:
    - `alembic upgrade head`
 3. Create the first protected admin:
@@ -34,7 +35,7 @@ Fallback content must be treated as presentation/demo content and should not be 
    - `GET /health`
    - `GET /ready`
 5. Confirm media policy:
-   - store only Cloudinary/YouTube URLs in PostgreSQL
+   - store only R2/external media URLs, object keys, and metadata in PostgreSQL—never raw files
    - never store raw media files in the database
 
 ## Suggested owner-demo seed order

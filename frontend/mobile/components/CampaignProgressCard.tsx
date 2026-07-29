@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppCard from './AppCard';
 import { Colors } from '../constants/colors';
 import { Campaign } from '../types';
+import VideoButton from './VideoButton';
 
 interface CampaignProgressCardProps {
   campaign: Campaign;
@@ -32,20 +33,22 @@ export default function CampaignProgressCard({
   onContribute,
   compact = false,
 }: CampaignProgressCardProps) {
+  const [failedImage, setFailedImage] = useState<string | null>(null);
   const accentColor = TYPE_COLORS[campaign.type] || Colors.primary;
   const progress = Math.min(campaign.current_donors / campaign.target_donors, 1);
   const pct = Math.round(progress * 100);
 
   return (
     <AppCard onPress={onPress} borderColor={accentColor} style={styles.card}>
-      {campaign.image_url && (
+      {campaign.image_url && failedImage !== campaign.image_url && (
         <Image
           source={{ uri: campaign.image_url }}
           style={styles.coverImage}
           resizeMode="cover"
+          onError={() => setFailedImage(campaign.image_url!)}
+          accessibilityLabel={`${campaign.title} cover image`}
         />
-      )}
-      <View style={styles.content}>
+      )}      <View style={styles.content}>
         <View style={styles.header}>
           <View style={[styles.typeBadge, { backgroundColor: accentColor + '20' }]}>
             <Text style={[styles.typeLabel, { color: accentColor }]}>
@@ -63,6 +66,10 @@ export default function CampaignProgressCard({
 
         {!compact && (
           <Text style={styles.description} numberOfLines={2}>{campaign.description}</Text>
+        )}
+
+        {campaign.video_url && !compact && (
+          <VideoButton url={campaign.video_url} label="Watch campaign video" />
         )}
 
         <View style={styles.progressSection}>

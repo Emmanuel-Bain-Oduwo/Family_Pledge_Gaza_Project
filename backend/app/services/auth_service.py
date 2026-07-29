@@ -5,6 +5,7 @@ from fastapi import HTTPException
 from app.core.security import hash_password, verify_password, create_access_token
 from app.models.enums import UserRole
 from app.models.user import User
+from app.models.tracked_contact import TrackedContact
 from app.schemas.auth import LoginRequest, RegisterRequest
 
 
@@ -28,6 +29,21 @@ def register(db: Session, data: RegisterRequest) -> User:
         is_active=True,
     )
     db.add(user)
+    db.flush()
+    if data.referral_code:
+        referral_code = data.referral_code.strip().upper()
+        tracked = db.scalar(select(TrackedContact).where(
+            TrackedContact.referral_code == referral_code,
+            TrackedContact.is_active.is_(True),
+            TrackedContact.linked_user_id.is_(None),
+        ))
+        if not tracked:
+            raise HTTPException(400, "Referral code is invalid or already used")
+        tracked.linked_user_id = user.id
+        tracked.status = "pledged"
+        tracked.full_name = data.full_name
+        tracked.phone = phone
+        tracked.email = email
     db.commit()
     db.refresh(user)
     return user

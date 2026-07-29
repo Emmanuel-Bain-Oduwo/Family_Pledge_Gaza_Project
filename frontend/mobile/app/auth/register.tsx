@@ -61,6 +61,7 @@ export default function RegisterScreen() {
         country: form.country.trim(),
         city: form.city.trim() || undefined,
         password: form.password,
+        referral_code: form.collector_code.trim() || undefined,
       });
       await saveToken(tokens);
       router.replace('/tabs/home');
@@ -135,10 +136,10 @@ export default function RegisterScreen() {
             />
           </View>
           <Field
-            label="Collector Code (optional)"
+            label="Referral / Collector Code (optional)"
             value={form.collector_code}
             onChangeText={(v) => update('collector_code', v)}
-            placeholder="If invited by a collector"
+            placeholder="Enter the code your coordinator gave you"
             autoCapitalize="characters"
           />
         </View>

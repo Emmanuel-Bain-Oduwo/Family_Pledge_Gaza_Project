@@ -38,6 +38,7 @@ export interface Donor {
   donor_number?: number;
   created_at: string;
 }
+export interface TrackedContact { id:string; full_name:string; phone?:string; email?:string; country?:string; status:'following_up'|'pledged'|'paid'|'paused'; notes?:string; referral_code?:string; linked_user_id?:string; is_active:boolean; created_at:string; }
 
 export type ContributionStatus = 'submitted' | 'confirmed' | 'rejected' | 'needs_follow_up';
 

@@ -4,7 +4,7 @@ import {
   Admin, AdminProfileUpdate, AuthTokens, Donor, Contribution, ContributionStatus,
   Campaign, Project, ImpactCard, Reminder, Collector, CollectorMember,
   NamlefContent, PushNotification, DashboardStats, AiDraft, AppSettings,
-  PaginatedResponse,
+  PaginatedResponse, TrackedContact,
 } from '../types';
 
 const DEFAULT_API_URL = 'https://familypledgegazaproject-production.up.railway.app/api/v1';
@@ -118,6 +118,8 @@ export const getDonors = async (params?: Record<string, string>): Promise<{ item
     return { ...data, data: data.items };
   } catch (e) { return handle(e); }
 };
+export const getTrackedContacts = async (): Promise<TrackedContact[]> => { try { return (await client.get<TrackedContact[]>('/admin/tracked-contacts')).data; } catch(e) { return handle(e); } };
+export const createTrackedContact = async (payload: Omit<TrackedContact,'id'|'is_active'|'created_at'>): Promise<TrackedContact> => { try { return (await client.post<TrackedContact>('/admin/tracked-contacts', payload)).data; } catch(e) { return handle(e); } };
 
 // ── Contributions ─────────────────────────────────────────────────────────────
 export const getContributions = async (params?: Record<string, string>): Promise<{ items: Contribution[]; data: Contribution[]; total: number }> => {
@@ -155,7 +157,7 @@ export const rejectContribution = async (id: string, admin_note?: string): Promi
 // ── Campaigns ─────────────────────────────────────────────────────────────────
 export const getCampaigns = async (params?: Record<string, string>): Promise<Campaign[]> => {
   try {
-    const { data } = await client.get<{ items: Campaign[] }>('/campaigns', { params });
+    const { data } = await client.get<{ items: Campaign[] }>('/admin/campaigns', { params });
     return data.items || [];
   } catch (e) { return handle(e); }
 };
@@ -205,7 +207,7 @@ export const updateProject = async (id: string, payload: Partial<Project>): Prom
 // ── Impact ────────────────────────────────────────────────────────────────────
 export const getImpactCards = async (): Promise<ImpactCard[]> => {
   try {
-    const { data } = await client.get<{ items: ImpactCard[] }>('/impact-cards');
+    const { data } = await client.get<{ items: ImpactCard[] }>('/admin/impact-cards');
     return data.items || [];
   } catch (e) { return handle(e); }
 };
@@ -413,6 +415,11 @@ export const publishAiDraft = async (id: string): Promise<AiDraft> => {
   } catch (e) { return handle(e); }
 };
 
+export interface FamilyPledgeAiTask { id:string; title:string; instruction:string; task_type:string; schedule_type?:string; status:string; next_run_at?:string; last_run_at?:string; }
+export const getFamilyPledgeAiTasks = async (): Promise<FamilyPledgeAiTask[]> => { try { return (await client.get('/admin/ai/tasks')).data; } catch(e) { return handle(e); } };
+export const createFamilyPledgeAiTask = async (payload: object): Promise<FamilyPledgeAiTask> => { try { return (await client.post('/admin/ai/tasks', payload)).data; } catch(e) { return handle(e); } };
+export const runFamilyPledgeAiTask = async (id:string): Promise<void> => { try { await client.post(`/admin/ai/tasks/${id}/run-now`); } catch(e) { return handle(e); } };
+
 // ── Settings ──────────────────────────────────────────────────────────────────
 export const getSettings = async (): Promise<AppSettings> => {
   try {
@@ -425,5 +432,30 @@ export const updateSettings = async (payload: Partial<AppSettings>): Promise<App
   try {
     const { data } = await client.put<AppSettings | { data: AppSettings }>('/admin/settings', payload);
     return unwrap(data);
+  } catch (e) { return handle(e); }
+};
+
+// ── Storage usage ─────────────────────────────────────────────────────────────
+export interface StorageUsage {
+  total_files: number;
+  total_bytes: number;
+  total_mb: number;
+  total_gb: number;
+  files_by_folder: Record<string, number>;
+  bytes_by_folder: Record<string, number>;
+  files_by_content_type: Record<string, number>;
+  bytes_by_content_type: Record<string, number>;
+  latest_uploads: Array<{
+    id: string; original_filename?: string; public_url?: string; object_key: string;
+    content_type?: string; folder: string; size_bytes: number; uploaded_at?: string;
+  }>;
+}
+
+export const getStorageUsage = async (): Promise<StorageUsage> => {
+  try {
+    const { data } = await client.get<StorageUsage>('/admin/storage/usage', {
+      headers: { 'Cache-Control': 'no-cache' },
+    });
+    return data;
   } catch (e) { return handle(e); }
 };
