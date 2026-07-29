@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.deps import require_admin
+from app.core.deps import get_current_user, require_admin
 from app.models.media_asset import MediaAsset
 from app.models.user import User
 
@@ -127,6 +127,49 @@ class MediaAssetOut(BaseModel):
     uploaded_at: datetime | None
 
     model_config = {"from_attributes": True}
+
+
+@router.post("/contribution-proof/presigned-upload", response_model=PresignedUploadOut)
+def create_contribution_proof_upload(
+    body: PresignedUploadRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Let an authenticated donor upload an image receipt directly to R2."""
+    _require_r2_config()
+    if body.folder != "contribution_proofs":
+        raise HTTPException(400, "Contribution proof uploads must use the contribution_proofs folder.")
+    content_type = validate_upload(body.filename, body.content_type, body.size_bytes)
+    if not content_type.startswith("image/"):
+        raise HTTPException(400, "Payment proof must be an image.")
+    object_key = make_object_key(body.folder, body.filename)
+    try:
+        upload_url = _r2_client().generate_presigned_url(
+            "put_object",
+            Params={
+                "Bucket": settings.R2_BUCKET_NAME,
+                "Key": object_key,
+                "ContentType": content_type,
+                "CacheControl": R2_CACHE_CONTROL,
+            },
+            ExpiresIn=900,
+        )
+    except Exception as exc:
+        raise HTTPException(503, "Payment proof storage is temporarily unavailable.") from exc
+    public_url = f"{settings.R2_PUBLIC_BASE_URL.rstrip('/')}/{quote(object_key, safe='/')}"
+    db.add(MediaAsset(
+        object_key=object_key, public_url=public_url,
+        original_filename=body.filename, content_type=content_type,
+        file_extension=_extension(body.filename), folder=body.folder,
+        size_bytes=body.size_bytes, uploaded_by=user.id,
+        upload_source="donor_contribution", status="pending_upload", is_public=True,
+    ))
+    db.commit()
+    return PresignedUploadOut(
+        upload_url=upload_url, required_headers={"Content-Type": content_type, "Cache-Control": R2_CACHE_CONTROL},
+        public_url=public_url, object_key=object_key, bucket=settings.R2_BUCKET_NAME,
+        size_bytes=body.size_bytes, content_type=content_type,
+    )
 
 
 def _require_r2_config() -> None:

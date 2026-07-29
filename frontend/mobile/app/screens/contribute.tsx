@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
 import AppButton from '../../components/AppButton';
 import AppCard from '../../components/AppCard';
-import { createPledge, submitContribution } from '../../services/api';
+import { createPledge, submitContribution, uploadContributionProof } from '../../services/api';
 import { PAYMENT_SETTINGS, currentContributionMonth } from '../../constants/payment';
 import { copyText } from '../../services/webCompat';
 
@@ -25,7 +25,8 @@ export default function ContributeScreen() {
   const [selectedOption, setSelectedOption] = useState<PledgeOptionKey>('usd10');
   const [openAmount, setOpenAmount] = useState('');
   const [reference, setReference] = useState('');
-  const [proofUrl, setProofUrl] = useState('');
+  const [proof, setProof] = useState<{ uri: string; fileName: string; mimeType: string; fileSize: number } | null>(null);
+  const proofInputRef = useRef<any>(null);
   const [loading, setLoading] = useState(false);
 
   const selected = useMemo(
@@ -45,8 +46,8 @@ export default function ContributeScreen() {
       Alert.alert('Amount Required', 'Please choose an amount or enter your open amount.');
       return;
     }
-    if (!isFreePledge && !reference.trim()) {
-      Alert.alert('Reference Required', 'Please enter your transaction reference after payment.');
+    if (!isFreePledge && !reference.trim() && !proof) {
+      Alert.alert('Proof Required', 'Upload a payment screenshot or enter the transaction message/reference.');
       return;
     }
     setLoading(true);
@@ -59,11 +60,12 @@ export default function ContributeScreen() {
           start_date: new Date().toISOString().slice(0, 10),
         });
       } else {
+        const proofUrl = proof ? await uploadContributionProof(proof) : undefined;
         await submitContribution({
           amount,
           currency: selected.currency,
           transaction_reference: reference.trim(),
-          proof_image_url: proofUrl.trim() || undefined,
+          proof_image_url: proofUrl,
           contribution_channel: selectedMethod,
           contribution_month: currentContributionMonth(),
         });
@@ -72,8 +74,8 @@ export default function ContributeScreen() {
         isFreePledge ? 'Pledge Signed 🌙' : 'Thank You! 🌙',
         isFreePledge
           ? 'You are signed up for awareness reminders. May Allah reward your intention.'
-          : 'Your contribution has been submitted for admin verification. Jazakallahu Khayran.',
-        [{ text: 'Done', onPress: () => { setReference(''); setProofUrl(''); setOpenAmount(''); } }]
+          : 'Submitted. May Allah SWT bless you abundantly for helping Gaza, ease all your affairs, and grant you Jannatul Firdaus.',
+        [{ text: 'Done', onPress: () => { setReference(''); setProof(null); setOpenAmount(''); } }]
       );
     } catch (err: any) {
       Alert.alert('Submission Failed', err.message || 'Please try again.');
@@ -139,25 +141,29 @@ export default function ContributeScreen() {
         )}
 
         <AppCard style={styles.card}>
-          <Text style={styles.cardTitle}>{isFreePledge ? 'Finish free pledge' : 'Submit payment reference'}</Text>
-          <Text style={styles.cardDesc}>{isFreePledge ? 'No payment is required. You will still receive reminders and awareness content.' : 'After paying, submit your transaction reference so admins can verify the exact amount.'}</Text>
+          <Text style={styles.cardTitle}>{isFreePledge ? 'Finish free pledge' : 'Submit payment proof'}</Text>
+          <Text style={styles.cardDesc}>{isFreePledge ? 'No payment is required. You will still receive reminders and awareness content.' : 'Upload a screenshot or paste the transaction message/reference. Either one is enough for admin review.'}</Text>
 
           {!isFreePledge && (
             <>
               <View style={styles.field}>
-                <Text style={styles.label}>Transaction Reference *</Text>
+                <Text style={styles.label}>Transaction message / reference</Text>
                 <View style={styles.inputWrap}>
                   <Ionicons name="receipt-outline" size={18} color={Colors.gray[400]} />
                   <TextInput value={reference} onChangeText={setReference} placeholder="e.g. QKR7XNPK" placeholderTextColor={Colors.gray[400]} style={styles.input} autoCapitalize="characters" />
                 </View>
               </View>
-              <View style={styles.field}>
-                <Text style={styles.label}>Screenshot / Proof URL (optional)</Text>
-                <View style={styles.inputWrap}>
-                  <Ionicons name="image-outline" size={18} color={Colors.gray[400]} />
-                  <TextInput value={proofUrl} onChangeText={setProofUrl} placeholder="Secure receipt URL" placeholderTextColor={Colors.gray[400]} style={styles.input} autoCapitalize="none" keyboardType="url" />
-                </View>
-              </View>
+              {Platform.OS === 'web' && React.createElement('input', {
+                ref: proofInputRef, type: 'file', accept: 'image/jpeg,image/png,image/webp', style: { display: 'none' },
+                onChange: (event: any) => { const file = event.target.files?.[0]; if (file) setProof({ uri: URL.createObjectURL(file), fileName: file.name, mimeType: file.type, fileSize: file.size }); },
+              })}
+              <TouchableOpacity style={styles.uploadButton} onPress={() => {
+                if (Platform.OS === 'web') proofInputRef.current?.click();
+                else Alert.alert('Payment proof', 'Screenshot selection is available in the web app. You can submit your transaction message/reference here.');
+              }}>
+                <Ionicons name={proof ? 'checkmark-circle' : 'cloud-upload-outline'} size={22} color={Colors.primary} />
+                <View style={{ flex: 1 }}><Text style={styles.uploadTitle}>{proof ? 'Screenshot selected' : 'Upload payment screenshot'}</Text><Text style={styles.uploadHelp}>{proof?.fileName || 'JPG, PNG or WebP'}</Text></View>
+              </TouchableOpacity>
             </>
           )}
 
@@ -168,6 +174,10 @@ export default function ContributeScreen() {
           <Ionicons name="shield-checkmark-outline" size={16} color={Colors.primary} />
           <Text style={styles.footerText}>Secure · Admin verified · Payment details managed centrally</Text>
         </View>
+        <AppCard style={styles.contactCard}>
+          <Ionicons name="mail-outline" size={20} color={Colors.primary} />
+          <View><Text style={styles.contactTitle}>Contact Us</Text><Text selectable style={styles.contactEmail}>admin@familypledgekenya.com</Text></View>
+        </AppCard>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -229,6 +239,12 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, fontWeight: '700', color: Colors.text.primary, marginBottom: 6 },
   inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.gray[50], borderRadius: 12, borderWidth: 1.5, borderColor: Colors.border.light, paddingHorizontal: 14, height: 50, gap: 10 },
   input: { flex: 1, fontSize: 15, color: Colors.text.primary },
+  uploadButton: { marginBottom: 14, minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: Colors.primary, borderRadius: 14, backgroundColor: Colors.gray[50] },
+  uploadTitle: { color: Colors.text.primary, fontWeight: '800', fontSize: 14 },
+  uploadHelp: { color: Colors.text.secondary, fontSize: 12, marginTop: 3 },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12 },
   footerText: { fontSize: 12, color: Colors.text.secondary, fontWeight: '600' },
+  contactCard: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4 },
+  contactTitle: { fontWeight: '800', color: Colors.text.primary },
+  contactEmail: { color: Colors.primary, marginTop: 2 },
 });

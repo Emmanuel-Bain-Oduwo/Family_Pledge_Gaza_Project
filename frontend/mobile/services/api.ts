@@ -192,6 +192,26 @@ export const submitContribution = async (payload: ContributionPayload): Promise<
   }
 };
 
+export const uploadContributionProof = async (asset: {
+  uri: string; fileName?: string | null; mimeType?: string | null; fileSize?: number;
+}): Promise<string> => {
+  const filename = asset.fileName || `payment-proof-${Date.now()}.jpg`;
+  const contentType = asset.mimeType || 'image/jpeg';
+  const fileResponse = await fetch(asset.uri);
+  const blob = await fileResponse.blob();
+  const sizeBytes = asset.fileSize || blob.size;
+  try {
+    const { data } = await client.post('/admin/storage/contribution-proof/presigned-upload', {
+      folder: 'contribution_proofs', filename, content_type: contentType, size_bytes: sizeBytes,
+    });
+    const uploaded = await fetch(data.upload_url, { method: 'PUT', headers: data.required_headers, body: blob });
+    if (!uploaded.ok) throw new Error('The screenshot could not be uploaded.');
+    return data.public_url;
+  } catch (e) {
+    return handleApiError(e);
+  }
+};
+
 export const getMyContributions = async (page = 1): Promise<PaginatedResponse<any>> => {
   try {
     const { data } = await client.get<PaginatedResponse<any>>('/contributions/me', { params: { page } });
