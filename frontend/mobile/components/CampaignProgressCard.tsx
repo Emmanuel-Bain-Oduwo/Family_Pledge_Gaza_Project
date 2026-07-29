@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AppCard from './AppCard';
 import { Colors } from '../constants/colors';
 import { Campaign } from '../types';
+import VideoButton from './VideoButton';
 
 interface CampaignProgressCardProps {
   campaign: Campaign;
@@ -65,6 +66,10 @@ export default function CampaignProgressCard({
 
         {!compact && (
           <Text style={styles.description} numberOfLines={2}>{campaign.description}</Text>
+        )}
+
+        {campaign.video_url && !compact && (
+          <VideoButton url={campaign.video_url} label="Watch campaign video" />
         )}
 
         <View style={styles.progressSection}>
