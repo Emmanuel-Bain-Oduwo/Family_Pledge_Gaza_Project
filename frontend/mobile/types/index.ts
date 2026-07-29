@@ -120,6 +120,16 @@ export interface NamlefContent {
   created_at?: string;
 }
 
+export interface UserNotification {
+  id: string;
+  title: string;
+  body: string;
+  notification_type: string;
+  audience: string;
+  sent_at?: string;
+  created_at: string;
+}
+
 export interface Badge {
   id: string;
   name: string;
@@ -176,6 +186,7 @@ export interface RegisterPayload {
   country: string;
   city?: string;
   password: string;
+  referral_code?: string;
 }
 
 export interface LoginPayload {

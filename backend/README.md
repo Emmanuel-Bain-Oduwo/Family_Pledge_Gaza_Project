@@ -96,61 +96,23 @@ Interactive API docs: `http://localhost:8000/docs`
 | `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI model |
 | `CORS_ORIGINS` | `http://localhost:3000,http://localhost:8081` | Allowed CORS origins |
 | `SQL_ECHO` | `false` | Log all SQL queries |
-| `CLOUDINARY_CLOUD_NAME` | _(empty)_ | Cloudinary cloud name (optional) |
-| `CLOUDINARY_API_KEY` | _(empty)_ | Cloudinary API key (optional) |
-| `CLOUDINARY_API_SECRET` | _(empty)_ | Cloudinary API secret (optional) |
+| `R2_ACCOUNT_ID` | _(empty)_ | Cloudflare account ID |
+| `R2_ACCESS_KEY_ID` | _(empty)_ | Bucket-limited R2 access key |
+| `R2_SECRET_ACCESS_KEY` | _(empty)_ | Bucket-limited R2 secret key |
+| `R2_BUCKET_NAME` | _(empty)_ | R2 bucket name |
+| `R2_PUBLIC_BASE_URL` | _(empty)_ | Public/custom media domain |
+| `R2_MAX_UPLOAD_MB` | `500` | Configurable upload safety ceiling |
+| `R2_ALLOWED_UPLOADS_MODE` | `broad` | Broad media/document policy |
 
 ---
 
 ## Media Storage Policy
 
-Family Pledge keeps hosting costs near zero by never storing files on the server.
+Cloudflare R2 is the production storage system. Authenticated administrators request a 15-minute presigned PUT from `POST /api/v1/admin/storage/r2-presigned-upload`, upload directly from the browser to R2, and confirm metadata at `POST /api/v1/admin/storage/r2-confirm-upload`. The backend never receives file bytes and PostgreSQL stores only URLs, object keys, metadata, and `media_assets` usage records.
 
-### Rules
+Images, video, audio, PDFs, and common office/text documents are supported. Executable and server-side extensions are blocked. The safety ceiling defaults to 500 MB and is configurable with `R2_MAX_UPLOAD_MB`. Contribution proofs are recorded as private. Administrators can inspect application totals at `GET /api/v1/admin/storage/usage`; Cloudflare remains the billing source of truth.
 
-| Media type | Where to store | Max size |
-|---|---|---|
-| Project images | Cloudinary | 1 MB |
-| Impact card images | Cloudinary | 1 MB |
-| Reminder images | Cloudinary | 1 MB |
-| Contribution proof images | Cloudinary | 2 MB |
-| Short videos (≤30s) | Cloudinary | 10 MB |
-| Sheikh / NAMLEF talks | YouTube (unlisted) | unlimited |
-| Long campaign videos | YouTube (unlisted) | unlimited |
-
-**PostgreSQL stores only URLs and metadata — never raw files.**
-**Railway disk is never used for media.**
-
-### Accepted URL formats
-
-- **Cloudinary**: `https://res.cloudinary.com/...` or `https://cloudinary.com/...`
-- **YouTube**: `https://youtube.com/watch?v=...`, `https://youtu.be/...`, `https://youtube.com/shorts/...`
-
-All other URL formats are rejected by the backend validator.
-
-### Cloudinary signed upload (optional)
-
-When `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` are
-configured, the admin dashboard can upload directly from the browser to Cloudinary
-without routing files through this server:
-
-```
-POST /admin/storage/cloudinary-signature
-Body: { "folder": "projects" | "impact" | "namlef" | "reminders" | "contribution_proofs" }
-Returns: { timestamp, signature, cloud_name, api_key, upload_folder, upload_url }
-```
-
-Suggested upload folders:
-- `family-pledge/projects`
-- `family-pledge/impact`
-- `family-pledge/namlef`
-- `family-pledge/reminders`
-- `family-pledge/contribution-proofs`
-
-### Sensitivity policy
-
-No beneficiary-identifying images should be made public without explicit admin approval.
-Impact card images are only visible in the mobile app after an admin publishes the card.
+See [`docs/STORAGE_POLICY.md`](../docs/STORAGE_POLICY.md) for R2 setup, CORS, content flow, and security rules.
 
 ---
 

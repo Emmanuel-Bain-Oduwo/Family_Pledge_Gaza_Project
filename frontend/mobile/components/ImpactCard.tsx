@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppCard from './AppCard';
@@ -21,12 +21,13 @@ const CATEGORY_ICONS: Record<string, { icon: string; color: string }> = {
 };
 
 export default function ImpactCard({ impact, onPress }: ImpactCardProps) {
+  const [failedImage, setFailedImage] = useState<string | null>(null);
   const cat = CATEGORY_ICONS[impact.category] || CATEGORY_ICONS.general;
 
   return (
     <AppCard onPress={onPress} style={styles.card}>
-      {impact.image_url ? (
-        <Image source={{ uri: impact.image_url }} style={styles.image} resizeMode="cover" />
+      {impact.image_url && failedImage !== impact.image_url ? (
+        <Image source={{ uri: impact.image_url }} style={styles.image} resizeMode="cover" onError={() => setFailedImage(impact.image_url!)} accessibilityLabel={`${impact.title} image`} />
       ) : (
         <View style={[styles.imagePlaceholder, { backgroundColor: cat.color + '20' }]}>
           <Ionicons name={cat.icon as any} size={40} color={cat.color} />

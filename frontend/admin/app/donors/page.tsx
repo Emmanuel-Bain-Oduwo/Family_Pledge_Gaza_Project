@@ -1,21 +1,12 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
-import { Search, Users } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import AdminLayout from '../../components/AdminLayout';
 import DataTable, { Column } from '../../components/DataTable';
 import StatusBadge from '../../components/StatusBadge';
-import EmptyState from '../../components/EmptyState';
-import { getDonors } from '../../lib/api';
-import { Donor } from '../../types';
+import { createTrackedContact, getDonors, getTrackedContacts } from '../../lib/api';
+import { Donor, TrackedContact } from '../../types';
 import { formatDate } from '../../lib/utils';
-
-const MOCK_DONORS: Donor[] = [
-  { id: '1', full_name: 'Ahmed Hassan', nickname: 'Abu Yusuf', phone: '+254700001', country: 'Kenya', anonymous_publicly: false, is_collector: true, pledge_status: 'paid', donor_number: 42, created_at: '2024-01-10T10:00:00Z' },
-  { id: '2', full_name: 'Fatima Noor', phone: '+254700002', country: 'Kenya', city: 'Mombasa', anonymous_publicly: true, is_collector: false, pledge_status: 'pending', donor_number: 87, created_at: '2024-02-15T10:00:00Z' },
-  { id: '3', full_name: 'Ibrahim Omar', phone: '+255700003', country: 'Tanzania', anonymous_publicly: false, is_collector: false, pledge_status: 'missed', donor_number: 103, created_at: '2024-03-01T10:00:00Z' },
-  { id: '4', full_name: 'Maryam Said', phone: '+256700004', country: 'Uganda', anonymous_publicly: false, is_collector: false, pledge_status: 'paid', donor_number: 156, created_at: '2024-03-20T10:00:00Z' },
-  { id: '5', full_name: 'Yusuf Khalid', phone: '+254700005', country: 'Kenya', city: 'Nairobi', anonymous_publicly: false, is_collector: true, pledge_status: 'free_participant', created_at: '2024-04-05T10:00:00Z' },
-];
 
 export default function DonorsPage() {
   const [donors, setDonors] = useState<Donor[]>([]);
@@ -23,6 +14,9 @@ export default function DonorsPage() {
   const [search, setSearch] = useState('');
   const [filterCountry, setFilterCountry] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [tracked, setTracked] = useState<TrackedContact[]>([]);
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState({full_name:'',phone:'',email:'',country:'',status:'following_up' as const,notes:'',referral_code:''});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -31,16 +25,18 @@ export default function DonorsPage() {
       if (search) params.search = search;
       if (filterCountry) params.country = filterCountry;
       if (filterStatus) params.status = filterStatus;
-      const res = await getDonors(params);
+      const [res, contacts] = await Promise.all([getDonors(params), getTrackedContacts()]);
       setDonors(res.data);
+      setTracked(contacts);
     } catch {
-      setDonors(MOCK_DONORS);
+      setDonors([]);
     } finally {
       setLoading(false);
     }
   }, [search, filterCountry, filterStatus]);
 
   useEffect(() => { load(); }, [load]);
+  const addTracked = async (e: React.FormEvent) => { e.preventDefault(); const c=await createTrackedContact({...form, referral_code: form.referral_code || undefined}); setTracked(v=>[c,...v]); setShowAdd(false); setForm({full_name:'',phone:'',email:'',country:'',status:'following_up',notes:'',referral_code:''}); };
 
   const columns: Column<Donor>[] = [
     { key: 'donor_number', header: '#', render: (d) => d.donor_number ? `#${d.donor_number}` : '—' },
@@ -59,10 +55,13 @@ export default function DonorsPage() {
     { key: 'created_at', header: 'Joined', render: (d) => formatDate(d.created_at) },
   ];
 
-  const countries = Array.from(new Set(MOCK_DONORS.map((d) => d.country)));
+  const countries = Array.from(new Set(donors.map((d) => d.country).filter(Boolean)));
 
   return (
     <AdminLayout title="Donors" subtitle={`${donors.length} registered donors`}>
+      <div className="card p-5 mb-5"><div className="flex justify-between gap-3 mb-4"><div><h2 className="font-bold">Follow-up register</h2><p className="text-sm text-gray-500">Track people securely without notebooks or spreadsheets.</p></div><button className="btn-primary flex gap-2 items-center" onClick={()=>setShowAdd(!showAdd)}><Plus size={16}/>Add person</button></div>
+      {showAdd&&<form onSubmit={addTracked} className="grid md:grid-cols-3 gap-3 mb-4"><input required className="input" placeholder="Full name" value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})}/><input className="input" placeholder="Phone" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/><input className="input" type="email" placeholder="Email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/><input className="input" placeholder="Country" value={form.country} onChange={e=>setForm({...form,country:e.target.value})}/><input className="input uppercase" placeholder="Referral code, e.g. AMINA24" value={form.referral_code} onChange={e=>setForm({...form,referral_code:e.target.value.toUpperCase()})}/><select className="input" value={form.status} onChange={e=>setForm({...form,status:e.target.value as typeof form.status})}><option value="following_up">Following up</option><option value="pledged">Pledged</option><option value="paid">Paid</option><option value="paused">Paused</option></select><input className="input md:col-span-2" placeholder="Private notes" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})}/><button className="btn-primary">Save person</button></form>}
+      <div className="mb-3 flex justify-end"><a href="/ai-assistant" className="btn-secondary">Ask Family Pledge AI Assistant for follow-up help</a></div><div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left border-b"><th>Name</th><th>Contact</th><th>Referral</th><th>Status</th><th>Notes</th></tr></thead><tbody>{tracked.map(c=><tr className="border-b" key={c.id}><td className="py-3 font-medium">{c.full_name}</td><td>{c.phone||c.email||'—'}</td><td>{c.referral_code ? <span className="font-mono">{c.referral_code}{c.linked_user_id?' ✓':''}</span>:'—'}</td><td><StatusBadge status={c.status}/></td><td>{c.notes||'—'}</td></tr>)}</tbody></table>{!tracked.length&&<p className="text-center py-5 text-gray-500">No tracked people yet.</p>}</div></div>
       {/* Filters */}
       <div className="card p-4 mb-5 flex flex-wrap gap-3 items-center">
         <div className="relative flex-1 min-w-full sm:min-w-48">

@@ -1,161 +1,106 @@
 'use client';
 import { useState } from 'react';
-import { Upload, ExternalLink } from 'lucide-react';
-import { getCloudinarySignature, uploadToCloudinary } from '../lib/media';
+import { ExternalLink, FileCheck2, Upload } from 'lucide-react';
+import { uploadToR2, type UploadedMedia } from '../lib/media';
 
-const CLOUDINARY_RE = /^https?:\/\/(?:res\.)?cloudinary\.com\//i;
-const YOUTUBE_RE =
-  /^https?:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?.*v=|embed\/|shorts\/)|youtu\.be\/)[\w-]+/i;
-const VIDEO_EXT_RE = /\.(mp4|mov|webm|avi|mkv)([?#]|$)/i;
-
-type UrlType = 'cloudinary' | 'youtube' | 'invalid' | '';
-
-function detectType(url: string): UrlType {
-  if (!url) return '';
-  if (CLOUDINARY_RE.test(url)) return 'cloudinary';
-  if (YOUTUBE_RE.test(url)) return 'youtube';
-  return 'invalid';
-}
-
-function isCloudinaryImage(url: string) {
-  return CLOUDINARY_RE.test(url) && !VIDEO_EXT_RE.test(url);
-}
+const HTTP_URL_RE = /^https:\/\/[^\s]+$/i;
+const IMAGE_EXT_RE = /\.(jpe?g|png|webp|gif|svg)([?#]|$)/i;
 
 export type MediaFolder =
-  | 'projects'
-  | 'impact'
-  | 'namlef'
-  | 'reminders'
-  | 'contribution_proofs';
+  | 'projects' | 'impact' | 'namlef' | 'reminders'
+  | 'contribution_proofs' | 'documents' | 'general';
 
 interface MediaUrlInputProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  /** Which URL types are accepted. Defaults to both. */
-  accept?: ('cloudinary' | 'youtube')[];
-  /** Show image thumbnail preview for Cloudinary image URLs. Default true. */
+  /** Retained for form callers; R2 and supported external HTTPS media URLs are accepted. */
+  accept?: ('youtube' | 'r2')[];
   showPreview?: boolean;
-  /** Cloudinary folder for the optional direct-upload button. */
   uploadFolder?: MediaFolder;
   required?: boolean;
   hint?: string;
+  relatedEntityType?: string;
+  relatedEntityId?: string;
+  onUploaded?: (media: UploadedMedia) => void;
+}
+
+function readableBytes(bytes: number) {
+  if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
+  if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
 export default function MediaUrlInput({
-  label,
-  value,
-  onChange,
-  placeholder,
-  accept = ['cloudinary', 'youtube'],
-  showPreview = true,
-  uploadFolder,
-  required,
-  hint,
+  label, value, onChange, placeholder, showPreview = true, uploadFolder,
+  required, hint, relatedEntityType, relatedEntityId, onUploaded,
 }: MediaUrlInputProps) {
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [uploadError, setUploadError] = useState('');
+  const [uploaded, setUploaded] = useState<UploadedMedia | null>(null);
+  const [previewFailed, setPreviewFailed] = useState(false);
+  const isValid = !value || HTTP_URL_RE.test(value);
+  const isImage = IMAGE_EXT_RE.test(value);
 
-  const type = detectType(value);
-  const isValid = !value || accept.includes(type as 'cloudinary' | 'youtube');
-  const showPreviewImg = showPreview && value && isCloudinaryImage(value) && isValid;
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file || !uploadFolder) return;
     setUploading(true);
+    setProgress(0);
     setUploadError('');
     try {
-      const url = await uploadToCloudinary(file, uploadFolder);
-      onChange(url);
-    } catch (err: unknown) {
-      setUploadError(err instanceof Error ? err.message : 'Upload failed');
+      const media = await uploadToR2(file, uploadFolder, setProgress, {
+        entityType: relatedEntityType,
+        entityId: relatedEntityId,
+      });
+      setUploaded(media);
+      setPreviewFailed(false);
+      onChange(media.public_url);
+      onUploaded?.(media);
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : 'Upload failed. Please try again.');
     } finally {
       setUploading(false);
-      e.target.value = '';
+      event.target.value = '';
     }
   };
 
   return (
     <div className="space-y-1.5">
-      <label className="label">
-        {label}
-        {required && ' *'}
-      </label>
-
+      <label className="label">{label}{required && ' *'}</label>
       <div className="flex gap-2">
         <input
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(event) => { onChange(event.target.value); setUploaded(null); setPreviewFailed(false); }}
           className={`input flex-1 ${value && !isValid ? 'border-red-300 focus:ring-red-200' : ''}`}
-          placeholder={placeholder || 'https://res.cloudinary.com/… or https://youtu.be/…'}
+          placeholder={placeholder || 'https://media.familypledge.org/…'}
         />
         {uploadFolder && (
-          <label
-            className={`btn-secondary flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${uploading ? 'opacity-60 pointer-events-none' : ''}`}
-            title="Upload directly to Cloudinary"
-          >
-            <Upload size={14} />
-            {uploading ? 'Uploading…' : 'Upload'}
+          <label className={`btn-secondary flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${uploading ? 'opacity-60 pointer-events-none' : ''}`} title="Upload directly to Cloudflare R2">
+            <Upload size={14} /> {uploading ? `${progress}%` : 'Upload'}
             <input
               type="file"
-              accept="image/*,video/mp4,video/quicktime,video/webm"
-              className="hidden"
-              onChange={handleFileUpload}
-              disabled={uploading}
+              accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
+              className="hidden" onChange={handleFileUpload} disabled={uploading}
             />
           </label>
         )}
       </div>
-
-      {/* URL type badge + validation */}
+      {uploading && <div className="h-1.5 overflow-hidden rounded bg-gray-100"><div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} /></div>}
       {value && (
-        <div className="flex items-center gap-2">
-          {type === 'cloudinary' && (
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
-              ✓ Cloudinary
-            </span>
-          )}
-          {type === 'youtube' && (
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-red-700 bg-red-50 px-2 py-0.5 rounded-full">
-              <ExternalLink size={10} /> YouTube
-            </span>
-          )}
-          {!isValid && (
-            <span className="text-xs text-red-600">
-              Invalid URL — use Cloudinary or a YouTube link
-            </span>
-          )}
-          {uploadError && (
-            <span className="text-xs text-red-600">{uploadError}</span>
-          )}
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          {isValid ? <a href={value} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-emerald-700"><ExternalLink size={11} /> Open media</a> : <span className="text-red-600">Enter a valid HTTPS URL.</span>}
+          {uploaded && <span className="inline-flex items-center gap-1 text-gray-500"><FileCheck2 size={11} /> {uploaded.object_key} · {readableBytes(uploaded.size_bytes)}</span>}
         </div>
       )}
-
-      {/* Image preview */}
-      {showPreviewImg && (
-        <img
-          src={value}
-          alt="Preview"
-          className="mt-1 h-24 w-auto max-w-full rounded-lg object-cover border border-gray-200"
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = 'none';
-          }}
-        />
+      {uploadError && <p role="alert" className="text-xs text-red-600">{uploadError}</p>}
+      {showPreview && value && isImage && isValid && !previewFailed && (
+        <img src={value} alt="Uploaded media preview" loading="lazy" className="mt-1 h-24 w-auto max-w-full rounded-lg object-cover border border-gray-200" onError={() => setPreviewFailed(true)} />
       )}
-
-      {/* Helper text */}
-      <p className="text-xs text-gray-400 leading-relaxed">
-        {hint || (
-          <>
-            Use <span className="font-medium text-gray-500">Cloudinary</span> for images &amp; short videos
-            (max 1 MB / 30 s).{' '}
-            Use <span className="font-medium text-gray-500">YouTube (unlisted)</span> for Sheikh/NAMLEF talks
-            or long videos. Do not upload large videos directly.
-          </>
-        )}
-      </p>
+      {previewFailed && <p className="text-xs text-amber-700">Preview unavailable. The saved link can still be opened.</p>}
+      <p className="text-xs text-gray-400 leading-relaxed">{hint || 'Upload images, videos, audio, PDFs, or documents directly to Cloudflare R2, or enter an HTTPS URL.'}</p>
     </div>
   );
 }

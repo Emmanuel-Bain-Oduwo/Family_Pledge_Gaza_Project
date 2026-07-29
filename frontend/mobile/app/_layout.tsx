@@ -1,9 +1,15 @@
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
+import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Platform, StyleSheet, View } from 'react-native';
 import { Colors } from '../constants/colors';
+import { addNotificationLifecycleListeners } from '../services/notifications';
 
 export default function RootLayout() {
+  useEffect(() => addNotificationLifecycleListeners((screen) => {
+    router.push(screen as never);
+  }), []);
+
   return (
     <View style={styles.webPage}>
       <View style={styles.appFrame}>

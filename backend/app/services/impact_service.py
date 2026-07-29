@@ -19,6 +19,15 @@ def list_cards(db: Session, skip: int = 0, limit: int = 20) -> Tuple[List[Impact
     return items, total
 
 
+def list_published(db: Session, skip: int = 0, limit: int = 20) -> Tuple[List[ImpactCard], int]:
+    base = select(ImpactCard).where(ImpactCard.published.is_(True))
+    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    items = list(
+        db.scalars(base.order_by(ImpactCard.created_at.desc()).offset(skip).limit(limit)).all()
+    )
+    return items, total
+
+
 def get_by_id(db: Session, card_id: UUID) -> ImpactCard:
     card = db.scalar(select(ImpactCard).where(ImpactCard.id == card_id))
     if not card:
@@ -35,6 +44,7 @@ def create(db: Session, admin: User, data: ImpactCardCreate) -> ImpactCard:
         image_url=data.image_url,
         video_url=data.video_url,
         completed_at=data.completed_at,
+        published=data.published,
         created_by=admin.id,
     )
     db.add(card)

@@ -1,8 +1,10 @@
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { savePushToken } from './api';
 
-const projectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID || 'family-pledge-namlef';
+const DAILY_KIND = 'family-pledge-daily-reminder';
+const FRIDAY_KIND = 'family-pledge-friday-reminder';
 
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
@@ -14,86 +16,115 @@ if (Platform.OS !== 'web') {
   });
 }
 
-export const registerForPushNotifications = async (): Promise<string | null> => {
-  if (Platform.OS === 'web') {
-    return null;
-  }
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-
-  if (finalStatus !== 'granted') {
-    return null;
-  }
-
-  const tokenData = await Notifications.getExpoPushTokenAsync({
-    projectId,
-  });
-
-  const token = tokenData.data;
-
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'Family Pledge',
-      importance: Notifications.AndroidImportance.MAX,
+async function ensureAndroidChannels() {
+  if (Platform.OS !== 'android') return;
+  await Promise.all([
+    Notifications.setNotificationChannelAsync('default', {
+      name: 'Family Pledge updates',
+      importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#0B6B3A',
-    });
-    await Notifications.setNotificationChannelAsync('emergency', {
-      name: 'Emergency Alerts',
-      importance: Notifications.AndroidImportance.HIGH,
+      sound: 'default',
+    }),
+    Notifications.setNotificationChannelAsync('emergency', {
+      name: 'Emergency alerts',
+      importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 500, 250, 500],
       lightColor: '#D94A38',
-    });
-    await Notifications.setNotificationChannelAsync('reminders', {
-      name: 'Daily Reminders',
-      importance: Notifications.AndroidImportance.DEFAULT,
+      sound: 'default',
+    }),
+    Notifications.setNotificationChannelAsync('reminders', {
+      name: 'Pledge reminders',
+      importance: Notifications.AndroidImportance.HIGH,
       lightColor: '#D6A437',
-    });
-  }
+      sound: 'default',
+    }),
+  ]);
+}
 
-  await savePushToken(token);
-  return token;
-};
+async function replaceScheduledNotification(kind: string, content: Notifications.NotificationContentInput, trigger: Notifications.NotificationTriggerInput) {
+  const existing = await Notifications.getAllScheduledNotificationsAsync();
+  await Promise.all(
+    existing
+      .filter((item) => item.content.data?.kind === kind)
+      .map((item) => Notifications.cancelScheduledNotificationAsync(item.identifier)),
+  );
+  await Notifications.scheduleNotificationAsync({
+    content: { ...content, data: { ...content.data, kind, screen: '/screens/notifications' } },
+    trigger,
+  });
+}
 
 export const scheduleDailyReminder = async (): Promise<void> => {
-  if (Platform.OS === 'web') {
-    return;
-  }
-  await Notifications.cancelAllScheduledNotificationsAsync();
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: 'Your Daily Reminder',
-      body: 'Bismillah — remember your pledge for Gaza today.',
-      sound: true,
+  if (Platform.OS === 'web') return;
+  await replaceScheduledNotification(
+    DAILY_KIND,
+    {
+      title: 'Your Daily Family Pledge Reminder',
+      body: 'Remember Gaza in your prayers, pledge, and daily actions.',
+      sound: 'default',
     },
-    trigger: {
-      hour: 8,
-      minute: 0,
-      repeats: true,
-    },
-  });
+    { hour: 8, minute: 0, repeats: true, channelId: 'reminders' },
+  );
 };
 
 export const scheduleFridayReminder = async (): Promise<void> => {
-  if (Platform.OS === 'web') {
-    return;
-  }
-  await Notifications.scheduleNotificationAsync({
-    content: {
+  if (Platform.OS === 'web') return;
+  await replaceScheduledNotification(
+    FRIDAY_KIND,
+    {
       title: 'Friday Challenge 🕌',
-      body: 'Help us reach 200 donors today. Share & contribute!',
-      sound: true,
+      body: 'It is Jumu’ah—open Family Pledge to see today’s campaign and share it.',
+      sound: 'default',
     },
-    trigger: {
-      weekday: 6,
-      hour: 9,
-      minute: 0,
-      repeats: true,
-    },
-  });
+    { weekday: 6, hour: 9, minute: 0, repeats: true, channelId: 'reminders' },
+  );
 };
+
+export const registerForPushNotifications = async (): Promise<string | null> => {
+  if (Platform.OS === 'web') return null;
+  await ensureAndroidChannels();
+
+  const current = await Notifications.getPermissionsAsync();
+  const permission = current.status === 'granted'
+    ? current
+    : await Notifications.requestPermissionsAsync();
+  if (permission.status !== 'granted') return null;
+
+  const projectId = (process.env as Record<string, string | undefined>).EXPO_PUBLIC_EAS_PROJECT_ID
+    || Constants.easConfig?.projectId;
+  if (!projectId) throw new Error('EAS project ID is not configured for push notifications.');
+
+  const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+  await savePushToken(token);
+  await Promise.all([scheduleDailyReminder(), scheduleFridayReminder()]);
+  return token;
+};
+
+/** Keep the backend token current and route notification taps into the in-app feed. */
+export function addNotificationLifecycleListeners(onOpen: (screen: string) => void) {
+  if (Platform.OS === 'web') return () => {};
+  const received = Notifications.addNotificationReceivedListener(() => {
+    // The foreground popup is presented by setNotificationHandler above.
+  });
+  const response = Notifications.addNotificationResponseReceivedListener((event) => {
+    const screen = event.notification.request.content.data?.screen;
+    onOpen(typeof screen === 'string' ? screen : '/screens/notifications');
+  });
+  const token = Notifications.addPushTokenListener(() => {
+    // Native APNs/FCM tokens can rotate. Resolve a fresh Expo token before
+    // updating our backend, which intentionally stores Expo-format tokens only.
+    registerForPushNotifications().catch(() => {});
+  });
+  Notifications.getLastNotificationResponseAsync()
+    .then((event) => {
+      const screen = event?.notification.request.content.data?.screen;
+      if (event) onOpen(typeof screen === 'string' ? screen : '/screens/notifications');
+    })
+    .catch(() => {});
+  return () => {
+    received.remove();
+    response.remove();
+    token.remove();
+  };
+}

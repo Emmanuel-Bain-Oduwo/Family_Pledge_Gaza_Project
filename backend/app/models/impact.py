@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -27,6 +27,7 @@ class ImpactCard(Base, TimestampMixin):
     beneficiaries_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     image_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
     video_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    published: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     completed_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

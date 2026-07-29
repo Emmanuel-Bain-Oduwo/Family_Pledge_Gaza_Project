@@ -11,6 +11,7 @@ class RegisterRequest(BaseModel):
     country: Optional[str] = None
     city: Optional[str] = None
     nickname: Optional[str] = None
+    referral_code: Optional[str] = None
 
     @field_validator("password")
     @classmethod

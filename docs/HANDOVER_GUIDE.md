@@ -69,7 +69,7 @@ Donors submit their contributions manually (bank transfer, mobile money, etc.) a
    - **Target Donors**: How many donors you aim to reach
    - **Target Amount**: Optional financial target in USD
    - **Start Date / End Date**: Optional campaign dates
-   - **Cover Image**: Upload an image via Cloudinary (click "Upload Image")
+   - **Cover Image**: Upload an image directly to Cloudflare R2 (click **Upload**)
 4. Set Status to **Active** when ready to go live
 5. Click **Create Campaign**
 
@@ -88,7 +88,7 @@ Impact cards show donors the real-world difference their money is making.
    - **Story**: 3–5 sentences describing what was delivered, where, and to how many people
    - **Beneficiaries Count**: How many people benefited (optional)
    - **Image**: Upload a photo from the field (required for best engagement)
-   - **Video URL**: Optional short video (YouTube unlisted link or Cloudinary short clip)
+   - **Video URL**: Upload a video directly to Cloudflare R2, or provide an optional HTTPS/YouTube link
 4. Click **Create**
 
 > Only use verified facts. Do not estimate or exaggerate numbers.

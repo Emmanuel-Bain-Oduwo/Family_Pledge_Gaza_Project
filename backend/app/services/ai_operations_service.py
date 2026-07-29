@@ -239,6 +239,9 @@ def view_followup_suggestions(db: Session, admin: User) -> list[dict]:
 
 def create_ai_task(db: Session, admin: User, data) -> AiTask:
     task = AiTask(created_by_admin_id=admin.id, **data.model_dump())
+    if task.status == AiTaskStatus.active and task.schedule_type in {"daily", "weekly"}:
+        delay = timedelta(days=7) if task.schedule_type == "weekly" else timedelta(days=1)
+        task.next_run_at = datetime.now(timezone.utc) + delay
     db.add(task)
     db.flush()
     _audit(db, admin, "ai_task.create", "ai_task", task.id, {"task_type": task.task_type.value})

@@ -87,11 +87,14 @@ export default function ProjectForm({ initial, onSuccess, onCancel }: ProjectFor
             name="image_url"
             render={({ field }) => (
               <MediaUrlInput
-                label="Project Image"
+                label="Project Cover / Video Poster"
                 value={field.value || ''}
                 onChange={field.onChange}
-                accept={['cloudinary']}
+                accept={['r2']}
                 uploadFolder="projects"
+                relatedEntityType="project"
+                relatedEntityId={initial?.id}
+                hint="Shown as the project cover and as the preview poster before users open its video."
               />
             )}
           />
@@ -106,9 +109,12 @@ export default function ProjectForm({ initial, onSuccess, onCancel }: ProjectFor
                 label="Video URL"
                 value={field.value || ''}
                 onChange={field.onChange}
-                accept={['cloudinary', 'youtube']}
+                accept={['r2', 'youtube']}
                 showPreview={false}
-                hint="YouTube (unlisted) for long videos. Cloudinary for short clips (≤30s)."
+                uploadFolder="projects"
+                relatedEntityType="project"
+                relatedEntityId={initial?.id}
+                hint="Upload videos directly to R2, or keep an external video URL."
               />
             )}
           />
