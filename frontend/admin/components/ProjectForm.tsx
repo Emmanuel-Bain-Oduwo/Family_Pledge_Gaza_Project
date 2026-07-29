@@ -14,7 +14,7 @@ interface ProjectFormProps {
 }
 
 export default function ProjectForm({ initial, onSuccess, onCancel }: ProjectFormProps) {
-  const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm<Partial<Project>>({
+  const { register, handleSubmit, control, setValue, formState: { errors, isSubmitting } } = useForm<Partial<Project>>({
     defaultValues: initial || { category: 'general', status: 'active' },
   });
 
@@ -87,11 +87,14 @@ export default function ProjectForm({ initial, onSuccess, onCancel }: ProjectFor
             name="image_url"
             render={({ field }) => (
               <MediaUrlInput
-                label="Project Image"
+                label="Project Cover / Video Poster"
                 value={field.value || ''}
                 onChange={field.onChange}
-                accept={['cloudinary']}
+                accept={['r2']}
                 uploadFolder="projects"
+                relatedEntityType="project"
+                relatedEntityId={initial?.id}
+                hint="Shown as the project cover and as the preview poster before users open its video."
               />
             )}
           />
@@ -106,9 +109,13 @@ export default function ProjectForm({ initial, onSuccess, onCancel }: ProjectFor
                 label="Video URL"
                 value={field.value || ''}
                 onChange={field.onChange}
-                accept={['cloudinary', 'youtube']}
+                accept={['r2', 'youtube']}
                 showPreview={false}
-                hint="YouTube (unlisted) for long videos. Cloudinary for short clips (≤30s)."
+                uploadFolder="projects"
+                relatedEntityType="project"
+                relatedEntityId={initial?.id}
+                onUploaded={(media) => { if (media.thumbnail_url) setValue('image_url', media.thumbnail_url); }}
+                hint="Upload videos directly to Cloudflare Stream, or keep an external video URL."
               />
             )}
           />

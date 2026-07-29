@@ -17,7 +17,7 @@ router = APIRouter(prefix="/admin/ai", tags=["AI Operations Assistant"])
 
 def _followup_out(s: AiFollowupSuggestion) -> AiFollowupSuggestionOut:
     donor = s.user.full_name or s.user.nickname or "Donor" if s.user else None
-    return AiFollowupSuggestionOut(id=s.id, type=s.suggestion_type, user_id=s.user_id, donor_name=donor, reason=s.reason, recommended_action="Admin review required before any message is sent.", suggested_message=s.suggested_message, priority=s.priority, related_contribution_id=s.contribution_id, related_pledge_id=s.pledge_id, status=s.status)
+    return AiFollowupSuggestionOut(id=s.id, type=s.suggestion_type, user_id=s.user_id, donor_name=donor, reason=s.reason, recommended_action="Before any message is sent.", suggested_message=s.suggested_message, priority=s.priority, related_contribution_id=s.contribution_id, related_pledge_id=s.pledge_id, status=s.status)
 
 
 @router.get("/summary", response_model=AiSummaryOut)

@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4o-mini"
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8081"
     SQL_ECHO: bool = False
+    DB_POOL_SIZE: int = 20
+    DB_MAX_OVERFLOW: int = 40
+    DB_POOL_TIMEOUT_SECONDS: int = 30
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.1
     EXPO_ACCESS_TOKEN: str = ""
     EMAIL_PROVIDER: str = "smtp"
     SMTP_HOST: str = ""
@@ -34,10 +38,18 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     EMAIL_FROM: str = ""
     WEEKLY_EMAILS_ENABLED: bool = False
-    # Cloudinary — for signed upload (optional)
-    CLOUDINARY_CLOUD_NAME: str = ""
-    CLOUDINARY_API_KEY: str = ""
-    CLOUDINARY_API_SECRET: str = ""
+    # Cloudflare R2 — S3-compatible direct browser uploads (backend secrets only)
+    R2_ACCOUNT_ID: str = ""
+    R2_ACCESS_KEY_ID: str = ""
+    R2_SECRET_ACCESS_KEY: str = ""
+    R2_BUCKET_NAME: str = ""
+    R2_PUBLIC_BASE_URL: str = ""
+    R2_MAX_UPLOAD_MB: int = 500
+    R2_ALLOWED_UPLOADS_MODE: str = "broad"
+    # Cloudflare Stream — adaptive video delivery (backend token only)
+    STREAM_API_TOKEN: str = ""
+    STREAM_CUSTOMER_CODE: str = ""
+    STREAM_MAX_DURATION_SECONDS: int = 21600
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

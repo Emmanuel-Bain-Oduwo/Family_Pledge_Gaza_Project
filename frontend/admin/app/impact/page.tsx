@@ -181,19 +181,26 @@ export default function ImpactPage() {
                 </div>
               </div>
               <MediaUrlInput
-                label="Impact Image"
+                label="Impact Cover / Video Poster"
                 value={form.image_url}
                 onChange={(v) => setForm((f) => ({ ...f, image_url: v }))}
-                accept={['cloudinary']}
+                accept={['r2']}
                 uploadFolder="impact"
+                relatedEntityType="impact"
+                relatedEntityId={editItem?.id}
+                hint="Shown on impact cards and as the preview poster for the optional video."
               />
               <MediaUrlInput
                 label="Video URL"
                 value={form.video_url}
                 onChange={(v) => setForm((f) => ({ ...f, video_url: v }))}
-                accept={['cloudinary', 'youtube']}
+                accept={['r2', 'youtube']}
                 showPreview={false}
-                hint="YouTube (unlisted) for longer videos. Cloudinary for short clips."
+                uploadFolder="impact"
+                relatedEntityType="impact"
+                relatedEntityId={editItem?.id}
+                onUploaded={(media) => { if (media.thumbnail_url) setForm((f) => ({...f, image_url: media.thumbnail_url!})); }}
+                hint="Upload videos directly to Cloudflare Stream, or keep an external video URL."
               />
               <div>
                 <label className="label">Completion Date</label>

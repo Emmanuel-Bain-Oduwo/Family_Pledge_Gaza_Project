@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Sparkles, AlertTriangle, RefreshCw, ChevronDown, ChevronUp, ArrowLeft, FileClock, Plus } from 'lucide-react';
+import { Sparkles, RefreshCw, ChevronDown, ChevronUp, ArrowLeft, FileClock, Plus } from 'lucide-react';
 import AdminLayout from '../../components/AdminLayout';
 import AiDraftCard from '../../components/AiDraftCard';
 import {
@@ -467,7 +467,7 @@ export default function AiAssistantPage() {
     );
 
   return (
-    <AdminLayout title="AI Assistant" subtitle="Create donor reminders, impact updates, weekly summaries, and collector messages. Every AI draft requires admin review before use.">
+    <AdminLayout title="Family Pledge AI Assistant" subtitle="Create donor reminders, impact updates, weekly summaries, and collector messages.">
       <div className="mb-4 flex flex-wrap gap-2">
         <Link href="/dashboard" className="btn-secondary inline-flex items-center gap-2">
           <ArrowLeft size={16} /> Back to Dashboard
@@ -478,14 +478,7 @@ export default function AiAssistantPage() {
         <button type="button" onClick={() => setActiveTab('generate')} className="btn-primary inline-flex items-center gap-2">
           <Plus size={16} /> Create New Draft
         </button>
-      </div>
-
-      <div className="card p-4 mb-6 bg-amber-50 border border-amber-200 flex items-start gap-3">
-        <AlertTriangle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
-        <div>
-          <div className="font-semibold text-amber-800">Admin review required</div>
-          <div className="text-sm text-amber-700 mt-0.5">AI helps prepare drafts only. It does not send messages, confirm contributions, or publish content automatically.</div>
-        </div>
+        <Link href="/ai/tasks" className="btn-secondary inline-flex items-center gap-2"><FileClock size={16}/> Scheduled Tasks</Link>
       </div>
 
       <div className="flex gap-1 mb-6 border-b border-gray-200">
@@ -506,7 +499,6 @@ export default function AiAssistantPage() {
 
       {activeTab === 'generate' && (
         <div>
-          <p className="mb-4 text-sm text-gray-600">Use real verified information only. Review the draft before copying, approving, or publishing.</p>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <GeneratorSection
               title="Islamic Reminder"

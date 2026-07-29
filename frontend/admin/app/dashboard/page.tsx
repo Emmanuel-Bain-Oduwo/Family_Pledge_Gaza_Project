@@ -74,7 +74,7 @@ export default function DashboardPage() {
               { href: '/campaigns', label: 'Create Campaign', color: 'text-primary-dark bg-primary-50 border-primary' },
               { href: '/reminders', label: 'Add Reminder', color: 'text-purple-700 bg-purple-50 border-purple-200' },
               { href: '/notifications', label: 'Send Push Notification', color: 'text-blue-700 bg-blue-50 border-blue-200' },
-              { href: '/ai-assistant', label: 'Open AI Assistant', color: 'text-gray-700 bg-gray-50 border-gray-200' },
+              { href: '/ai-assistant', label: 'Family Pledge AI Assistant', color: 'text-gray-700 bg-gray-50 border-gray-200' },
             ].map((action) => (
               <a
                 key={action.href}

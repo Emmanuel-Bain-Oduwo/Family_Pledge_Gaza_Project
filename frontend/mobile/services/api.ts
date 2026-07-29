@@ -18,6 +18,7 @@ import {
   ApiResponse,
   PaginatedResponse,
   PledgeStatusOut,
+  UserNotification,
 } from '../types';
 
 const client: AxiosInstance = axios.create({
@@ -68,6 +69,7 @@ export const register = async (payload: RegisterPayload): Promise<AuthTokens> =>
     country: payload.country.trim(),
     city: optionalTrimmed(payload.city),
     nickname: optionalTrimmed(payload.nickname),
+    referral_code: optionalTrimmed(payload.referral_code),
   };
 
   try {
@@ -276,6 +278,17 @@ export const getTodayReminder = async (): Promise<Reminder | null> => {
 export const getNamlefContent = async (): Promise<NamlefContent[]> => {
   try {
     const { data } = await client.get<PaginatedResponse<NamlefContent>>('/namlef-content');
+    return data.items || [];
+  } catch (e) {
+    return handleApiError(e);
+  }
+};
+
+export const getNotifications = async (): Promise<UserNotification[]> => {
+  try {
+    const { data } = await client.get<PaginatedResponse<UserNotification>>('/notifications', {
+      params: { size: 50 },
+    });
     return data.items || [];
   } catch (e) {
     return handleApiError(e);

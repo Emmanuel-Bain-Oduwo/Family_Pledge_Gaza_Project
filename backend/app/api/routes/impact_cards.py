@@ -21,7 +21,7 @@ def list_impact_cards(
     db: Session = Depends(get_db),
 ):
     skip, limit = offset_limit(page, size)
-    items, total = impact_service.list_cards(db, skip, limit)
+    items, total = impact_service.list_published(db, skip, limit)
     return make_page([ImpactCardOut.model_validate(c) for c in items], total, page, size)
 
 
@@ -37,6 +37,18 @@ def admin_create_impact_card(
     db: Session = Depends(get_db),
 ):
     return impact_service.create(db, admin, data)
+
+
+@router.get("/admin/impact-cards", response_model=PaginatedResponse[ImpactCardOut])
+def admin_list_impact_cards(
+    page: int = Query(1, ge=1),
+    size: int = Query(100, ge=1, le=100),
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    skip, limit = offset_limit(page, size)
+    items, total = impact_service.list_cards(db, skip, limit)
+    return make_page([ImpactCardOut.model_validate(c) for c in items], total, page, size)
 
 
 @router.patch("/admin/impact-cards/{card_id}", response_model=ImpactCardOut)

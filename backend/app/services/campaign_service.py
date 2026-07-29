@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models.audit import AdminAuditLog
 from app.models.campaign import Campaign
-from app.models.enums import CampaignStatus
+from app.models.enums import CampaignStatus, CampaignType
 from app.models.user import User
 from app.schemas.campaign import CampaignCreate, CampaignUpdate
 
@@ -22,6 +22,26 @@ def list_campaigns(
     base = select(Campaign).where(Campaign.deleted_at.is_(None))
     if status:
         base = base.where(Campaign.status == status)
+    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    items = list(
+        db.scalars(base.order_by(Campaign.created_at.desc()).offset(skip).limit(limit)).all()
+    )
+    return items, total
+
+
+def list_public_campaigns(
+    db: Session,
+    skip: int = 0,
+    limit: int = 20,
+    campaign_type: Optional[CampaignType] = None,
+) -> Tuple[List[Campaign], int]:
+    """List only content that an admin has made active for user-facing clients."""
+    base = select(Campaign).where(
+        Campaign.deleted_at.is_(None),
+        Campaign.status == CampaignStatus.active,
+    )
+    if campaign_type is not None:
+        base = base.where(Campaign.campaign_type == campaign_type)
     total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     items = list(
         db.scalars(base.order_by(Campaign.created_at.desc()).offset(skip).limit(limit)).all()
