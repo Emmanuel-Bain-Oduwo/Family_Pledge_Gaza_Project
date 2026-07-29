@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     R2_PUBLIC_BASE_URL: str = ""
     R2_MAX_UPLOAD_MB: int = 500
     R2_ALLOWED_UPLOADS_MODE: str = "broad"
+    # Cloudflare Stream — adaptive video delivery (backend token only)
+    STREAM_API_TOKEN: str = ""
+    STREAM_CUSTOMER_CODE: str = ""
+    STREAM_MAX_DURATION_SECONDS: int = 21600
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

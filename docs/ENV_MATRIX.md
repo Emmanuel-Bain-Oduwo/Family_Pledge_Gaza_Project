@@ -12,6 +12,9 @@
 | Backend | `R2_PUBLIC_BASE_URL` | For uploads | Absolute public/custom media origin, e.g. `https://media.familypledge.org` |
 | Backend | `R2_MAX_UPLOAD_MB` | No | Configurable safety ceiling; defaults to `500` |
 | Backend | `R2_ALLOWED_UPLOADS_MODE` | No | Upload policy selection; defaults to `broad` |
+| Backend | `STREAM_API_TOKEN` | For videos | Cloudflare token with Stream write permission; backend only |
+| Backend | `STREAM_CUSTOMER_CODE` | For videos | Customer subdomain code for Stream player and thumbnail URLs |
+| Backend | `STREAM_MAX_DURATION_SECONDS` | No | Maximum video duration; defaults to six hours |
 | Admin | `NEXT_PUBLIC_API_URL` | Yes | Public backend API base URL; never place R2 credentials here |
 | Admin | `NEXT_IMAGE_REMOTE_HOSTNAMES` | If using Next Image | Include the R2 custom media hostname |
 | Mobile/EAS | `EXPO_PUBLIC_EAS_PROJECT_ID` | For native push | EAS project UUID used to obtain Expo push tokens |

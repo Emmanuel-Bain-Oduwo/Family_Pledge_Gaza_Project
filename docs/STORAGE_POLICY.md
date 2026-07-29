@@ -1,6 +1,6 @@
 # Cloudflare R2 Storage Policy
 
-Cloudflare R2 is the production file and media store for Family Pledge. Cloudinary is deprecated and must not be used for new production uploads.
+Cloudflare R2 stores images, audio, PDFs, documents, and general files. Cloudflare Stream is the production video platform, providing encoded adaptive playback and generated thumbnails. Cloudinary is deprecated.
 
 ## Supported content
 
@@ -11,21 +11,19 @@ Owners and administrators may upload images, videos, audio, PDFs, office documen
 ## Upload and content flow
 
 1. An authenticated administrator selects a file.
-2. The admin client requests a short-lived presigned PUT URL from `POST /api/v1/admin/storage/r2-presigned-upload`.
-3. The browser uploads bytes directly to R2. Large bytes never pass through the backend API.
-4. The client confirms metadata through `POST /api/v1/admin/storage/r2-confirm-upload`.
+2. Non-video files request an R2 presigned PUT; videos request a one-time Stream direct creator upload URL.
+3. The browser uploads bytes directly to R2 or Stream. Large bytes never pass through the backend API.
+4. The client confirms metadata through the matching R2 or Stream confirmation endpoint.
 5. The upload URL is placed in the campaign, project, impact, reminder, or NAMLEF form field and saved with that record.
-6. PostgreSQL stores only the public URL, R2 object key, metadata, and usage record—never raw file bytes.
+6. PostgreSQL stores only the public URL, R2/Stream object identifier, metadata, and usage record—never raw file bytes.
 7. Public APIs return the saved URL and the user application renders or links it. Contribution proofs remain private and are not included in public APIs.
 
 The `media_assets` table tracks file count, declared object size, content type, folder, uploader, status, and related entity when known. The admin Storage Usage page is operational metadata; the Cloudflare dashboard remains the final source of truth for billing, requests, bandwidth, and stored bytes.
 
-Uploaded objects use UUID-versioned keys and a long-lived immutable browser/CDN cache
-header. Replacing media saves a new URL on the related record, so clients fetch the new
-object immediately while unchanged files remain fast from cache. Videos are not
-autoplayed; they load only after the user chooses to watch. Very large original files
-can still be slower on a user's first request, so administrators should compress media
-appropriately. R2 does not automatically transcode videos or create smaller renditions.
+R2 objects use UUID-versioned keys and long-lived immutable caching. Stream encodes
+videos for adaptive playback and supplies a generated cover image; admins can replace
+that generated cover with a custom poster. Replacing media saves a new URL on the
+related record so clients fetch the new version immediately.
 
 ## Object naming and access
 
@@ -47,3 +45,13 @@ R2 access keys are backend-only secrets. Never add them to frontend code or a `N
 
 6. Put account ID, access key, and secret access key only in the backend environment.
 7. Verify uploads and public delivery, then monitor final usage and billing in Cloudflare.
+
+## Cloudflare Stream setup
+
+1. Enable Stream in the same Cloudflare account.
+2. Create a backend-only API token with Stream write permission.
+3. Copy the Stream customer code shown in the Stream player/customer subdomain.
+4. Configure `STREAM_API_TOKEN`, `STREAM_CUSTOMER_CODE`, and optionally `STREAM_MAX_DURATION_SECONDS` on the backend.
+5. Never expose the Stream API token to the admin or mobile frontend. The backend creates a one-time upload URL and the browser sends video bytes directly to Stream.
+6. For files up to 190 MB the admin uses the simple direct upload; larger videos use resumable tus chunks so a network interruption does not restart the entire upload.
+7. Stream returns adaptive player and thumbnail URLs. The admin form saves the player URL and automatically uses the generated thumbnail as the cover, which the admin can replace.

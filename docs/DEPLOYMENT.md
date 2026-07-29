@@ -9,6 +9,7 @@
 | Mobile App | Expo EAS / App Stores | — |
 | Database | Railway PostgreSQL | (internal) |
 | Media Storage | Cloudflare R2 | Usage-based |
+| Video Streaming | Cloudflare Stream | Usage-based |
 
 ---
 

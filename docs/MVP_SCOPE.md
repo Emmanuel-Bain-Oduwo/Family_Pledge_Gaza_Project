@@ -38,7 +38,7 @@ Family Pledge is a NAMLEF-linked humanitarian pledge app that enables Muslim fam
 | Collectors | Register collectors, view their circles |
 | Notifications | Send push notifications to all users or filtered audiences |
 | AI Assistant | Generate reminder drafts, impact updates, weekly summaries, collector messages |
-| Media Upload | Direct Cloudflare R2 upload for images, videos, audio, PDFs, and documents; optional HTTPS/YouTube links |
+| Media Upload | Direct R2 upload for images/audio/documents and direct Cloudflare Stream upload for adaptive video; optional HTTPS links |
 
 ### Backend (FastAPI)
 
@@ -82,4 +82,4 @@ Family Pledge is a NAMLEF-linked humanitarian pledge app that enables Muslim fam
 - Public leaderboard
 - Multi-currency pledge amounts
 - iOS/Android app store deployment (EAS Build required)
-- Video transcoding/streaming pipelines (original videos can be stored in R2; optional external links remain supported)
+- Custom video transcoding pipelines (Cloudflare Stream now provides managed adaptive video encoding/playback)

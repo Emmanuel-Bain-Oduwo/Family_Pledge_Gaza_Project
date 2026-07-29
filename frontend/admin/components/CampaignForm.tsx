@@ -14,7 +14,7 @@ interface CampaignFormProps {
 }
 
 export default function CampaignForm({ initial, onSuccess, onCancel }: CampaignFormProps) {
-  const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm<Partial<Campaign>>({
+  const { register, handleSubmit, control, setValue, formState: { errors, isSubmitting } } = useForm<Partial<Campaign>>({
     defaultValues: initial || { type: 'monthly', is_active: true, is_urgent: false, status: 'active' },
   });
 
@@ -116,7 +116,8 @@ export default function CampaignForm({ initial, onSuccess, onCancel }: CampaignF
                 uploadFolder="projects"
                 relatedEntityType="campaign"
                 relatedEntityId={initial?.id}
-                hint="Upload videos directly to R2, or keep an external video URL."
+                onUploaded={(media) => { if (media.thumbnail_url) setValue('cover_image_url', media.thumbnail_url); }}
+                hint="Upload videos directly to Cloudflare Stream, or keep an external video URL."
               />
             )}
           />

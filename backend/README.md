@@ -110,7 +110,7 @@ Interactive API docs: `http://localhost:8000/docs`
 
 Cloudflare R2 is the production storage system. Authenticated administrators request a 15-minute presigned PUT from `POST /api/v1/admin/storage/r2-presigned-upload`, upload directly from the browser to R2, and confirm metadata at `POST /api/v1/admin/storage/r2-confirm-upload`. The backend never receives file bytes and PostgreSQL stores only URLs, object keys, metadata, and `media_assets` usage records.
 
-Images, video, audio, PDFs, and common office/text documents are supported. Executable and server-side extensions are blocked. The safety ceiling defaults to 500 MB and is configurable with `R2_MAX_UPLOAD_MB`. Contribution proofs are recorded as private. Administrators can inspect application totals at `GET /api/v1/admin/storage/usage`; Cloudflare remains the billing source of truth.
+Images, audio, PDFs, and common office/text documents upload to R2. Videos upload directly to Cloudflare Stream for adaptive playback. Executable and server-side extensions are blocked. The R2 safety ceiling defaults to 500 MB and is configurable with `R2_MAX_UPLOAD_MB`. Contribution proofs are recorded as private. Administrators can inspect application totals at `GET /api/v1/admin/storage/usage`; Cloudflare remains the billing source of truth.
 
 See [`docs/STORAGE_POLICY.md`](../docs/STORAGE_POLICY.md) for R2 setup, CORS, content flow, and security rules.
 

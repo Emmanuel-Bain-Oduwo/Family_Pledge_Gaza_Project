@@ -8,7 +8,11 @@ export interface UploadedMedia {
   object_key: string;
   content_type: string;
   size_bytes: number;
+  thumbnail_url?: string;
+  storage?: 'r2' | 'stream';
 }
+
+interface StreamDirectUpload { upload_url:string; uid:string; playback_url:string; thumbnail_url:string; }
 
 interface PresignedUpload extends UploadedMedia {
   upload_url: string;
@@ -55,12 +59,29 @@ function putFile(
   });
 }
 
+async function uploadVideoToStream(file: File, folder: MediaFolder, onProgress?: (percent:number)=>void, relation?: {entityType?:string;entityId?:string}): Promise<UploadedMedia> {
+  const signed = await apiRequest<StreamDirectUpload>('/admin/storage/stream-direct-upload', { folder, filename:file.name, size_bytes:file.size, related_entity_type:relation?.entityType||null, related_entity_id:relation?.entityId||null });
+  if (file.size <= 190 * 1024 * 1024) {
+    await new Promise<void>((resolve,reject)=>{ const xhr=new XMLHttpRequest(); xhr.open('POST',signed.upload_url); xhr.upload.onprogress=e=>{if(e.lengthComputable)onProgress?.(Math.round(e.loaded/e.total*100));}; xhr.onload=()=>xhr.status>=200&&xhr.status<300?resolve():reject(new Error('Video upload failed. Please try again.')); xhr.onerror=()=>reject(new Error('Video upload failed. Please try again.')); const data=new FormData(); data.append('file',file); xhr.send(data); });
+  } else {
+    const metadata = btoa(unescape(encodeURIComponent(file.name)));
+    const created = await fetch(signed.upload_url, { method:'POST', headers:{'Tus-Resumable':'1.0.0','Upload-Length':String(file.size),'Upload-Metadata':`filename ${metadata}` } });
+    if (!created.ok || !created.headers.get('Location')) throw new Error('Video upload failed. Please try again.');
+    const location = new URL(created.headers.get('Location')!, signed.upload_url).toString();
+    const chunkSize=50*1024*1024; let offset=0;
+    while(offset<file.size){ const chunk=file.slice(offset,Math.min(offset+chunkSize,file.size)); const response=await fetch(location,{method:'PATCH',headers:{'Tus-Resumable':'1.0.0','Upload-Offset':String(offset),'Content-Type':'application/offset+octet-stream'},body:chunk}); if(!response.ok)throw new Error('Video upload failed. Please try again.'); offset=Number(response.headers.get('Upload-Offset')||offset+chunk.size); onProgress?.(Math.round(offset/file.size*100)); }
+  }
+  await apiRequest('/admin/storage/stream-confirm-upload', { uid:signed.uid });
+  return { public_url:signed.playback_url, object_key:`stream/${signed.uid}`, content_type:file.type||'video/mp4', size_bytes:file.size, thumbnail_url:signed.thumbnail_url, storage:'stream' };
+}
+
 export async function uploadToR2(
   file: File,
   folder: MediaFolder,
   onProgress?: (percent: number) => void,
   relation?: { entityType?: string; entityId?: string },
 ): Promise<UploadedMedia> {
+  if (file.type.startsWith('video/')) return uploadVideoToStream(file, folder, onProgress, relation);
   const signed = await apiRequest<PresignedUpload>('/admin/storage/r2-presigned-upload', {
     folder,
     filename: file.name,
@@ -83,5 +104,6 @@ export async function uploadToR2(
     object_key: signed.object_key,
     content_type: signed.content_type,
     size_bytes: signed.size_bytes,
+    storage: 'r2',
   };
 }

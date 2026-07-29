@@ -199,7 +199,8 @@ export default function ImpactPage() {
                 uploadFolder="impact"
                 relatedEntityType="impact"
                 relatedEntityId={editItem?.id}
-                hint="Upload videos directly to R2, or keep an external video URL."
+                onUploaded={(media) => { if (media.thumbnail_url) setForm((f) => ({...f, image_url: media.thumbnail_url!})); }}
+                hint="Upload videos directly to Cloudflare Stream, or keep an external video URL."
               />
               <div>
                 <label className="label">Completion Date</label>

@@ -88,7 +88,7 @@ Impact cards show donors the real-world difference their money is making.
    - **Story**: 3–5 sentences describing what was delivered, where, and to how many people
    - **Beneficiaries Count**: How many people benefited (optional)
    - **Image**: Upload a photo from the field (required for best engagement)
-   - **Video URL**: Upload a video directly to Cloudflare R2, or provide an optional HTTPS/YouTube link
+   - **Video URL**: Upload a video directly to Cloudflare Stream, or provide an optional HTTPS link
 4. Click **Create**
 
 > Only use verified facts. Do not estimate or exaggerate numbers.

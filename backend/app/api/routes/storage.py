@@ -14,6 +14,7 @@ from typing import Literal
 from urllib.parse import quote
 
 import boto3
+import httpx
 from botocore.config import Config
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -77,6 +78,25 @@ class PresignedUploadOut(BaseModel):
     content_type: str
 
 
+class StreamDirectUploadRequest(BaseModel):
+    folder: FolderKey
+    filename: str = Field(min_length=1, max_length=512)
+    size_bytes: int = Field(gt=0)
+    related_entity_type: str | None = None
+    related_entity_id: uuid.UUID | None = None
+
+
+class StreamDirectUploadOut(BaseModel):
+    upload_url: str
+    uid: str
+    playback_url: str
+    thumbnail_url: str
+
+
+class StreamConfirmUploadRequest(BaseModel):
+    uid: str = Field(min_length=1, max_length=100)
+
+
 class ConfirmUploadRequest(BaseModel):
     object_key: str = Field(min_length=1, max_length=1024)
     public_url: str = Field(min_length=1, max_length=2048)
@@ -115,6 +135,72 @@ def _require_r2_config() -> None:
                 settings.R2_PUBLIC_BASE_URL)):
         raise HTTPException(503, "Media storage is not configured. Please contact admin.")
 
+
+def _require_stream_config() -> None:
+    if not all((settings.R2_ACCOUNT_ID, settings.STREAM_API_TOKEN, settings.STREAM_CUSTOMER_CODE)):
+        raise HTTPException(503, "Video streaming is not configured. Please contact admin.")
+
+
+@router.post("/stream-direct-upload", response_model=StreamDirectUploadOut)
+def create_stream_direct_upload(body: StreamDirectUploadRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Create a one-time direct creator upload; video bytes never touch this API."""
+    _require_stream_config()
+    try:
+        response = httpx.post(
+            f"https://api.cloudflare.com/client/v4/accounts/{settings.R2_ACCOUNT_ID}/stream/direct_upload",
+            headers={"Authorization": f"Bearer {settings.STREAM_API_TOKEN}"},
+            json={
+                "maxDurationSeconds": settings.STREAM_MAX_DURATION_SECONDS,
+                "meta": {"name": safe_filename(body.filename), "uploadedBy": str(admin.id)},
+                "requireSignedURLs": False,
+            },
+            timeout=20,
+        )
+        response.raise_for_status()
+        result = response.json()["result"]
+        uid = result["uid"]
+    except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
+        raise HTTPException(503, "Video streaming is not configured. Please contact admin.") from exc
+    base = f"https://customer-{settings.STREAM_CUSTOMER_CODE}.cloudflarestream.com/{uid}"
+    playback_url = f"{base}/iframe"
+    db.add(MediaAsset(
+        object_key=f"stream/{uid}", public_url=playback_url,
+        original_filename=body.filename, content_type="video/stream",
+        file_extension=_extension(body.filename), folder=body.folder,
+        size_bytes=body.size_bytes, uploaded_by=admin.id,
+        related_entity_type=body.related_entity_type,
+        related_entity_id=body.related_entity_id,
+        status="pending_upload", is_public=True,
+    ))
+    db.commit()
+    return StreamDirectUploadOut(
+        upload_url=result["uploadURL"], uid=uid,
+        playback_url=playback_url,
+        thumbnail_url=f"{base}/thumbnails/thumbnail.jpg?time=1s&height=720",
+    )
+
+def safe_filename(filename: str) -> str:
+    extension = _extension(filename)
+    stem = Path(filename.strip()).stem
+    stem = unicodedata.normalize("NFKD", stem).encode("ascii", "ignore").decode()
+    stem = re.sub(r"[^a-zA-Z0-9._-]+", "-", stem).strip("-._").lower()
+    return f"{stem[:120] or 'file'}{extension}"
+
+@router.post("/stream-confirm-upload", response_model=MediaAssetOut)
+def confirm_stream_upload(body: StreamConfirmUploadRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    asset = db.scalar(select(MediaAsset).where(MediaAsset.object_key == f"stream/{body.uid}"))
+    if not asset:
+        raise HTTPException(404, "Video upload was not found.")
+    if asset.uploaded_by != admin.id:
+        raise HTTPException(403, "This upload belongs to another administrator.")
+    asset.status = "uploaded"
+    asset.uploaded_at = datetime.now(timezone.utc)
+    db.commit(); db.refresh(asset)
+    return asset
+
+def make_object_key(folder: str, filename: str, now: datetime | None = None) -> str:
+    now = now or datetime.now(timezone.utc)
+    return f"family-pledge/{folder}/{now:%Y}/{now:%m}/{uuid.uuid4()}-{safe_filename(filename)}"
 
 def _extension(filename: str) -> str:
     return Path(filename.strip()).suffix.lower()

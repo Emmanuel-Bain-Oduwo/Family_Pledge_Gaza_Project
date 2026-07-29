@@ -14,7 +14,7 @@ interface ProjectFormProps {
 }
 
 export default function ProjectForm({ initial, onSuccess, onCancel }: ProjectFormProps) {
-  const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm<Partial<Project>>({
+  const { register, handleSubmit, control, setValue, formState: { errors, isSubmitting } } = useForm<Partial<Project>>({
     defaultValues: initial || { category: 'general', status: 'active' },
   });
 
@@ -114,7 +114,8 @@ export default function ProjectForm({ initial, onSuccess, onCancel }: ProjectFor
                 uploadFolder="projects"
                 relatedEntityType="project"
                 relatedEntityId={initial?.id}
-                hint="Upload videos directly to R2, or keep an external video URL."
+                onUploaded={(media) => { if (media.thumbnail_url) setValue('image_url', media.thumbnail_url); }}
+                hint="Upload videos directly to Cloudflare Stream, or keep an external video URL."
               />
             )}
           />

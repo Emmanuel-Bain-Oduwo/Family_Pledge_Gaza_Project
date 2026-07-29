@@ -14,7 +14,7 @@ interface NamlefContentFormProps {
 }
 
 export default function NamlefContentForm({ initial, onSuccess, onCancel }: NamlefContentFormProps) {
-  const { register, handleSubmit, control, formState: { isSubmitting } } = useForm<Partial<NamlefContent>>({
+  const { register, handleSubmit, control, setValue, formState: { isSubmitting } } = useForm<Partial<NamlefContent>>({
     defaultValues: initial || { content_type: 'video', status: 'draft', featured: false },
   });
 
@@ -85,7 +85,8 @@ export default function NamlefContentForm({ initial, onSuccess, onCancel }: Naml
                 uploadFolder="namlef"
                 relatedEntityType="namlef"
                 relatedEntityId={initial?.id}
-                hint="Upload NAMLEF audio or video directly to R2, or keep an external URL."
+                onUploaded={(media) => { if (media.thumbnail_url) setValue('thumbnail_url', media.thumbnail_url); }}
+                hint="Upload NAMLEF videos to Cloudflare Stream and audio to R2, or keep an external URL."
               />
             )}
           />

@@ -100,7 +100,7 @@ export default function MediaUrlInput({
         <img src={value} alt="Uploaded media preview" loading="lazy" className="mt-1 h-24 w-auto max-w-full rounded-lg object-cover border border-gray-200" onError={() => setPreviewFailed(true)} />
       )}
       {previewFailed && <p className="text-xs text-amber-700">Preview unavailable. The saved link can still be opened.</p>}
-      <p className="text-xs text-gray-400 leading-relaxed">{hint || 'Upload images, videos, audio, PDFs, or documents directly to Cloudflare R2, or enter an HTTPS URL.'}</p>
+      <p className="text-xs text-gray-400 leading-relaxed">{hint || 'Videos upload to Cloudflare Stream for adaptive playback; images, audio, PDFs, and documents upload to R2.'}</p>
     </div>
   );
 }

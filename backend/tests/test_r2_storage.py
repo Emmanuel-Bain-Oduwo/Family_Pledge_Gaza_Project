@@ -60,12 +60,22 @@ def test_storage_routes_require_admin_dependency():
     protected_paths = {
         "/admin/storage/r2-presigned-upload",
         "/admin/storage/r2-confirm-upload",
+        "/admin/storage/stream-direct-upload",
+        "/admin/storage/stream-confirm-upload",
         "/admin/storage/usage",
     }
     for route in storage.router.routes:
         if route.path in protected_paths:
             dependencies = {dependency.call for dependency in route.dependant.dependencies}
             assert require_admin in dependencies
+
+
+def test_missing_stream_configuration_is_friendly(monkeypatch):
+    monkeypatch.setattr(storage.settings, "STREAM_API_TOKEN", "")
+    with pytest.raises(HTTPException) as exc:
+        storage._require_stream_config()
+    assert exc.value.status_code == 503
+    assert exc.value.detail == "Video streaming is not configured. Please contact admin."
 
 
 def test_confirm_upload_creates_media_asset(monkeypatch):
