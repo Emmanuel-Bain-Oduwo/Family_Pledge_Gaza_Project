@@ -107,8 +107,10 @@ export default function ReminderForm({ initial, onSuccess, onCancel }: ReminderF
                 label="Reminder Image"
                 value={field.value || ''}
                 onChange={field.onChange}
-                accept={['cloudinary']}
+                accept={['r2']}
                 uploadFolder="reminders"
+                relatedEntityType="reminder"
+                relatedEntityId={initial?.id}
               />
             )}
           />

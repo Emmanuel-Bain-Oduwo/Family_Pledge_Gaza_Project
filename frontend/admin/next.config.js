@@ -1,6 +1,6 @@
 const imageHostnames = (
   process.env.NEXT_IMAGE_REMOTE_HOSTNAMES ||
-  'res.cloudinary.com,img.youtube.com,i.ytimg.com'
+  'media.familypledge.org,img.youtube.com,i.ytimg.com'
 )
   .split(',')
   .map((host) => host.trim())

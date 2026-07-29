@@ -14,7 +14,7 @@ interface NamlefContentFormProps {
 }
 
 export default function NamlefContentForm({ initial, onSuccess, onCancel }: NamlefContentFormProps) {
-  const { register, handleSubmit, control, formState: { isSubmitting } } = useForm<Partial<NamlefContent>>({
+  const { register, handleSubmit, control, setValue, formState: { isSubmitting } } = useForm<Partial<NamlefContent>>({
     defaultValues: initial || { content_type: 'video', status: 'draft', featured: false },
   });
 
@@ -80,10 +80,13 @@ export default function NamlefContentForm({ initial, onSuccess, onCancel }: Naml
                 label="URL (video / audio / link)"
                 value={field.value || ''}
                 onChange={field.onChange}
-                accept={['cloudinary', 'youtube']}
+                accept={['r2', 'youtube']}
                 showPreview={false}
                 uploadFolder="namlef"
-                hint="YouTube (unlisted) for Sheikh/NAMLEF talks. Cloudinary for short audio or clips."
+                relatedEntityType="namlef"
+                relatedEntityId={initial?.id}
+                onUploaded={(media) => { if (media.thumbnail_url) setValue('thumbnail_url', media.thumbnail_url); }}
+                hint="Upload NAMLEF videos to Cloudflare Stream and audio to R2, or keep an external URL."
               />
             )}
           />
@@ -95,11 +98,13 @@ export default function NamlefContentForm({ initial, onSuccess, onCancel }: Naml
             name="thumbnail_url"
             render={({ field }) => (
               <MediaUrlInput
-                label="Thumbnail Image"
+                label="Thumbnail / Video Cover"
                 value={field.value || ''}
                 onChange={field.onChange}
-                accept={['cloudinary']}
+                accept={['r2']}
                 uploadFolder="namlef"
+                relatedEntityType="namlef"
+                relatedEntityId={initial?.id}
               />
             )}
           />

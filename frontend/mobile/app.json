@@ -13,7 +13,10 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "org.namlef.familypledge"
+      "bundleIdentifier": "org.namlef.familypledge",
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -34,15 +37,12 @@
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
-          "color": "#0B6B3A"
+          "color": "#0B6B3A",
+          "defaultChannel": "default",
+          "sounds": []
         }
       ]
     ],
-    "scheme": "familypledge",
-    "extra": {
-      "eas": {
-        "projectId": "family-pledge-namlef"
-      }
-    }
+    "scheme": "familypledge"
   }
 }

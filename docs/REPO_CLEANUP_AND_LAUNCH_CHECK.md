@@ -39,7 +39,7 @@ The repo is clean enough to deploy today, but launch still depends on real produ
 4. Run Alembic migrations.
 5. Deploy admin on Vercel.
 6. Set Vercel `NEXT_PUBLIC_API_URL` to the Railway backend API.
-7. Configure Cloudinary for uploads.
+7. Configure the Cloudflare R2 bucket, public media domain, API token, and CORS for uploads.
 8. Configure Expo/EAS credentials for iOS and Android builds.
 9. Configure Firebase/FCM through Expo/EAS for Android push notifications.
 10. Configure Apple push credentials through Expo/EAS for iOS notifications.
@@ -76,6 +76,6 @@ The repo is clean enough to deploy today, but launch still depends on real produ
 
 ### Email and upload services
 
-- Set Cloudinary variables before using uploads.
+- Set backend-only R2 variables before using uploads; never expose R2 keys through `NEXT_PUBLIC_` variables.
 - Set SMTP/provider variables before sending emails.
 - Do not enable `WEEKLY_EMAILS_ENABLED=true` for real users until a weekly scheduler is implemented.

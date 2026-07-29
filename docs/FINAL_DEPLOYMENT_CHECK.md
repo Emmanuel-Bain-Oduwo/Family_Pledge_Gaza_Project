@@ -2,7 +2,7 @@
 
 ## Honest readiness status
 
-The repository is close to deployable, but the app is **not fully production-ready until the external production services are configured**. The codebase has the frontend, backend, database schema, auth, admin routes, mobile routes, upload signing, Expo push-token storage, admin notifications, and weekly-email opt-out data. The remaining launch blockers are operational setup items: Railway variables, Railway PostgreSQL migrations, Cloudinary credentials, Expo/EAS credentials, store accounts, app privacy metadata, and an email scheduler/provider.
+The repository is close to deployable, but the app is **not fully production-ready until the external production services are configured**. The codebase has the frontend, backend, database schema, auth, admin routes, mobile routes, R2 upload signing, Expo push-token storage, admin notifications, and weekly-email opt-out data. The remaining launch blockers are operational setup items: Railway variables, Railway PostgreSQL migrations, Cloudflare R2, Expo/EAS credentials, store accounts, app privacy metadata, and an email scheduler/provider.
 
 ## Final checks completed in this pass
 
@@ -29,9 +29,9 @@ The repository is close to deployable, but the app is **not fully production-rea
    - Apple Developer Program account is required for iOS release.
    - Store screenshots, privacy policy, support URL, data-safety forms, and age/content ratings must be completed.
 
-4. **Uploads require Cloudinary production keys**
-   - The backend upload route returns signed Cloudinary upload data.
-   - Railway must have `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET`.
+4. **Uploads require Cloudflare R2 production configuration**
+   - The backend returns short-lived presigned R2 PUT URLs; large bytes never pass through Railway.
+   - Configure a bucket-limited R2 API token, public/custom media domain, and browser CORS.
 
 5. **Production database must be migrated**
    - Railway PostgreSQL must be attached to the backend service.
@@ -64,9 +64,13 @@ SMTP_PORT=587
 SMTP_USER=<smtp-user-if-weekly-emails-enabled>
 SMTP_PASSWORD=<smtp-password-if-weekly-emails-enabled>
 EMAIL_FROM=Family Pledge <no-reply@your-domain.org>
-CLOUDINARY_CLOUD_NAME=<cloudinary-cloud-name>
-CLOUDINARY_API_KEY=<cloudinary-api-key>
-CLOUDINARY_API_SECRET=<cloudinary-api-secret>
+R2_ACCOUNT_ID=<cloudflare-account-id>
+R2_ACCESS_KEY_ID=<bucket-limited-access-key>
+R2_SECRET_ACCESS_KEY=<bucket-limited-secret>
+R2_BUCKET_NAME=<production-bucket>
+R2_PUBLIC_BASE_URL=https://media.familypledge.org
+R2_MAX_UPLOAD_MB=500
+R2_ALLOWED_UPLOADS_MODE=broad
 ```
 
 6. Deploy the backend.
@@ -152,13 +156,14 @@ This app currently uses Expo Notifications, not a direct Firebase SDK integratio
 7. Build a real device app; push notifications cannot be fully validated only in a simulator.
 8. Test admin one-click notification sending against a real installed app with granted notification permission.
 
-## Uploads / Cloudinary
+## Uploads / Cloudflare R2
 
-1. Create a Cloudinary account.
-2. Copy cloud name, API key, and API secret.
-3. Set those values in Railway.
-4. Admin upload flow requests a signed upload payload from `/admin/storage/cloudinary-signature`.
-5. Files upload directly from the admin browser to Cloudinary; the backend stores URLs/metadata only.
+1. Create a Cloudflare R2 bucket and a token limited to that bucket.
+2. Attach the custom public media domain and set `R2_PUBLIC_BASE_URL` to its HTTPS origin.
+3. Configure R2 CORS for the deployed admin origins and the `PUT` method/`Content-Type` header.
+4. Store all R2 credentials only on the backend; never use a `NEXT_PUBLIC_` prefix for secrets.
+5. The admin requests `/admin/storage/r2-presigned-upload`, uploads directly to R2, then calls `/admin/storage/r2-confirm-upload` to save metadata.
+6. Check `/admin/storage/usage` for application totals and the Cloudflare dashboard for billing truth.
 
 ## Build Android and iOS apps
 
@@ -216,4 +221,4 @@ eas submit --platform ios --profile production
 - **Admin**: deployable on Vercel after `NEXT_PUBLIC_API_URL` points to Railway.
 - **Mobile Android/iOS**: build-ready after real EAS project/credentials are configured, but not store-ready until Play/App Store metadata, privacy forms, screenshots, and push credentials are completed.
 - **Emails**: not launch-ready for weekly automated emails until a scheduler is implemented.
-- **Uploads**: ready after Cloudinary variables are set.
+- **Uploads**: ready after R2 variables, custom domain, and CORS are configured and tested.

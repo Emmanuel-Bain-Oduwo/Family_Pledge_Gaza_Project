@@ -14,7 +14,7 @@ interface CampaignFormProps {
 }
 
 export default function CampaignForm({ initial, onSuccess, onCancel }: CampaignFormProps) {
-  const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm<Partial<Campaign>>({
+  const { register, handleSubmit, control, setValue, formState: { errors, isSubmitting } } = useForm<Partial<Campaign>>({
     defaultValues: initial || { type: 'monthly', is_active: true, is_urgent: false, status: 'active' },
   });
 
@@ -89,11 +89,14 @@ export default function CampaignForm({ initial, onSuccess, onCancel }: CampaignF
             name="cover_image_url"
             render={({ field }) => (
               <MediaUrlInput
-                label="Cover Image"
+                label="Cover Image / Video Poster"
                 value={field.value || ''}
                 onChange={field.onChange}
-                accept={['cloudinary']}
+                accept={['r2']}
                 uploadFolder="projects"
+                relatedEntityType="campaign"
+                relatedEntityId={initial?.id}
+                hint="Shown before users open the campaign or play its video. Upload a clear landscape poster image."
               />
             )}
           />
@@ -108,9 +111,13 @@ export default function CampaignForm({ initial, onSuccess, onCancel }: CampaignF
                 label="Video URL"
                 value={field.value || ''}
                 onChange={field.onChange}
-                accept={['cloudinary', 'youtube']}
+                accept={['r2', 'youtube']}
                 showPreview={false}
-                hint="YouTube (unlisted) for long videos. Cloudinary for short clips (≤30s)."
+                uploadFolder="projects"
+                relatedEntityType="campaign"
+                relatedEntityId={initial?.id}
+                onUploaded={(media) => { if (media.thumbnail_url) setValue('cover_image_url', media.thumbnail_url); }}
+                hint="Upload videos directly to Cloudflare Stream, or keep an external video URL."
               />
             )}
           />
