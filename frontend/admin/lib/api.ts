@@ -4,7 +4,7 @@ import {
   Admin, AdminProfileUpdate, AuthTokens, Donor, Contribution, ContributionStatus,
   Campaign, Project, ImpactCard, Reminder, Collector, CollectorMember,
   NamlefContent, PushNotification, DashboardStats, AiDraft, AppSettings,
-  PaginatedResponse,
+  PaginatedResponse, TrackedContact,
 } from '../types';
 
 const DEFAULT_API_URL = 'https://familypledgegazaproject-production.up.railway.app/api/v1';
@@ -118,6 +118,8 @@ export const getDonors = async (params?: Record<string, string>): Promise<{ item
     return { ...data, data: data.items };
   } catch (e) { return handle(e); }
 };
+export const getTrackedContacts = async (): Promise<TrackedContact[]> => { try { return (await client.get<TrackedContact[]>('/admin/tracked-contacts')).data; } catch(e) { return handle(e); } };
+export const createTrackedContact = async (payload: Omit<TrackedContact,'id'|'is_active'|'created_at'>): Promise<TrackedContact> => { try { return (await client.post<TrackedContact>('/admin/tracked-contacts', payload)).data; } catch(e) { return handle(e); } };
 
 // ── Contributions ─────────────────────────────────────────────────────────────
 export const getContributions = async (params?: Record<string, string>): Promise<{ items: Contribution[]; data: Contribution[]; total: number }> => {

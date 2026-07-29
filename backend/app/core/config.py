@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4o-mini"
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8081"
     SQL_ECHO: bool = False
+    DB_POOL_SIZE: int = 20
+    DB_MAX_OVERFLOW: int = 40
+    DB_POOL_TIMEOUT_SECONDS: int = 30
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.1
     EXPO_ACCESS_TOKEN: str = ""
     EMAIL_PROVIDER: str = "smtp"
     SMTP_HOST: str = ""
