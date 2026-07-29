@@ -467,7 +467,7 @@ export default function AiAssistantPage() {
     );
 
   return (
-    <AdminLayout title="AI Assistant" subtitle="Create donor reminders, impact updates, weekly summaries, and collector messages. Every AI draft requires admin review before use.">
+    <AdminLayout title="Family Pledge AI Assistant" subtitle="Create donor reminders, impact updates, weekly summaries, and collector messages. Every draft requires admin review before use.">
       <div className="mb-4 flex flex-wrap gap-2">
         <Link href="/dashboard" className="btn-secondary inline-flex items-center gap-2">
           <ArrowLeft size={16} /> Back to Dashboard
@@ -478,6 +478,7 @@ export default function AiAssistantPage() {
         <button type="button" onClick={() => setActiveTab('generate')} className="btn-primary inline-flex items-center gap-2">
           <Plus size={16} /> Create New Draft
         </button>
+        <Link href="/ai/tasks" className="btn-secondary inline-flex items-center gap-2"><FileClock size={16}/> Scheduled Tasks</Link>
       </div>
 
       <div className="card p-4 mb-6 bg-amber-50 border border-amber-200 flex items-start gap-3">

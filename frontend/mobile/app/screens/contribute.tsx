@@ -15,9 +15,8 @@ import { Colors } from '../../constants/colors';
 import AppButton from '../../components/AppButton';
 import AppCard from '../../components/AppCard';
 import { createPledge, submitContribution } from '../../services/api';
-import { Config } from '../../constants/config';
 import { PAYMENT_SETTINGS, currentContributionMonth } from '../../constants/payment';
-import { copyText, openExternalUrl } from '../../services/webCompat';
+import { copyText } from '../../services/webCompat';
 
 type PledgeOptionKey = 'kes10' | 'usd10' | 'usd20' | 'usd50' | 'usd100' | 'open' | 'free';
 
@@ -40,8 +39,6 @@ export default function ContributeScreen() {
   const copy = (label: string, value: string) => {
     copyText(label, value);
   };
-
-  const handleOpenPaymentLink = () => openExternalUrl(Config.PAYMENT_LINK);
 
   const handleSubmit = async () => {
     if (!isFreePledge && (!amount || amount < 1)) {
@@ -69,7 +66,6 @@ export default function ContributeScreen() {
           proof_image_url: proofUrl.trim() || undefined,
           contribution_channel: selectedMethod,
           contribution_month: currentContributionMonth(),
-          payment_link_used: selectedMethod === 'link' ? Config.PAYMENT_LINK : undefined,
         });
       }
       Alert.alert(
@@ -137,14 +133,7 @@ export default function ContributeScreen() {
                 <Ionicons name="information-circle" size={20} color={Colors.pinkDark} />
                 <Text style={styles.instructTitle}>Copy-friendly payment details</Text>
               </View>
-              {selectedMethod === 'link' ? <Text style={styles.cardDesc}>Continue to the secure Family Pledge website, then return here to submit your payment reference.</Text> : <PaymentDetails method={selectedMethod} onCopy={copy} />}
-              {selectedMethod === 'link' && (
-                <TouchableOpacity onPress={handleOpenPaymentLink} style={styles.linkBtn} activeOpacity={0.85}>
-                  <Ionicons name="globe-outline" size={18} color={Colors.white} />
-                  <Text style={styles.linkBtnText}>Open familypledge.org</Text>
-                  <Ionicons name="open-outline" size={16} color={Colors.white} />
-                </TouchableOpacity>
-              )}
+              <PaymentDetails method={selectedMethod} onCopy={copy} />
             </AppCard>
           </>
         )}
@@ -166,7 +155,7 @@ export default function ContributeScreen() {
                 <Text style={styles.label}>Screenshot / Proof URL (optional)</Text>
                 <View style={styles.inputWrap}>
                   <Ionicons name="image-outline" size={18} color={Colors.gray[400]} />
-                  <TextInput value={proofUrl} onChangeText={setProofUrl} placeholder="Cloudinary/receipt URL" placeholderTextColor={Colors.gray[400]} style={styles.input} autoCapitalize="none" keyboardType="url" />
+                  <TextInput value={proofUrl} onChangeText={setProofUrl} placeholder="Secure receipt URL" placeholderTextColor={Colors.gray[400]} style={styles.input} autoCapitalize="none" keyboardType="url" />
                 </View>
               </View>
             </>

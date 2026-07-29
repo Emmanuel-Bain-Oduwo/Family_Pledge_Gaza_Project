@@ -28,6 +28,10 @@ from app.models.user import User
 
 router = APIRouter(prefix="/admin/storage", tags=["Storage"])
 
+# UUID-versioned object keys make long-lived caching safe: replacing media creates
+# a new URL, while unchanged files remain fast at the browser/Cloudflare edge.
+R2_CACHE_CONTROL = "public, max-age=31536000, immutable"
+
 FolderKey = Literal[
     "projects", "impact", "namlef", "reminders", "contribution_proofs",
     "documents", "general",
@@ -172,7 +176,12 @@ def create_presigned_upload(
     try:
         upload_url = _r2_client().generate_presigned_url(
             "put_object",
-            Params={"Bucket": settings.R2_BUCKET_NAME, "Key": object_key, "ContentType": content_type},
+            Params={
+                "Bucket": settings.R2_BUCKET_NAME,
+                "Key": object_key,
+                "ContentType": content_type,
+                "CacheControl": R2_CACHE_CONTROL,
+            },
             ExpiresIn=900,
             HttpMethod="PUT",
         )
@@ -188,7 +197,11 @@ def create_presigned_upload(
     ))
     db.commit()
     return PresignedUploadOut(
-        upload_url=upload_url, required_headers={"Content-Type": content_type},
+        upload_url=upload_url,
+        required_headers={
+            "Content-Type": content_type,
+            "Cache-Control": R2_CACHE_CONTROL,
+        },
         public_url=public_url, object_key=object_key, bucket=settings.R2_BUCKET_NAME,
         size_bytes=body.size_bytes, content_type=content_type,
     )

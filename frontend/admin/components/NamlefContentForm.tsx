@@ -97,7 +97,7 @@ export default function NamlefContentForm({ initial, onSuccess, onCancel }: Naml
             name="thumbnail_url"
             render={({ field }) => (
               <MediaUrlInput
-                label="Thumbnail Image"
+                label="Thumbnail / Video Cover"
                 value={field.value || ''}
                 onChange={field.onChange}
                 accept={['r2']}

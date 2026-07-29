@@ -38,8 +38,10 @@ class TrackedContactInput(BaseModel):
     country: str | None = Field(None, max_length=100)
     status: str = Field("following_up", pattern="^(following_up|pledged|paid|paused)$")
     notes: str | None = Field(None, max_length=2000)
+    referral_code: str | None = Field(None, min_length=4, max_length=50, pattern="^[A-Za-z0-9_-]+$")
 
 class TrackedContactOut(TrackedContactInput):
     id: str
     is_active: bool
     created_at: str
+    linked_user_id: str | None = None

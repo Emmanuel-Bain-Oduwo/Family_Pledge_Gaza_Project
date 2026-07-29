@@ -181,13 +181,14 @@ export default function ImpactPage() {
                 </div>
               </div>
               <MediaUrlInput
-                label="Impact Image"
+                label="Impact Cover / Video Poster"
                 value={form.image_url}
                 onChange={(v) => setForm((f) => ({ ...f, image_url: v }))}
                 accept={['r2']}
                 uploadFolder="impact"
                 relatedEntityType="impact"
                 relatedEntityId={editItem?.id}
+                hint="Shown on impact cards and as the preview poster for the optional video."
               />
               <MediaUrlInput
                 label="Video URL"

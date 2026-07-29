@@ -259,3 +259,14 @@ Set the Vercel project root to `frontend/admin` and configure:
 ### Mobile app
 
 Set `EXPO_PUBLIC_API_URL=https://<railway-backend-domain>/api/v1` so mobile requests use the same versioned API base path.
+# Family Pledge AI scheduled tasks
+
+Configure a Railway cron service to run the following command every minute:
+
+```bash
+cd backend && python -m scripts.run_due_ai_tasks
+```
+
+The worker uses a PostgreSQL advisory lock so overlapping instances do not run the
+same task twice. Scheduled tasks prepare reviewable task runs; messages, publishing,
+and financial changes continue to require explicit administrator approval.

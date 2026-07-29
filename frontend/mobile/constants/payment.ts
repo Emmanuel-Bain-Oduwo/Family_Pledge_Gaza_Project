@@ -11,7 +11,6 @@ export const PAYMENT_SETTINGS = {
   methods: [
     { key: 'mpesa', label: 'M-PESA PayBill', icon: 'phone-portrait-outline', color: '#10B981' },
     { key: 'bank', label: 'Bank Transfer', icon: 'business-outline', color: '#20506D' },
-    { key: 'link', label: 'Pay Online', icon: 'link-outline', color: '#2F6F8F' },
   ],
   bank: {
     accountName: 'NAMLEF GAZA FAMILY SUPPORT',

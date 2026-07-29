@@ -69,6 +69,7 @@ export const register = async (payload: RegisterPayload): Promise<AuthTokens> =>
     country: payload.country.trim(),
     city: optionalTrimmed(payload.city),
     nickname: optionalTrimmed(payload.nickname),
+    referral_code: optionalTrimmed(payload.referral_code),
   };
 
   try {

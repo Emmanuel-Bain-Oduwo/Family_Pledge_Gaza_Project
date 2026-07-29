@@ -14,23 +14,12 @@ def current_month() -> str:
 
 # ── Media URL validation ───────────────────────────────────────────────────────
 
-_CLOUDINARY_HOSTS = {"res.cloudinary.com", "cloudinary.com"}  # accepted only for legacy saved records
-
 _YOUTUBE_PATTERNS = [
     re.compile(r"^https?://(?:www\.)?youtube\.com/watch\?.*v=[\w-]+", re.I),
     re.compile(r"^https?://youtu\.be/[\w-]+", re.I),
     re.compile(r"^https?://(?:www\.)?youtube\.com/embed/[\w-]+", re.I),
     re.compile(r"^https?://(?:www\.)?youtube\.com/shorts/[\w-]+", re.I),
 ]
-
-
-def is_cloudinary_url(url: str) -> bool:
-    """Return True if the URL points to Cloudinary."""
-    try:
-        host = urlparse(url).netloc.lower()
-        return any(host == h or host.endswith("." + h) for h in _CLOUDINARY_HOSTS)
-    except Exception:
-        return False
 
 
 def is_youtube_url(url: str) -> bool:

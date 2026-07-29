@@ -415,6 +415,11 @@ export const publishAiDraft = async (id: string): Promise<AiDraft> => {
   } catch (e) { return handle(e); }
 };
 
+export interface FamilyPledgeAiTask { id:string; title:string; instruction:string; task_type:string; schedule_type?:string; status:string; next_run_at?:string; last_run_at?:string; }
+export const getFamilyPledgeAiTasks = async (): Promise<FamilyPledgeAiTask[]> => { try { return (await client.get('/admin/ai/tasks')).data; } catch(e) { return handle(e); } };
+export const createFamilyPledgeAiTask = async (payload: object): Promise<FamilyPledgeAiTask> => { try { return (await client.post('/admin/ai/tasks', payload)).data; } catch(e) { return handle(e); } };
+export const runFamilyPledgeAiTask = async (id:string): Promise<void> => { try { await client.post(`/admin/ai/tasks/${id}/run-now`); } catch(e) { return handle(e); } };
+
 // ── Settings ──────────────────────────────────────────────────────────────────
 export const getSettings = async (): Promise<AppSettings> => {
   try {

@@ -89,13 +89,14 @@ export default function CampaignForm({ initial, onSuccess, onCancel }: CampaignF
             name="cover_image_url"
             render={({ field }) => (
               <MediaUrlInput
-                label="Cover Image"
+                label="Cover Image / Video Poster"
                 value={field.value || ''}
                 onChange={field.onChange}
                 accept={['r2']}
                 uploadFolder="projects"
                 relatedEntityType="campaign"
                 relatedEntityId={initial?.id}
+                hint="Shown before users open the campaign or play its video. Upload a clear landscape poster image."
               />
             )}
           />

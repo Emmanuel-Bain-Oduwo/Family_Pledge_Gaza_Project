@@ -21,7 +21,7 @@ const NAV = [
   { href: '/collectors', icon: UserCheck, label: 'Collectors' },
   { href: '/namlef', icon: Tv, label: 'NAMLEF' },
   { href: '/notifications', icon: Bell, label: 'Notifications' },
-  { href: '/ai-assistant', icon: Bot, label: 'AI Assistant' },
+  { href: '/ai-assistant', icon: Bot, label: 'Family Pledge AI Assistant' },
   { href: '/storage', icon: HardDrive, label: 'Storage Usage' },
   { href: '/settings', icon: Settings, label: 'Settings' },
 ];

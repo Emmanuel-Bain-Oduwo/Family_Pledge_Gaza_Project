@@ -87,13 +87,14 @@ export default function ProjectForm({ initial, onSuccess, onCancel }: ProjectFor
             name="image_url"
             render={({ field }) => (
               <MediaUrlInput
-                label="Project Image"
+                label="Project Cover / Video Poster"
                 value={field.value || ''}
                 onChange={field.onChange}
                 accept={['r2']}
                 uploadFolder="projects"
                 relatedEntityType="project"
                 relatedEntityId={initial?.id}
+                hint="Shown as the project cover and as the preview poster before users open its video."
               />
             )}
           />

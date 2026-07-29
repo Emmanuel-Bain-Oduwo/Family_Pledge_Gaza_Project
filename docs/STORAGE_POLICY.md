@@ -20,6 +20,13 @@ Owners and administrators may upload images, videos, audio, PDFs, office documen
 
 The `media_assets` table tracks file count, declared object size, content type, folder, uploader, status, and related entity when known. The admin Storage Usage page is operational metadata; the Cloudflare dashboard remains the final source of truth for billing, requests, bandwidth, and stored bytes.
 
+Uploaded objects use UUID-versioned keys and a long-lived immutable browser/CDN cache
+header. Replacing media saves a new URL on the related record, so clients fetch the new
+object immediately while unchanged files remain fast from cache. Videos are not
+autoplayed; they load only after the user chooses to watch. Very large original files
+can still be slower on a user's first request, so administrators should compress media
+appropriately. R2 does not automatically transcode videos or create smaller renditions.
+
 ## Object naming and access
 
 Objects use `family-pledge/<folder>/<yyyy>/<mm>/<uuid>-<sanitized-filename>`. Filenames are sanitized, extensions normalized to lowercase, and UUIDs prevent collisions. Public content uses the absolute custom-domain URL configured in `R2_PUBLIC_BASE_URL`.
@@ -32,10 +39,10 @@ R2 access keys are backend-only secrets. Never add them to frontend code or a `N
 2. Create an R2 API token limited to that bucket.
 3. Attach a public custom domain, for example `media.familypledge.org`.
 4. Set `R2_PUBLIC_BASE_URL=https://media.familypledge.org`.
-5. Configure bucket CORS to allow production and local admin origins to `PUT`, with `Content-Type` allowed. Example:
+5. Configure bucket CORS to allow production and local admin origins to `PUT`, with `Content-Type` and `Cache-Control` allowed. Example:
 
 ```json
-[{"AllowedOrigins":["https://admin.familypledge.org","http://localhost:3000"],"AllowedMethods":["PUT"],"AllowedHeaders":["Content-Type"],"ExposeHeaders":["ETag"],"MaxAgeSeconds":3600}]
+[{"AllowedOrigins":["https://admin.familypledge.org","http://localhost:3000"],"AllowedMethods":["PUT"],"AllowedHeaders":["Content-Type","Cache-Control"],"ExposeHeaders":["ETag"],"MaxAgeSeconds":3600}]
 ```
 
 6. Put account ID, access key, and secret access key only in the backend environment.

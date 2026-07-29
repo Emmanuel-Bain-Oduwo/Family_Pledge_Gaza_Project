@@ -186,6 +186,7 @@ export interface RegisterPayload {
   country: string;
   city?: string;
   password: string;
+  referral_code?: string;
 }
 
 export interface LoginPayload {

@@ -15,8 +15,8 @@ interface MediaUrlInputProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  /** Retained for backwards-compatible form callers; all HTTPS media URLs are accepted. */
-  accept?: ('cloudinary' | 'youtube' | 'r2')[];
+  /** Retained for form callers; R2 and supported external HTTPS media URLs are accepted. */
+  accept?: ('youtube' | 'r2')[];
   showPreview?: boolean;
   uploadFolder?: MediaFolder;
   required?: boolean;

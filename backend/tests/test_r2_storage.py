@@ -50,6 +50,10 @@ def test_presigned_response_schema_cannot_include_credentials():
     assert "access_key" not in storage.PresignedUploadOut.model_fields
 
 
+def test_r2_objects_use_immutable_browser_cache_policy():
+    assert storage.R2_CACHE_CONTROL == "public, max-age=31536000, immutable"
+
+
 def test_storage_routes_require_admin_dependency():
     from app.core.deps import require_admin
 

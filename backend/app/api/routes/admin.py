@@ -22,7 +22,9 @@ router = APIRouter(prefix="/admin", tags=["Admin Dashboard"])
 
 def _contact_out(c: TrackedContact):
     return TrackedContactOut(id=str(c.id), full_name=c.full_name, phone=c.phone, email=c.email,
-        country=c.country, status=c.status, notes=c.notes, is_active=c.is_active, created_at=c.created_at.isoformat())
+        country=c.country, status=c.status, notes=c.notes, referral_code=c.referral_code,
+        linked_user_id=str(c.linked_user_id) if c.linked_user_id else None,
+        is_active=c.is_active, created_at=c.created_at.isoformat())
 
 @router.get("/tracked-contacts", response_model=list[TrackedContactOut])
 def list_tracked_contacts(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
@@ -30,7 +32,12 @@ def list_tracked_contacts(admin: User = Depends(require_admin), db: Session = De
 
 @router.post("/tracked-contacts", response_model=TrackedContactOut, status_code=201)
 def create_tracked_contact(data: TrackedContactInput, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    contact = TrackedContact(**data.model_dump(), created_by=admin.id)
+    values = data.model_dump()
+    if values.get("referral_code"):
+        values["referral_code"] = values["referral_code"].upper()
+        if db.scalar(select(TrackedContact).where(TrackedContact.referral_code == values["referral_code"])):
+            raise HTTPException(409, "Referral code is already in use")
+    contact = TrackedContact(**values, created_by=admin.id)
     db.add(contact); db.commit(); db.refresh(contact)
     return _contact_out(contact)
 
