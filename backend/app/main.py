@@ -52,6 +52,11 @@ CORE_TABLES = (
     "app_settings",
     "contributions",
     "pledges",
+    "media_assets",
+    "ai_drafts",
+    "ai_tasks",
+    "ai_generated_content",
+    "ai_followup_suggestions",
 )
 
 app = FastAPI(
