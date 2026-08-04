@@ -1,224 +1,234 @@
-# Final Deployment Check and Launch Runbook
+# Final Deployment Check and OVH/Cloudflare Launch Runbook
 
 ## Honest readiness status
 
-The repository is close to deployable, but the app is **not fully production-ready until the external production services are configured**. The codebase has the frontend, backend, database schema, auth, admin routes, mobile routes, R2 upload signing, Expo push-token storage, admin notifications, and weekly-email opt-out data. The remaining launch blockers are operational setup items: Railway variables, Railway PostgreSQL migrations, Cloudflare R2, Expo/EAS credentials, store accounts, app privacy metadata, and an email scheduler/provider.
+The repository is close to production deployment, but the app is not fully production-ready until the external production services are configured and tested.
 
-## Final checks completed in this pass
+The current production target is:
 
-- Removed superseded duplicate visual report files so the docs folder is cleaner.
-- Added `frontend/mobile/eas.json` so Android and iOS EAS build/submit profiles exist.
-- Confirmed screenshot proof boards are self-contained SVGs and all individual screenshot proof files parse as XML.
-- Confirmed mobile TypeScript currently passes.
-- Confirmed the admin production build completes; it still reports the existing Next.js warning about one `<img>` in `MediaUrlInput.tsx`.
+- OVH b3-8 runs the FastAPI backend and PostgreSQL.
+- Cloudflare handles DNS, SSL/security, admin/mobile web frontends, R2 file storage, and Stream video delivery.
+- Railway remains a temporary fallback during migration only.
+
+The codebase already includes the backend, database schema, auth, admin routes, mobile routes, R2 upload signing, Cloudflare Stream direct video upload, AI assistant, AI operations foundation, Expo push-token storage, admin notifications, and weekly-email opt-out data.
 
 ## Current launch blockers before real users
 
-1. **Weekly emails are not automatic yet**
+1. **OVH backend stack must be configured**
+   - Use `deploy/ovh/docker-compose.yml` to run PostgreSQL, backend, and Caddy.
+   - Copy `deploy/ovh/.env.example` to `deploy/ovh/.env` and fill real secrets on the server only.
+   - Keep `RUN_MIGRATIONS_ON_STARTUP=true` for the first OVH deploy only, then change it to `false`.
+
+2. **Production database must be migrated from Railway to OVH**
+   - Export Railway PostgreSQL with `pg_dump`.
+   - Restore into OVH PostgreSQL.
+   - Run `alembic upgrade head`.
+   - Verify `/health` and `/ready` before switching DNS.
+
+3. **Cloudflare R2 and Stream must be configured**
+   - R2 stores images, audio, PDFs, documents, and general files.
+   - Cloudflare Stream handles videos.
+   - Configure R2 public media bucket, custom media domain, browser CORS, and backend-only credentials.
+   - Configure Stream token and customer code on the backend.
+
+4. **Private database backups must be enabled**
+   - Use a separate private Cloudflare R2 bucket such as `familypledge-db-backups`.
+   - Do not attach a public custom domain to the backup bucket.
+   - Run `deploy/ovh/scripts/backup_db_to_r2.sh` daily at 2 AM.
+   - Keep at least 7 daily backups.
+
+5. **AI provider must be configured**
+   - AI remains admin-only, backend-mediated, and draft/suggest-only.
+   - Configure the OVH GPT-OSS-120B OpenAI-compatible endpoint using:
+
+```env
+OPENAI_API_KEY=<ovh-ai-key>
+OPENAI_BASE_URL=<ovh-gpt-oss-120b-openai-compatible-base-url>
+OPENAI_MODEL=gpt-oss-120b
+```
+
+6. **Weekly emails are not automatic yet**
    - The app has weekly email preference/unsubscribe data.
-   - You still need a scheduled worker/cron job to send weekly emails through SMTP, Resend, SendGrid, Postmark, or another provider.
+   - A scheduler still needs to be added before weekly emails are enabled for real users.
+   - Keep `WEEKLY_EMAILS_ENABLED=false` until provider and scheduler are tested.
 
-2. **Push notifications require real Expo credentials**
-   - The mobile app uses Expo Notifications.
+7. **Push notifications require real Expo credentials**
    - Android push delivery needs Firebase/FCM configured through Expo/EAS credentials.
-   - iOS push delivery needs Apple push credentials configured through Expo/EAS.
-   - `EXPO_ACCESS_TOKEN` should be set on Railway if using Expo push API with authenticated requests.
+   - iOS push delivery needs Apple push credentials configured through EAS.
+   - `EXPO_ACCESS_TOKEN` should be set on the backend if using Expo push API with authenticated requests.
 
-3. **Mobile store release requires real store accounts**
+8. **Mobile store release requires real store accounts**
    - Google Play Developer account is required for Android release.
    - Apple Developer Program account is required for iOS release.
    - Store screenshots, privacy policy, support URL, data-safety forms, and age/content ratings must be completed.
 
-4. **Uploads require Cloudflare R2 production configuration**
-   - The backend returns short-lived presigned R2 PUT URLs; large bytes never pass through Railway.
-   - Configure a bucket-limited R2 API token, public/custom media domain, and browser CORS.
+## OVH backend deployment
 
-5. **Production database must be migrated**
-   - Railway PostgreSQL must be attached to the backend service.
-   - Run `alembic upgrade head` after the first deploy and after future migrations.
+1. Create the OVH b3-8 instance.
+2. Install Docker, Docker Compose, Git, and AWS CLI.
+3. Clone the repository.
+4. Go to `deploy/ovh`.
+5. Copy `.env.example` to `.env`.
+6. Fill production values.
+7. Start the stack:
 
-## Deploy backend on Railway
+```bash
+cd deploy/ovh
+docker compose up -d --build
+```
 
-1. Create a Railway project.
-2. Add a PostgreSQL database service.
-3. Add the backend service from this repository.
-4. Use the root repository with `railway.json`, or set the backend Dockerfile path to `backend/Dockerfile`.
-5. Set these Railway variables on the backend service:
+8. Check logs:
+
+```bash
+docker compose logs -f backend
+```
+
+9. Check local health:
+
+```bash
+curl http://127.0.0.1/health
+curl http://127.0.0.1/ready
+```
+
+## Railway to OVH database migration
+
+Keep Railway running during migration.
+
+1. Export Railway database:
+
+```bash
+pg_dump "$RAILWAY_DATABASE_URL" | gzip > railway-familypledge.sql.gz
+```
+
+2. Copy backup to OVH:
+
+```bash
+scp railway-familypledge.sql.gz ubuntu@<OVH_SERVER_IP>:/tmp/
+```
+
+3. Restore into OVH PostgreSQL:
+
+```bash
+cd Family_Pledge_Gaza_Project/deploy/ovh
+gunzip -c /tmp/railway-familypledge.sql.gz | docker compose exec -T postgres psql -U familypledge familypledge
+```
+
+4. Run migrations:
+
+```bash
+docker compose exec backend alembic upgrade head
+```
+
+5. Check readiness:
+
+```bash
+curl http://127.0.0.1/ready
+```
+
+## Cloudflare DNS cutover
+
+After all tests pass, point:
+
+```txt
+api.familypledge.org -> OVH public IP
+```
+
+Then test:
+
+```bash
+curl https://api.familypledge.org/health
+curl https://api.familypledge.org/ready
+```
+
+Keep Railway alive for 24-72 hours after cutover.
+
+## Required production tests before deleting Railway
+
+- `/health` returns `status: ok`.
+- `/ready` returns `status: ready`.
+- Admin login works.
+- Donor login/register works.
+- Contribution submission works.
+- Admin contribution review works.
+- Campaign create/update/list works.
+- Project create/update/list works.
+- Impact card create/update/list works.
+- Daily reminder create/publish works.
+- NAMLEF content create/update/list works.
+- R2 image/document upload works.
+- Cloudflare Stream video upload works.
+- AI weekly summary works.
+- AI reminder/impact/collector draft creation works.
+- AI scheduled task run-now creates a reviewable task run only.
+- Admin/mobile web frontends use `https://api.familypledge.org/api/v1`.
+
+## Cloudflare R2 setup
+
+1. Create a public media R2 bucket, e.g. `familypledge-media`.
+2. Create a bucket-limited R2 API token.
+3. Attach public custom domain, e.g. `media.familypledge.org`.
+4. Set `R2_PUBLIC_BASE_URL=https://media.familypledge.org`.
+5. Configure bucket CORS for admin origins and `PUT` with `Content-Type` and `Cache-Control` headers.
+6. Put account ID, access key, and secret only in the backend environment.
+7. Verify uploads from the admin dashboard.
+8. Monitor final billing truth in Cloudflare.
+
+## Cloudflare Stream setup
+
+1. Enable Stream in the same Cloudflare account.
+2. Create a backend-only API token with Stream write permission.
+3. Copy the Stream customer code.
+4. Configure `STREAM_API_TOKEN`, `STREAM_CUSTOMER_CODE`, and `STREAM_MAX_DURATION_SECONDS` on OVH backend.
+5. Verify video upload and playback from admin/user interface.
+
+## Private DB backup setup
+
+Use a separate private bucket, for example:
+
+```txt
+familypledge-db-backups
+```
+
+Run manually first:
+
+```bash
+cd deploy/ovh
+bash scripts/backup_db_to_r2.sh
+```
+
+Add daily cron after manual backup passes:
+
+```cron
+0 2 * * * cd /home/ubuntu/Family_Pledge_Gaza_Project/deploy/ovh && bash scripts/backup_db_to_r2.sh >> /var/log/familypledge-db-backup.log 2>&1
+```
+
+Restore example:
+
+```bash
+cd deploy/ovh
+RESTORE_CONFIRM=YES bash scripts/restore_db_from_backup.sh db/familypledge-2026-08-04T02-00-00Z.sql.gz
+```
+
+## Frontend deployment
+
+Admin and mobile web can be deployed to Cloudflare Pages or kept temporarily on Vercel during cutover. In either case, the public API URL must be:
 
 ```env
-APP_ENV=production
-API_V1_PREFIX=/api/v1
-DATABASE_URL=${{Postgres.DATABASE_URL}}
-JWT_SECRET=<generate-a-random-32-plus-character-secret>
-JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=10080
-CORS_ORIGINS=https://<your-vercel-admin-domain>
-SQL_ECHO=false
-OPENAI_API_KEY=<optional-for-ai-assistant>
-OPENAI_MODEL=gpt-4o-mini
-EXPO_ACCESS_TOKEN=<expo-access-token-for-push>
-WEEKLY_EMAILS_ENABLED=false
-EMAIL_PROVIDER=smtp
-SMTP_HOST=<smtp-host-if-weekly-emails-enabled>
-SMTP_PORT=587
-SMTP_USER=<smtp-user-if-weekly-emails-enabled>
-SMTP_PASSWORD=<smtp-password-if-weekly-emails-enabled>
-EMAIL_FROM=Family Pledge <no-reply@your-domain.org>
-R2_ACCOUNT_ID=<cloudflare-account-id>
-R2_ACCESS_KEY_ID=<bucket-limited-access-key>
-R2_SECRET_ACCESS_KEY=<bucket-limited-secret>
-R2_BUCKET_NAME=<production-bucket>
-R2_PUBLIC_BASE_URL=https://media.familypledge.org
-R2_MAX_UPLOAD_MB=500
-R2_ALLOWED_UPLOADS_MODE=broad
+NEXT_PUBLIC_API_URL=https://api.familypledge.org/api/v1
+EXPO_PUBLIC_API_URL=https://api.familypledge.org/api/v1
 ```
 
-6. Deploy the backend.
-7. Run migrations in the Railway shell:
+## AI safety and database access
 
-```bash
-cd /app
-alembic upgrade head
-```
-
-8. Check health:
-
-```bash
-curl https://<railway-backend-domain>/health
-```
-
-## Deploy admin frontend on Vercel
-
-1. Import the same GitHub repository in Vercel.
-2. Set the Vercel project Root Directory to `frontend/admin`; the admin-scoped `frontend/admin/vercel.json` then uses:
-   - Framework: Next.js
-   - Root Directory: `frontend/admin`
-   - Install command: `npm install`
-   - Build command: `npm run build`
-   - Output directory: `.next`
-3. Set this Vercel variable:
-
-```env
-NEXT_PUBLIC_API_URL=https://<railway-backend-domain>/api/v1
-```
-
-4. Deploy.
-5. Add the Vercel domain to Railway `CORS_ORIGINS`.
-6. Re-deploy/restart backend after CORS changes.
-
-### If Vercel still runs `cd frontend/admin && npm install`
-
-That command is only valid when the Vercel project root is the repository root. When the Vercel Root Directory is already `frontend/admin`, the install command must be `npm install` only. Remove the old override in Vercel Project Settings, then redeploy the failed preview/build. See `docs/VERCEL_ADMIN_DEPLOY_FIX.md`.
-
-## Railway PostgreSQL
-
-1. Add Railway PostgreSQL to the Railway project.
-2. Reference its `DATABASE_URL` from the backend service.
-3. Keep backups enabled if your Railway plan supports it.
-4. Run Alembic migrations after deploy.
-5. Create the first super admin using `backend/scripts/seed_super_admin.py` or a Railway shell command.
-
-## Emails
-
-### Transactional/provider setup
-
-Use one of these:
-
-- SMTP provider from your hosting/email company.
-- Resend, SendGrid, Postmark, Mailgun, or Amazon SES.
-
-Set the SMTP variables in Railway and turn on:
-
-```env
-WEEKLY_EMAILS_ENABLED=true
-```
-
-### Missing production piece
-
-A scheduler still needs to be added for weekly emails. Options:
-
-- Railway cron service that calls a backend management command.
-- GitHub Actions cron that calls a protected backend endpoint.
-- External cron such as cron-job.org calling a protected endpoint.
-
-Do not turn weekly emails on for real users until the scheduler is implemented and tested.
-
-## Firebase / push notifications
-
-This app currently uses Expo Notifications, not a direct Firebase SDK integration.
-
-1. Create or open a Firebase project for Android.
-2. Add Android app package: `org.namlef.familypledge`.
-3. Download/use Firebase service credentials in Expo/EAS credentials setup.
-4. In Expo/EAS, configure Android FCM credentials.
-5. For iOS, configure Apple push notification credentials through EAS.
-6. Set `EXPO_ACCESS_TOKEN` on Railway.
-7. Build a real device app; push notifications cannot be fully validated only in a simulator.
-8. Test admin one-click notification sending against a real installed app with granted notification permission.
-
-## Uploads / Cloudflare R2
-
-1. Create a Cloudflare R2 bucket and a token limited to that bucket.
-2. Attach the custom public media domain and set `R2_PUBLIC_BASE_URL` to its HTTPS origin.
-3. Configure R2 CORS for the deployed admin origins and the `PUT` method/`Content-Type` header.
-4. Store all R2 credentials only on the backend; never use a `NEXT_PUBLIC_` prefix for secrets.
-5. The admin requests `/admin/storage/r2-presigned-upload`, uploads directly to R2, then calls `/admin/storage/r2-confirm-upload` to save metadata.
-6. Check `/admin/storage/usage` for application totals and the Cloudflare dashboard for billing truth.
-
-## Build Android and iOS apps
-
-From `frontend/mobile`:
-
-```bash
-npm install
-npm install -g eas-cli
-eas login
-eas init
-```
-
-Make sure the EAS project ID is real. The placeholder/fallback must be replaced with the actual EAS project ID from Expo.
-
-### Android production build
-
-```bash
-eas build --platform android --profile production
-```
-
-### iOS production build
-
-```bash
-eas build --platform ios --profile production
-```
-
-## Submit to Google Play Store
-
-1. Create a Google Play Developer account.
-2. Create the Family Pledge app in Play Console.
-3. Complete app content, privacy policy, data safety, and store listing.
-4. Configure a Google service account for EAS Submit.
-5. Build Android with EAS.
-6. Submit:
-
-```bash
-eas submit --platform android --profile production
-```
-
-## Submit to Apple App Store
-
-1. Join the Apple Developer Program.
-2. Create the app record in App Store Connect using bundle ID `org.namlef.familypledge`.
-3. Complete privacy nutrition labels, support URL, screenshots, category, age rating, and review notes.
-4. Build iOS with EAS.
-5. Submit:
-
-```bash
-eas submit --platform ios --profile production
-```
+AI must never receive raw database credentials. AI accesses platform data only through backend services and admin-only routes. It may read controlled summaries and create drafts/suggestions, but it must not directly send notifications, approve/reject contributions, delete donors, or mutate critical records without explicit admin action.
 
 ## Final go/no-go answer
 
-- **Backend**: deployable after Railway variables and migrations are configured.
-- **Admin**: deployable on Vercel after `NEXT_PUBLIC_API_URL` points to Railway.
-- **Mobile Android/iOS**: build-ready after real EAS project/credentials are configured, but not store-ready until Play/App Store metadata, privacy forms, screenshots, and push credentials are completed.
+- **Backend**: OVH-ready after `.env`, PostgreSQL, migrations, Caddy, DNS, and readiness tests pass.
+- **Database**: migrate from Railway to OVH PostgreSQL, then enable daily private R2 backups.
+- **Uploads**: ready after R2 variables, custom domain, CORS, and admin upload tests pass.
+- **Videos**: ready after Stream token/customer code and playback tests pass.
+- **AI**: foundation exists; configure OVH GPT-OSS-120B endpoint and keep admin-approval gate.
+- **Railway**: keep as fallback for 24-72 hours; delete only after OVH is stable.
 - **Emails**: not launch-ready for weekly automated emails until a scheduler is implemented.
-- **Uploads**: ready after R2 variables, custom domain, and CORS are configured and tested.
+- **Mobile stores**: build-ready after real EAS/store credentials; store release still needs metadata and privacy forms.
