@@ -1,0 +1,11 @@
+{$API_DOMAIN:api.familypledge.org} {
+  encode gzip zstd
+
+  header {
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    Permissions-Policy "camera=(), microphone=(), geolocation=()"
+  }
+
+  reverse_proxy backend:8000
+}
