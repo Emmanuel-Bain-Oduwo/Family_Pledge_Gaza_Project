@@ -21,7 +21,7 @@ from app.core.config import settings
 from app.models.ai_draft import AiDraft
 from app.models.audit import AdminAuditLog
 from app.models.campaign import Campaign
-from app.models.collector import Collector, CollectorMember
+from app.models.collector import Collector
 from app.models.contribution import Contribution
 from app.models.enums import (
     AiDraftStatus,
@@ -58,7 +58,7 @@ SYSTEM_PROMPT = (
     "- Always produce a draft for human approval before public use."
 )
 
-# Max tokens per draft type to control cost
+# Max tokens per draft type to control cost.
 _MAX_TOKENS: Dict[str, int] = {
     "reminder": 350,
     "impact_update": 600,
@@ -68,17 +68,30 @@ _MAX_TOKENS: Dict[str, int] = {
 
 
 def _get_openai_client():
-    """Return an OpenAI client; raise 503 if key not configured."""
+    """Return an OpenAI-compatible client; raise 503 if key not configured.
+
+    OVH GPT-OSS-120B can be used by setting OPENAI_BASE_URL to the OVH
+    OpenAI-compatible base URL and OPENAI_MODEL=gpt-oss-120b. The key and base
+    URL remain backend-only environment variables.
+    """
     try:
         from openai import OpenAI
     except ImportError:
         raise HTTPException(503, "openai package not installed")
+
     if not settings.OPENAI_API_KEY:
         raise HTTPException(
             503,
             "OPENAI_API_KEY is not configured. Set it in your environment to enable AI features.",
         )
-    return OpenAI(api_key=settings.OPENAI_API_KEY, timeout=30.0)
+
+    client_kwargs: Dict[str, Any] = {
+        "api_key": settings.OPENAI_API_KEY,
+        "timeout": 30.0,
+    }
+    if settings.OPENAI_BASE_URL:
+        client_kwargs["base_url"] = settings.OPENAI_BASE_URL
+    return OpenAI(**client_kwargs)
 
 
 def _call_openai(
@@ -87,10 +100,7 @@ def _call_openai(
     draft_type: str = "reminder",
     json_mode: bool = False,
 ) -> str:
-    """
-    Call OpenAI chat completions with the Family Pledge system prompt.
-    Returns the model's text (or JSON string when json_mode=True).
-    """
+    """Call an OpenAI-compatible chat-completions provider and return text."""
     try:
         from openai import APITimeoutError, AuthenticationError, RateLimitError
     except ImportError:
@@ -113,18 +123,19 @@ def _call_openai(
 
     try:
         response = client.chat.completions.create(**kwargs)
-        return response.choices[0].message.content.strip()
+        content = response.choices[0].message.content or ""
+        return content.strip()
     except AuthenticationError:
-        log.error("OpenAI authentication failed — check OPENAI_API_KEY")
-        raise HTTPException(502, "OpenAI authentication failed. Check OPENAI_API_KEY.")
+        log.error("AI provider authentication failed — check OPENAI_API_KEY and OPENAI_BASE_URL")
+        raise HTTPException(502, "AI provider authentication failed. Check OPENAI_API_KEY and OPENAI_BASE_URL.")
     except RateLimitError:
-        log.warning("OpenAI rate limit hit")
+        log.warning("AI provider rate limit hit")
         raise HTTPException(429, "AI service is busy. Please try again in a moment.")
     except APITimeoutError:
-        log.warning("OpenAI request timed out")
+        log.warning("AI provider request timed out")
         raise HTTPException(504, "AI service timed out. Please try again.")
     except Exception as exc:
-        log.error("OpenAI call failed: %s", exc)
+        log.error("AI provider call failed: %s", exc)
         raise HTTPException(502, f"AI generation failed: {exc}")
 
 
@@ -162,7 +173,7 @@ def _save_draft(
 def generate_reminder(db: Session, admin: User, data: AiReminderRequest) -> AiDraft:
     key_points_text = "\n".join(f"- {p}" for p in data.key_points) if data.key_points else ""
     prompt_parts = [
-        f"Write an Islamic donor reminder for Family Pledge Gaza relief.",
+        "Write an Islamic donor reminder for Family Pledge Gaza relief.",
         f"Audience: {data.audience}",
         f"Tone: {data.tone}",
         f"Language: {data.language}",
@@ -218,9 +229,10 @@ def generate_impact_update(db: Session, admin: User, data: AiImpactUpdateRequest
         app_update = parsed.get("app_update", "")
         whatsapp = parsed.get("whatsapp_message", "")
         push = parsed.get("push_notification", "")
-    except (json.JSONDecodeError, KeyError):
-        app_update = whatsapp = push = ""
-        raw = raw  # keep as-is
+    except (json.JSONDecodeError, KeyError, TypeError):
+        app_update = raw
+        whatsapp = ""
+        push = ""
 
     combined = (
         f"=== App Update ===\n{app_update}\n\n"
@@ -234,7 +246,7 @@ def generate_impact_update(db: Session, admin: User, data: AiImpactUpdateRequest
 
 
 def generate_weekly_summary(db: Session, admin: User, data: AiWeeklySummaryRequest) -> AiDraft:
-    # Collect aggregated stats from DB — send only counts, never personal data
+    # Collect aggregated stats from DB — send only counts, never personal data.
     total_donors = db.scalar(
         select(func.count(User.id)).where(
             User.role == UserRole.donor, User.deleted_at.is_(None)
@@ -263,12 +275,12 @@ def generate_weekly_summary(db: Session, admin: User, data: AiWeeklySummaryReque
     collectors_count = db.scalar(select(func.count(Collector.id))) or 0
 
     stats = {
-        "total_donors": total_donors,
-        "active_pledges": active_pledges,
-        "confirmed_contributions_this_month": confirmed_this_month,
-        "pending_contributions": pending_contributions,
-        "active_campaigns": active_campaigns,
-        "collectors": collectors_count,
+        "total_donors": int(total_donors),
+        "active_pledges": int(active_pledges),
+        "confirmed_contributions_this_month": int(confirmed_this_month),
+        "pending_contributions": int(pending_contributions),
+        "active_campaigns": int(active_campaigns),
+        "collectors": int(collectors_count),
     }
 
     date_label = data.date_range or "this week"
@@ -292,7 +304,7 @@ def generate_weekly_summary(db: Session, admin: User, data: AiWeeklySummaryReque
             actions_text = "\n".join(f"- {a}" for a in actions)
         else:
             actions_text = str(actions)
-    except (json.JSONDecodeError, KeyError):
+    except (json.JSONDecodeError, KeyError, TypeError):
         summary_text = raw
         actions_text = ""
 
@@ -304,9 +316,7 @@ def generate_weekly_summary(db: Session, admin: User, data: AiWeeklySummaryReque
     return _save_draft(db, admin, AiDraftType.weekly_summary, combined, ctx)
 
 
-def generate_collector_message(
-    db: Session, admin: User, data: AiCollectorMessageRequest
-) -> AiDraft:
+def generate_collector_message(db: Session, admin: User, data: AiCollectorMessageRequest) -> AiDraft:
     prompt_parts = [
         "Write a motivational message for a fundraising circle collector on Family Pledge Gaza relief.",
         f"Tone: {data.tone}",
@@ -353,10 +363,8 @@ def list_drafts(
         except ValueError:
             pass
     total = db.scalar(select(func.count()).select_from(q.subquery())) or 0
-    items = list(
-        db.scalars(q.order_by(AiDraft.created_at.desc()).offset(skip).limit(limit)).all()
-    )
-    return items, total
+    items = list(db.scalars(q.order_by(AiDraft.created_at.desc()).offset(skip).limit(limit)).all())
+    return items, int(total)
 
 
 def _get_draft(db: Session, draft_id: UUID) -> AiDraft:
@@ -406,16 +414,10 @@ def reject_draft(db: Session, admin: User, draft_id: UUID) -> AiDraft:
 
 
 def publish_draft(db: Session, admin: User, draft_id: UUID) -> AiDraft:
-    """
-    Mark a draft as published/ready-to-use.
-    Does NOT automatically send anything — publishing is a human decision gate.
-    """
+    """Mark a draft as published/ready-to-use. Does not send automatically."""
     draft = _get_draft(db, draft_id)
     if draft.status != AiDraftStatus.approved:
-        raise HTTPException(
-            400,
-            "Only approved drafts can be published. Approve the draft first.",
-        )
+        raise HTTPException(400, "Only approved drafts can be published. Approve the draft first.")
     draft.status = AiDraftStatus.published
     draft.published_at = datetime.now(timezone.utc)
     db.add(
@@ -431,8 +433,6 @@ def publish_draft(db: Session, admin: User, draft_id: UUID) -> AiDraft:
     db.refresh(draft)
     return draft
 
-
-# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _current_month() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m")

@@ -23,7 +23,8 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080  # 7 days
     OPENAI_API_KEY: str = ""
-    OPENAI_MODEL: str = "gpt-4o-mini"
+    OPENAI_BASE_URL: str = ""
+    OPENAI_MODEL: str = "gpt-oss-120b"
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8081"
     SQL_ECHO: bool = False
     DB_POOL_SIZE: int = 20
