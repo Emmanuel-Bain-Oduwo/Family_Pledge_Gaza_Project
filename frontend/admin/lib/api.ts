@@ -7,7 +7,7 @@ import {
   PaginatedResponse, TrackedContact,
 } from '../types';
 
-const DEFAULT_API_URL = 'https://api.familypledge.org/api/v1';
+const DEFAULT_API_URL = 'https://api.familypledgekenya.org/api/v1';
 
 const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL).replace(/\/+$/, '');
 
