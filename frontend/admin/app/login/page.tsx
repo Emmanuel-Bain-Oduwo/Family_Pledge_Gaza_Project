@@ -67,7 +67,7 @@ export default function LoginPage() {
                 type="text"
                 {...register('identifier', { required: 'Email or phone is required' })}
                 className="input"
-                placeholder="admin@familypledge.org or +254700000001"
+                placeholder="admin@familypledgekenya.org or +254700000001"
                 autoComplete="username"
               />
               {errors.identifier && <p className="text-red-500 text-xs mt-1">{errors.identifier.message}</p>}
