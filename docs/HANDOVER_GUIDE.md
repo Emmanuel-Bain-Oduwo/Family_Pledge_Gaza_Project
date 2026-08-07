@@ -1,241 +1,213 @@
-# Admin Handover Guide — Family Pledge for Gaza
+# Admin Handover Guide — Family Pledge
 
-## Welcome
+This guide is for the Family Pledge administrators who operate the web dashboard, review contributions, manage campaign content, and communicate with donors.
 
-This guide explains how to use the Family Pledge admin dashboard to manage campaigns, review contributions, communicate with donors, and maintain the app. It is written for the NAMLEF sisters and administrators who will operate the platform.
+## Production admin access
 
----
+Current admin deployment:
 
-## 1. Logging In
+```text
+https://family-pledge-gaza-project.vercel.app
+```
 
-1. Open the admin dashboard in your browser (e.g., https://admin.familypledge.org)
-2. Enter your **email address** and **password**
-3. Click **Sign In**
-4. You will land on the **Dashboard** page showing real-time statistics
+The admin frontend must be configured with:
 
-If you forget your password, contact the system administrator to reset it.
+```env
+NEXT_PUBLIC_API_URL=https://api.familypledgekenya.org/api/v1
+```
 
-> Only accounts with the **admin** or **super_admin** role can log in here. Regular donor accounts cannot access this dashboard.
+If login fails immediately after a backend migration/cutover, sign out or clear the old browser session and log in again. A token issued by the previous backend may not be valid against the OVH `JWT_SECRET`.
 
----
-
-## 2. Dashboard Overview
-
-The dashboard shows:
-
-| Metric | Description |
-|--------|-------------|
-| Total Donors | All registered donors in the system |
-| Active Pledges | Donors with an active monthly pledge |
-| Contributions This Month | Submissions received this month |
-| Pending Review | Contributions awaiting admin confirmation |
-| Active Campaigns | Currently running campaigns |
-| Total Raised | Sum of all tracked campaign funds |
-
-Refresh the page to get the latest numbers.
+Only accounts with the admin role should access protected admin routes.
 
 ---
 
-## 3. Reviewing Contributions
+## 1. Dashboard
 
-Donors submit their contributions manually (bank transfer, mobile money, etc.) and upload proof via the app. Your job is to verify and confirm.
+The dashboard summarizes operational data such as donors, pledges, contributions, pending reviews, campaigns, and tracked totals.
 
-### Steps
-
-1. Click **Contributions** in the left menu
-2. Look for contributions with status **Submitted** (yellow badge)
-3. Click a contribution to see details:
-   - Donor name and phone
-   - Amount and currency
-   - Reference number
-   - Payment method
-   - Proof image (if uploaded)
-4. Verify against your bank statement or payment record
-5. Click **Confirm** if the payment is verified
-6. Click **Reject** and enter an admin note if there is a problem (e.g., wrong amount, unverifiable reference)
-
-> Confirmed contributions are automatically counted toward the monthly progress total.
+If data suddenly looks empty after a backend cutover, confirm that the production database was migrated before treating it as a frontend bug.
 
 ---
 
-## 4. Adding a Campaign
+## 2. Reviewing contributions
 
-1. Click **Campaigns** in the left menu
-2. Click **New Campaign**
-3. Fill in the form:
-   - **Title**: Clear, motivating name (e.g., "Friday Challenge — July 2025")
-   - **Type**: Choose monthly, friday_challenge, emergency, or general
-   - **Description**: 2–3 sentences explaining the campaign goal
-   - **Target Donors**: How many donors you aim to reach
-   - **Target Amount**: Optional financial target in USD
-   - **Start Date / End Date**: Optional campaign dates
-   - **Cover Image**: Upload an image directly to Cloudflare R2 (click **Upload**)
-4. Set Status to **Active** when ready to go live
-5. Click **Create Campaign**
+Donors submit contribution records and may attach proof. Admins must verify the payment independently before confirming it.
 
-> Emergency campaigns appear with a red "URGENT" banner in the mobile app.
+1. Open **Contributions**.
+2. Select a submitted/pending contribution.
+3. Review donor details, amount/currency, reference, payment method, and proof.
+4. Compare the submission with the official payment/bank record.
+5. Confirm only when verified.
+6. Reject with a clear internal note if the contribution cannot be verified.
+
+Contribution proof media is sensitive. Do not repost or share it publicly.
 
 ---
 
-## 5. Adding an Impact Card
+## 3. Campaigns
 
-Impact cards show donors the real-world difference their money is making.
+1. Open **Campaigns**.
+2. Create or edit the campaign.
+3. Add title, type, description, targets, dates, and status.
+4. Upload a cover image when required.
+5. Activate/publish only after the details have been checked.
 
-1. Click **Impact** in the left menu
-2. Click **New Impact Card**
-3. Fill in:
-   - **Title**: Short, factual (e.g., "250 Food Packages Delivered in Rafah")
-   - **Story**: 3–5 sentences describing what was delivered, where, and to how many people
-   - **Beneficiaries Count**: How many people benefited (optional)
-   - **Image**: Upload a photo from the field (required for best engagement)
-   - **Video URL**: Upload a video directly to Cloudflare Stream, or provide an optional HTTPS link
-4. Click **Create**
-
-> Only use verified facts. Do not estimate or exaggerate numbers.
+Campaign image uploads use the production media stack through the OVH backend and Cloudflare R2.
 
 ---
 
-## 6. Publishing a Daily Reminder
+## 4. Projects and impact cards
 
-Reminders are Islamic content (Quran, Hadith, Du'a) that appear in the mobile app.
+Impact content should describe verified activity and outcomes.
 
-### Manual Creation
+For each impact/project item:
 
-1. Click **Reminders** in the left menu
-2. Click **New Reminder**
-3. Fill in:
-   - **Type**: quran / hadith / dua / motivation / friday
-   - **Title** (the main text — English)
-   - **Arabic Text**: Optional Arabic original
-   - **Translation**: Optional English translation of Arabic
-   - **Explanation**: Optional brief context (2–3 sentences)
-   - **Source Reference**: Required for Quran and Hadith (e.g., "Quran 5:32")
-   - **Image**: Optional background image
-4. Save — status starts as **Draft**
-5. Click **Approve** → then **Publish** to make it live in the app
+- use factual titles and descriptions;
+- include beneficiary counts only when verified;
+- upload appropriate images through the admin media flow;
+- upload video through the Cloudflare Stream flow where supported;
+- avoid estimates presented as confirmed facts.
 
-### Using the AI Assistant
-
-1. Click **AI Assistant** in the left menu
-2. Select **Generate Reminder Draft**
-3. Choose the type and provide context
-4. Click **Generate**
-5. Review the draft carefully — **read every word**
-6. Check all Islamic references against a trusted source
-7. Click **Approve** if correct, or **Reject** if there are errors
-8. Once approved, click **Publish** to send it to the app
-
-> Never publish a reminder without reading it. The AI can make mistakes with Islamic references.
+Production image/media origin currently uses the configured Cloudflare R2 public base under `familypledgekenya.org`.
 
 ---
 
-## 7. Sending a Push Notification
+## 5. Daily reminders and Islamic content
 
-Push notifications are sent to donors' phones.
+Reminder drafts may include Quran, Hadith, du'a, motivation, or Friday content.
 
-1. Click **Notifications** in the left menu
-2. Click **Send Notification**
-3. Fill in:
-   - **Title**: Short (e.g., "Jumu'ah Mubarak 🌙")
-   - **Body**: Message text (keep it under 100 characters for best display)
-   - **Type**: pledge, campaign, reminder, emergency, or system
-   - **Audience**: Choose carefully:
-     - **All Users**: Every registered donor
-     - **Pending Donors**: Donors who have not contributed this month
-     - **Confirmed Donors**: Donors who have already contributed
-     - **Collectors**: Only collector accounts
-4. Click **Send**
+For religious content:
 
-> Be thoughtful about frequency — too many notifications will cause donors to disable them. One or two per week is recommended.
+1. Create or generate the draft.
+2. Read the complete text.
+3. Verify Quran/Hadith references using a trusted source.
+4. Correct or reject anything uncertain.
+5. Publish only after human review.
+
+AI-generated content is a draft aid, not an authority.
 
 ---
 
-## 8. Managing Collectors
+## 6. AI assistant
 
-Collectors are trusted community members who bring in groups of donors.
+The AI assistant is intended to remain **draft/suggest-only**.
 
-### Viewing Collectors
+Human approval is required before operational use of:
 
-1. Click **Collectors** in the left menu
-2. You can see each collector, their circle size, and how many contributed this month
+- reminders;
+- impact updates;
+- weekly summaries;
+- collector messages;
+- other generated communications.
 
-### Registering a New Collector
+Admins must verify facts, names, dates, statistics, religious references, and tone before approving content.
 
-1. Go to **Collectors → Create Collector**
-2. Enter the user's ID (the donor must already be registered in the app)
-3. The system assigns them a unique collector code
-4. Share the collector code with the person — they can give it to new donors to join their circle
-
----
-
-## 9. NAMLEF Content
-
-NAMLEF content appears in the "About NAMLEF" section of the mobile app.
-
-1. Click **NAMLEF Content** in the left menu
-2. Click **New Content**
-3. Fill in:
-   - **Title**
-   - **Speaker Name** and **Role** (e.g., "Sheikh Dr. Ibrahim Al-Amin", "Chairperson, NAMLEF")
-   - **Content Type**: video, audio, text, or link
-   - **Description**: The main text or message
-   - **URL**: YouTube link for videos, audio file for audio
-   - **Thumbnail**: Cover image for the content card
-   - **Featured**: Toggle on to highlight this content at the top
-4. Click **Create**
+The AI must not directly approve/reject contributions, delete donors, publish sensitive content, or bypass administrator review.
 
 ---
 
-## 10. Using the AI Assistant Safely
+## 7. Push notifications
 
-The AI assistant generates drafts only — it never publishes anything automatically.
+1. Open **Notifications**.
+2. Enter a concise title/body.
+3. Select the correct notification type and audience.
+4. Review the audience carefully before sending.
+5. Send only when the message is ready.
 
-**What requires human approval before any AI draft is published:**
-
-- All Islamic reminders (Quran, Hadith, Du'a)
-- All impact update stories
-- All weekly summaries
-- All collector messages
-
-**What you must check:**
-
-1. Is every Islamic reference accurate? (Check Quran.com or Sunnah.com)
-2. Are the facts correct? (Match against actual field reports)
-3. Is the tone appropriate? (Warm, respectful, not inflammatory)
-4. Are there any made-up names, places, or statistics?
-
-If any answer is "no" or "I'm not sure" — click **Reject** and generate again with clearer instructions, or write the content manually.
+Native push delivery requires valid Expo/EAS plus Android FCM and Apple APNs configuration. A successful admin API request alone does not prove that a real device received the notification.
 
 ---
 
-## 11. Security Reminders
+## 8. Collectors
 
-- **Never share your admin password** — each admin must have their own account
-- **Log out** when you are finished, especially on shared computers
-- **Do not send donor data** (names, phones, emails) via WhatsApp or unsecured channels
-- If you suspect your account is compromised, contact the super admin immediately to deactivate it
-- Contribution proof images are private — do not screenshot and share them publicly
+Collectors are trusted users who manage or invite donor groups/circles.
 
----
+When creating or managing a collector:
 
-## 12. Getting Help
-
-- **Technical issues**: Contact the system administrator
-- **Islamic content questions**: Refer to a qualified scholar before publishing
-- **Field report verification**: Coordinate with the NAMLEF field team
-- **Emergency**: If the system is down or data is missing, contact the developer immediately
+- confirm that the underlying user account is correct;
+- verify the collector code and group details;
+- avoid exposing private donor membership information outside the admin workflow.
 
 ---
 
-## Quick Reference Card
+## 9. NAMLEF content
 
-| Task | Where |
-|------|-------|
-| Confirm a contribution | Contributions → click → Confirm |
-| Create campaign | Campaigns → New Campaign |
-| Add impact story | Impact → New Impact Card |
-| Publish reminder | Reminders → New / AI Assistant → Approve → Publish |
-| Send notification | Notifications → Send |
-| Register collector | Collectors → Create |
-| Generate AI draft | AI Assistant → choose type → Generate → Review → Approve |
-| Add NAMLEF content | NAMLEF Content → New |
+NAMLEF content can include text, images, audio, video, or links.
+
+Before publishing:
+
+- verify the speaker/name/role;
+- verify any external URL;
+- use Cloudflare R2/Stream uploads where appropriate;
+- make sure featured content is intentional;
+- do not publish unverified field claims.
+
+---
+
+## 10. Production media checks
+
+If an image upload fails:
+
+1. Confirm the admin is authenticated against the OVH API.
+2. Confirm the request reaches `https://api.familypledgekenya.org/api/v1`.
+3. Check OVH backend logs.
+4. Check Cloudflare R2 object permissions and browser CORS.
+5. Confirm the object appears in `family-pledge-media`.
+
+If a video upload fails:
+
+1. Check the OVH backend logs for the Stream direct-upload request.
+2. Confirm Stream credentials are valid on the backend.
+3. Confirm the asset appears in Cloudflare Stream.
+4. Wait for processing before judging playback failure.
+
+Never expose R2 or Stream secret credentials in the browser.
+
+---
+
+## 11. Security reminders
+
+- Never share admin passwords.
+- Each administrator should use their own account.
+- Log out on shared devices.
+- Do not export or send donor personal data through unsecured channels.
+- Do not expose contribution proof images publicly.
+- Never paste production secrets, database passwords, JWT secrets, R2 keys, Stream tokens, or SMTP credentials into frontend environment variables.
+- Report suspected account compromise immediately.
+
+---
+
+## 12. Operational outage checklist
+
+If the admin dashboard stops working:
+
+1. Check `https://api.familypledgekenya.org/health`.
+2. Check `https://api.familypledgekenya.org/ready`.
+3. Confirm Vercel is using the OVH API URL.
+4. Inspect OVH backend logs.
+5. Confirm the production database contains the expected data.
+6. Check Cloudflare DNS/proxy status if the API is unreachable.
+7. Use Railway only as a deliberate rollback fallback while it is still retained.
+
+Do not change multiple infrastructure components at once unless the failure requires it.
+
+---
+
+## Quick reference
+
+| Task | Location |
+|---|---|
+| Log in | Admin Vercel dashboard |
+| Review contribution | Contributions |
+| Create/edit campaign | Campaigns |
+| Add impact/project content | Impact / Projects |
+| Create reminder | Reminders |
+| Generate draft | AI Assistant |
+| Send push | Notifications |
+| Manage collector | Collectors |
+| Add NAMLEF content | NAMLEF Content |
+| Check API health | `https://api.familypledgekenya.org/health` |
+| Check DB readiness | `https://api.familypledgekenya.org/ready` |
+
+For deployment and infrastructure procedures, use `docs/DEPLOYMENT.md` and `deploy/ovh/README.md` rather than this operator guide.
