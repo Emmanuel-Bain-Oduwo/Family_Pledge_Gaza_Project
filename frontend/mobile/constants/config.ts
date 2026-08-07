@@ -1,5 +1,5 @@
 export const Config = {
-  API_URL: (process.env as Record<string, string | undefined>).EXPO_PUBLIC_API_URL || 'https://api.familypledge.org/api/v1',
+  API_URL: (process.env as Record<string, string | undefined>).EXPO_PUBLIC_API_URL || 'https://api.familypledgekenya.org/api/v1',
   APP_NAME: 'Family Pledge',
   PLEDGE_AMOUNT: 10,
   PLEDGE_CURRENCY: 'USD',
