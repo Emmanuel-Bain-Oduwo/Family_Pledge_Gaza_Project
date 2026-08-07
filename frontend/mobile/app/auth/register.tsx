@@ -47,8 +47,8 @@ export default function RegisterScreen() {
       Alert.alert('Password Mismatch', 'Passwords do not match.');
       return;
     }
-    if (form.password.length < 6) {
-      Alert.alert('Weak Password', 'Password must be at least 6 characters.');
+    if (form.password.length < 8) {
+      Alert.alert('Weak Password', 'Password must be at least 8 characters.');
       return;
     }
     setLoading(true);
@@ -89,7 +89,7 @@ export default function RegisterScreen() {
           <Field label="Full Name *" value={form.full_name} onChangeText={(v) => update('full_name', v)} placeholder="e.g. Ahmed Hassan" />
           <Field label="Nickname / Display Name" value={form.nickname} onChangeText={(v) => update('nickname', v)} placeholder="e.g. Abu Yusuf" />
           <Field label="Phone Number *" value={form.phone} onChangeText={(v) => update('phone', v)} placeholder="+254700000000" keyboardType="phone-pad" />
-          <Field label="Email (optional)" value={form.email} onChangeText={(v) => update('email', v)} placeholder="you@email.com" keyboardType="email-address" />
+          <Field label="Email (optional)" value={form.email} onChangeText={(v) => update('email', v)} placeholder="you@email.com" keyboardType="email-address" autoCapitalize="none" />
         </View>
 
         <View style={styles.section}>
@@ -105,8 +105,9 @@ export default function RegisterScreen() {
               label="Password *"
               value={form.password}
               onChangeText={(v) => update('password', v)}
-              placeholder="Min 6 characters"
+              placeholder="Min 8 characters"
               secureTextEntry={!showPassword}
+              autoCapitalize="none"
             />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
               <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={Colors.gray[400]} />
@@ -118,6 +119,7 @@ export default function RegisterScreen() {
             onChangeText={(v) => update('confirm_password', v)}
             placeholder="Repeat password"
             secureTextEntry={!showPassword}
+            autoCapitalize="none"
           />
         </View>
 
