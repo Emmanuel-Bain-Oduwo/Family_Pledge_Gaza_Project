@@ -1,494 +1,279 @@
 # Family Pledge Gaza Project
 
-Family Pledge is a simple donation and pledge platform for supporting families in Gaza.
+Family Pledge is a donation and pledge platform for supporting families in Gaza. The platform includes a backend API, an admin dashboard, and a donor application delivered as both native Android/iOS builds and an Expo web build.
 
-The idea is straightforward:
+## Repository structure
 
-People can register, make a monthly pledge, submit their contribution proof, and receive reminders and updates. Admins can manage donors, contributions, campaigns, projects, reminders, content, and notifications from a web dashboard.
-
-This project has three main parts:
-
-- a backend API
-- an admin web dashboard
-- a donor mobile app
-
-The goal is not to build something complicated. The goal is to build something useful, clear, and maintainable.
-
----
-
-## Project structure
-
-```txt
+```text
 Family_Pledge_Gaza_Project/
-├── backend/
+├── backend/                 # FastAPI + PostgreSQL/Alembic application
+├── deploy/ovh/              # Production OVH Docker Compose deployment
 ├── frontend/
-│   ├── admin/
-│   └── mobile/
-└── docs/
-````
+│   ├── admin/               # Next.js admin dashboard
+│   └── mobile/              # Expo donor app: Android, iOS, and web
+├── docs/                    # Deployment, operations, and handover docs
+└── scripts/
+```
 
-### Backend
+## Production architecture
 
-The backend is a FastAPI application.
+```text
+Admin Vercel ───────────────┐
+                            │
+Donor web Vercel ───────────┼──> Cloudflare ──> OVH Caddy ──> FastAPI ──> PostgreSQL
+                            │
+Android / iOS EAS builds ───┘
+
+FastAPI ──> Cloudflare R2      (images/files)
+FastAPI ──> Cloudflare Stream  (video)
+OVH backup script ──> private R2 bucket
+```
+
+### Production services
+
+| Component | Current target |
+|---|---|
+| API | `https://api.familypledgekenya.org/api/v1` |
+| Health | `https://api.familypledgekenya.org/health` |
+| Readiness | `https://api.familypledgekenya.org/ready` |
+| Backend | OVHcloud VM, Docker Compose |
+| Database | PostgreSQL 15 on OVH |
+| API edge/DNS | Cloudflare |
+| Admin | Vercel (`frontend/admin`) |
+| Donor web | Vercel Expo web (`frontend/mobile`) |
+| Native donor app | Expo EAS, Android + iOS |
+| Public media | Cloudflare R2 bucket `family-pledge-media` |
+| Video | Cloudflare Stream |
+| DB backups | Private R2 bucket `family-pledge-backup-db` |
+| Railway | Temporary rollback/fallback only |
+
+Railway should not be treated as the normal production API after the OVH migration is accepted.
+
+## Backend
+
+The backend is a FastAPI application with PostgreSQL, SQLAlchemy, Alembic, and JWT authentication.
 
 It handles:
 
-* user registration and login
-* admin authentication
-* donor records
-* pledges
-* contribution submissions
-* admin contribution review
-* campaigns
-* projects
-* impact updates
-* daily reminders
-* NAMLEF awareness content
-* push notifications
-* app settings
-* database migrations
+- donor registration/login;
+- admin authentication and protected admin routes;
+- pledges and contributions;
+- contribution review;
+- campaigns and projects;
+- impact cards;
+- reminders and NAMLEF content;
+- collectors;
+- notification records/push-token registration;
+- media upload orchestration;
+- Cloudflare R2 and Stream integration;
+- AI draft/operations endpoints;
+- settings and operational readiness.
 
-Main technologies:
+### Important API paths
 
-* FastAPI
-* PostgreSQL
-* SQLAlchemy
-* Alembic
-* JWT authentication
-* Railway deployment
+```text
+POST /api/v1/auth/register
+POST /api/v1/auth/login
+GET  /api/v1/auth/me
+GET  /api/v1/users/me
 
----
+GET  /api/v1/admin/dashboard
+GET  /api/v1/admin/donors
+GET  /api/v1/admin/contributions
 
-### Admin web dashboard
-
-The admin dashboard is a Next.js web app.
-
-It is used by the project team to manage the system.
-
-Admins can:
-
-* view dashboard stats
-* manage donors
-* review contributions
-* manage campaigns
-* manage projects
-* publish impact updates
-* create daily reminders
-* manage awareness content
-* send notifications
-* update app settings
-* update their own admin profile
-
-Main technologies:
-
-* Next.js
-* React
-* TypeScript
-* Tailwind CSS
-* Axios
-* Vercel deployment
-
-The admin is a website. It should work on desktop, tablet, and mobile browsers.
-
----
-
-### Mobile app
-
-The mobile app is built with Expo and React Native.
-
-It is for donors and participants.
-
-Users can:
-
-* register
-* pledge monthly support
-* view campaigns and projects
-* submit contribution proof
-* receive reminders
-* read awareness content
-* see impact updates
-
-Main technologies:
-
-* Expo
-* React Native
-* TypeScript
-* Expo Router
-
----
-
-## Current live services
-
-Backend API:
-
-```txt
-https://familypledgegazaproject-production.up.railway.app/api/v1
+GET  /api/v1/campaigns
+GET  /api/v1/projects
+GET  /api/v1/impact-cards
+GET  /api/v1/daily-reminders
+GET  /api/v1/namlef-content
 ```
 
-Backend health check:
+Health/readiness are intentionally outside the API prefix:
 
-```txt
-https://familypledgegazaproject-production.up.railway.app/health
+```text
+GET /health
+GET /ready
 ```
 
-Admin dashboard:
+## Admin dashboard
 
-```txt
-https://family-pledge-gaza-project.vercel.app
+The admin dashboard is a Next.js application in `frontend/admin`.
+
+Production API environment variable:
+
+```env
+NEXT_PUBLIC_API_URL=https://api.familypledgekenya.org/api/v1
 ```
 
-Mobile web preview:
+The source fallback is also set to the OVH production API so a missing Vercel variable cannot silently send traffic to the old backend.
 
-```txt
-https://family-pledge-gaza-project-demo.vercel.app
+Production media images use the configured Cloudflare R2 public hostname. The admin media client requests upload instructions from the backend, then uploads to R2 or Cloudflare Stream as appropriate.
+
+## Donor app: web + Android + iOS
+
+The donor application lives in `frontend/mobile` and has two deployment paths.
+
+### Expo web on Vercel
+
+```env
+EXPO_PUBLIC_API_URL=https://api.familypledgekenya.org/api/v1
 ```
 
----
+Vercel builds the static web export with `npm run build:web`.
+
+### Native Expo/EAS
+
+`frontend/mobile/eas.json` configures development, preview, and production builds to use:
+
+```text
+https://api.familypledgekenya.org/api/v1
+```
+
+Application identifiers:
+
+```text
+Android package: org.namlef.familypledge
+iOS bundle identifier: org.namlef.familypledge
+```
+
+Native production builds:
+
+```bash
+cd frontend/mobile
+eas build --platform android --profile production
+eas build --platform ios --profile production
+```
+
+Do not submit store builds until registration/login and the main donor flows pass against OVH.
+
+## OVH production deployment
+
+The production backend runbook is:
+
+```text
+deploy/ovh/README.md
+```
+
+Basic startup:
+
+```bash
+cd deploy/ovh
+cp .env.example .env
+# fill real secrets locally on the server
+docker compose up -d --build
+```
+
+Public checks:
+
+```bash
+curl -i https://api.familypledgekenya.org/health
+curl -i https://api.familypledgekenya.org/ready
+```
+
+After controlled migrations are complete and `/ready` reports healthy migrations, set:
+
+```env
+RUN_MIGRATIONS_ON_STARTUP=false
+```
+
+## Cloudflare media
+
+### Public R2 media
+
+```text
+Bucket: family-pledge-media
+Public base: https://familypledgekenya.org
+```
+
+R2 credentials remain backend-only. Browser direct uploads require the appropriate R2 CORS policy.
+
+### Stream
+
+Videos use Cloudflare Stream through backend-mediated direct-upload endpoints. Stream secrets remain backend-only.
+
+## Database backups
+
+Database backups use a separate private R2 bucket:
+
+```text
+family-pledge-backup-db
+```
+
+The backup bucket has no public base URL and must remain private.
+
+Manual backup:
+
+```bash
+cd deploy/ovh
+bash scripts/backup_db_to_r2.sh
+```
+
+Cloudflare R2 AWS CLI configuration should use a valid R2 region such as:
+
+```env
+AWS_DEFAULT_REGION=auto
+```
+
+## Railway migration/fallback
+
+Railway remains only while production data is being migrated and verified. See:
+
+```text
+docs/RAILWAY_RUNBOOK.md
+```
+
+Before retiring Railway:
+
+- migrate required production database records to OVH;
+- verify existing admin login against OVH;
+- verify donor registration/login;
+- verify contribution and content flows;
+- verify R2/Stream uploads;
+- verify private DB backups;
+- verify both Vercel frontends use OVH;
+- verify Android/iOS release builds use OVH.
 
 ## Local development
 
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/Emmanuel-Bain-Oduwo/Family_Pledge_Gaza_Project.git
-cd Family_Pledge_Gaza_Project
-```
-
----
-
-## Backend setup
+### Backend
 
 ```bash
 cd backend
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-```
-
-On Windows PowerShell:
-
-```powershell
-cd backend
-python -m venv venv
-venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
-
-Create a `.env` file inside `backend/`.
-
-Example:
-
-```env
-APP_ENV=development
-API_V1_PREFIX=/api/v1
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/familypledge
-JWT_SECRET=change-this-to-a-long-random-secret
-JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=10080
-CORS_ORIGINS=http://localhost:3000,http://localhost:8081
-SQL_ECHO=false
-```
-
-Run migrations:
-
-```bash
 alembic upgrade head
-```
-
-Start the backend:
-
-```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
-Health check:
-
-```txt
-http://localhost:8000/health
-```
-
-API base:
-
-```txt
-http://localhost:8000/api/v1
-```
-
----
-
-## Admin setup
+### Admin
 
 ```bash
 cd frontend/admin
 npm install
-```
-
-Create `.env.local` inside `frontend/admin/`.
-
-Example:
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
-```
-
-Start the admin app:
-
-```bash
+cp .env.example .env.local
 npm run dev
 ```
 
-Open:
-
-```txt
-http://localhost:3000
-```
-
-For production, use:
-
-```env
-NEXT_PUBLIC_API_URL=https://familypledgegazaproject-production.up.railway.app/api/v1
-```
-
----
-
-## Mobile app setup
+### Donor app
 
 ```bash
 cd frontend/mobile
 npm install
-```
-
-Create `.env` inside `frontend/mobile/`.
-
-Example:
-
-```env
-EXPO_PUBLIC_API_URL=http://localhost:8000/api/v1
-```
-
-Start Expo:
-
-```bash
+cp .env.example .env
 npx expo start
 ```
 
-For production, use:
-
-```env
-EXPO_PUBLIC_API_URL=https://familypledgegazaproject-production.up.railway.app/api/v1
-```
-
----
-
-## Database migrations
-
-Alembic is used for database migrations.
-
-Run migrations:
-
-```bash
-cd backend
-alembic upgrade head
-```
-
-Create a new migration only when the database schema changes.
-
-Example:
-
-```bash
-alembic revision -m "describe change"
-```
-
-Then edit the generated migration file carefully.
-
-Do not use `Base.metadata.create_all()` in production.
-
----
-
-## Demo seed
-
-The backend can seed demo content when enabled.
-
-Useful environment variables:
-
-```env
-DEMO_SEED_ON_STARTUP=true
-DEMO_ADMIN_EMAIL=demo.admin@familypledge.org
-DEMO_ADMIN_PHONE=+254700000001
-DEMO_ADMIN_PASSWORD=ChangeMeDemo123!
-```
-
-Important note:
-
-If an admin already exists, the seed script may reuse the existing admin. It does not always reset the password. This is intentional to avoid overwriting real admin credentials.
-
----
-
-## Authentication
-
-The backend uses JWT access tokens.
-
-Login path:
-
-```txt
-POST /api/v1/auth/login
-```
-
-Current user path:
-
-```txt
-GET /api/v1/auth/me
-```
-
-Admin routes are protected. Only users with the admin role should access the admin dashboard.
-
-The project uses a single admin role:
-
-```txt
-admin
-```
-
-There should be no separate production behavior for `super_admin`.
-
----
-
-## CORS
-
-The backend only accepts requests from origins listed in `CORS_ORIGINS`.
-
-Example for production:
-
-```env
-CORS_ORIGINS=https://family-pledge-gaza-project.vercel.app,https://family-pledge-gaza-project-demo.vercel.app
-```
-
-Do not include paths like `/login` or `/api/v1`.
-
-Correct:
-
-```txt
-https://family-pledge-gaza-project.vercel.app
-```
-
-Wrong:
-
-```txt
-https://family-pledge-gaza-project.vercel.app/login
-```
-
-Every Vercel deployment URL is a different origin. If you open a random deployment URL, the browser may block requests because of CORS.
-
----
-
-## Deployment
-
-### Backend
-
-The backend is deployed on Railway.
-
-Recommended Railway settings:
-
-```env
-APP_ENV=production
-API_V1_PREFIX=/api/v1
-DATABASE_URL=${{Postgres.DATABASE_URL}}
-JWT_SECRET=<long-random-secret>
-CORS_ORIGINS=https://family-pledge-gaza-project.vercel.app,https://family-pledge-gaza-project-demo.vercel.app
-RUN_MIGRATIONS_ON_STARTUP=true
-DEMO_SEED_ON_STARTUP=true
-```
-
-After a stable production deploy, demo seeding and automatic migrations can be disabled if no longer needed.
-
----
-
-### Admin
-
-The admin dashboard is deployed on Vercel.
-
-Root directory:
-
-```txt
-frontend/admin
-```
-
-Environment variable:
-
-```env
-NEXT_PUBLIC_API_URL=https://familypledgegazaproject-production.up.railway.app/api/v1
-```
-
----
-
-### Mobile web preview
-
-The mobile preview is deployed separately on Vercel.
-
-Root directory:
-
-```txt
-frontend/mobile
-```
-
-Environment variable:
-
-```env
-EXPO_PUBLIC_API_URL=https://familypledgegazaproject-production.up.railway.app/api/v1
-```
-
----
-
-## Important API paths
-
-```txt
-POST  /api/v1/auth/login
-GET   /api/v1/auth/me
-PATCH /api/v1/users/me
-
-GET   /api/v1/admin/dashboard
-GET   /api/v1/admin/donors
-GET   /api/v1/admin/contributions
-PATCH /api/v1/admin/contributions/{id}/review
-
-GET   /api/v1/admin/notifications
-POST  /api/v1/admin/notifications/send
-
-GET   /api/v1/campaigns
-GET   /api/v1/projects
-GET   /api/v1/impact-cards
-GET   /api/v1/daily-reminders
-GET   /api/v1/namlef-content
-```
-
----
-
-## Development rules
-
-Keep the project simple.
-
-When fixing a bug:
-
-1. Identify the real failing endpoint or component.
-2. Make the smallest safe change.
-3. Avoid touching unrelated files.
-4. Do not redesign working parts.
-5. Do not change API URLs unless the bug is actually the URL.
-6. Do not change auth unless the bug is actually auth.
-7. Do not change database migrations unless the bug is actually the database schema.
-
-A good pull request should have a clear purpose and a small diff.
-
----
-
 ## Testing
 
-Backend checks:
+Backend syntax/compile check:
 
 ```bash
 cd backend
 python -m compileall app scripts tests
 ```
 
-Frontend admin checks:
+Admin checks:
 
 ```bash
 cd frontend/admin
@@ -500,64 +285,45 @@ Mobile checks:
 
 ```bash
 cd frontend/mobile
-npx expo start
+npm run lint
+npm run build:web
 ```
 
-Before pushing:
+Before merging:
 
 ```bash
 git diff --check
 git status
 ```
 
----
-
-## Security notes
-
-Do not commit secrets.
+## Security rules
 
 Never commit:
 
-* database passwords
-* JWT secrets
-* API keys
-* SMTP passwords
-* Cloudflare R2 secrets
-* admin passwords
-* password hashes
+- database passwords;
+- JWT secrets;
+- API keys/tokens;
+- R2 access keys/secrets;
+- Stream API tokens;
+- SMTP passwords;
+- admin passwords;
+- password hashes.
 
-Public frontend variables such as `NEXT_PUBLIC_API_URL` and `EXPO_PUBLIC_API_URL` are visible in the browser. They are not secrets.
+Public frontend API URLs such as `NEXT_PUBLIC_API_URL` and `EXPO_PUBLIC_API_URL` are not secrets.
 
-If a secret is accidentally exposed, rotate it.
+AI endpoints remain backend-mediated and should stay draft/suggest-only for sensitive operational actions. Human review is required before publishing content or taking sensitive admin actions.
 
----
+## Key documentation
 
-## Project status
-
-This project is under active development.
-
-The current focus is:
-
-* stable admin dashboard
-* safe contribution review
-* clean mobile donor experience
-* reliable backend migrations
-* simple deployment on Railway and Vercel
-* responsive admin website for desktop and mobile browsers
-
----
-
-## License
-
-This project is maintained for the Family Pledge Gaza initiative.
-
-Use responsibly.
-
-```
+```text
+docs/DEPLOYMENT.md             # current production architecture/deployment
+docs/ENV_MATRIX.md             # environment variable ownership/values
+docs/FINAL_DEPLOYMENT_CHECK.md # acceptance checklist and remaining blockers
+docs/HANDOVER_GUIDE.md         # admin/operator guide
+deploy/ovh/README.md            # OVH server runbook
+docs/RAILWAY_RUNBOOK.md        # temporary fallback/legacy runbook
 ```
 
-## AI Operations Assistant safety model
+## Current focus
 
-The admin AI assistant is designed as a **suggest-only** operations helper. It can draft content, identify donor follow-up cases, summarize campaign progress, and create task-run plans, but Phase 1 does not auto-send notifications, approve contributions, reject contributions, delete donor data, or directly modify critical records. Admin review and approval are required before suggested content or follow-up messages can be used.
-
-The backend exposes admin-only AI operations endpoints under `/api/v1/admin/ai/*`. If an AI provider or `OPENAI_API_KEY` is unavailable, content draft generation falls back to deterministic templates so the app remains stable without exposing secrets.
+The immediate launch work is to finish production-data migration, verify admin/donor authentication against OVH, test R2 and Stream through the real UI, then produce and test Android/iOS EAS release builds before store submission.

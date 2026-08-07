@@ -75,7 +75,7 @@ export default function MediaUrlInput({
           value={value}
           onChange={(event) => { onChange(event.target.value); setUploaded(null); setPreviewFailed(false); }}
           className={`input flex-1 ${value && !isValid ? 'border-red-300 focus:ring-red-200' : ''}`}
-          placeholder={placeholder || 'https://media.familypledge.org/…'}
+          placeholder={placeholder || 'https://familypledgekenya.org/…'}
         />
         {uploadFolder && (
           <label className={`btn-secondary flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${uploading ? 'opacity-60 pointer-events-none' : ''}`} title="Upload directly to Cloudflare R2">

@@ -69,6 +69,7 @@ def impact(title, created_at):
         image_url=None,
         video_url=None,
         completed_at=None,
+        published=True,
         created_by=uuid4(),
         created_at=created_at,
         updated_at=created_at,

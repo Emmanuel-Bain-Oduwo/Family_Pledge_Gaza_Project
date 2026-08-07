@@ -1,212 +1,203 @@
-# Family Pledge — Mobile App
+# Family Pledge — Donor App
 
-A humanitarian mobile app for the Family Pledge initiative under NAMLEF, supporting Gaza relief. Donors pledge USD 10/month and use this app to track pledges, contribute, receive reminders, and see impact.
+The donor app is built with Expo and React Native. The same `frontend/mobile` source tree produces two delivery targets:
 
-## Tech Stack
+- native Android/iOS builds through Expo EAS;
+- a static Expo web export deployed separately on Vercel.
 
-- **React Native** + **Expo** (~51)
-- **Expo Router** (file-based routing)
-- **TypeScript**
-- **Axios** (API calls)
-- **Expo SecureStore** (auth token storage)
-- **Expo Notifications** (push notifications)
-- **@expo/vector-icons** (Ionicons)
+Both targets use the Family Pledge production API on OVH.
 
-## Project Structure
+## Production API
 
-```
-mobile/
-├── app/
-│   ├── _layout.tsx           # Root layout
-│   ├── index.tsx             # Onboarding screen
-│   ├── auth/
-│   │   ├── login.tsx
-│   │   └── register.tsx
-│   ├── tabs/
-│   │   ├── _layout.tsx       # Bottom tabs
-│   │   ├── home.tsx
-│   │   ├── pledge.tsx
-│   │   ├── campaigns.tsx
-│   │   ├── reminders.tsx
-│   │   └── profile.tsx
-│   └── screens/
-│       ├── contribute.tsx
-│       ├── campaign-details.tsx
-│       ├── project-details.tsx
-│       ├── emergency-appeal.tsx
-│       ├── friday-challenge.tsx
-│       ├── updates.tsx
-│       ├── namlef.tsx
-│       ├── collector-dashboard.tsx
-│       ├── badges.tsx
-│       └── notifications.tsx
-├── components/               # Reusable UI components
-├── services/
-│   ├── api.ts                # All API calls (Axios)
-│   ├── auth.ts               # Token & user persistence
-│   └── notifications.ts      # Push notification setup
-├── constants/
-│   ├── colors.ts             # Design system colours
-│   ├── config.ts             # App config & API URL
-│   └── mockData.ts           # Mock data fallback
-└── types/
-    └── index.ts              # TypeScript interfaces
+```text
+https://api.familypledgekenya.org/api/v1
 ```
 
-## Quick Start
-
-### 1. Install dependencies
-
-```bash
-cd mobile
-npm install
-```
-
-### 2. Set up environment
-
-Create a `.env` file in `mobile/`:
+The code reads:
 
 ```env
-EXPO_PUBLIC_API_URL=https://api.familypledge.org/api/v1
+EXPO_PUBLIC_API_URL=https://api.familypledgekenya.org/api/v1
 ```
 
-> Without this, the app falls back to mock data automatically.
+`constants/config.ts` also contains the same production API as a fallback, and `eas.json` sets it for development, preview, and production EAS profiles.
 
-### 3. Run the app
+## Tech stack
 
-```bash
-# Start development server
-npx expo start
+- React Native + Expo
+- Expo Router
+- TypeScript
+- Axios
+- Expo SecureStore
+- Expo Notifications
+- React Native Web
 
-# Run on Android
-npx expo start --android
+## Project structure
 
-# Run on iOS (macOS only)
-npx expo start --ios
+```text
+frontend/mobile/
+├── app/                    # Expo Router screens/routes
+├── components/             # Reusable UI
+├── services/
+│   ├── api.ts              # Backend API client
+│   ├── auth.ts             # Token persistence
+│   └── notifications.ts    # Push setup
+├── constants/
+│   ├── config.ts           # API/public app configuration
+│   └── payment.ts
+├── types/
+├── app.json                # Android/iOS application identifiers
+├── eas.json                # Native EAS build profiles
+├── vercel.json             # Expo web deployment config
+└── .env.example
 ```
 
-### 4. Scan QR code
-
-Use the **Expo Go** app (iOS/Android) to scan the QR code, or use an emulator.
-
-## Design System
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| Primary Green | `#0B6B3A` | Buttons, headers, primary actions |
-| Dark Green | `#064E2B` | Hero sections, profile header |
-| Cream | `#F8F4E8` | App background |
-| Gold | `#D6A437` | Accents, Friday challenge |
-| Emergency Red | `#D94A38` | Emergency banners, alerts |
-
-## Features
-
-### Screens
-- **Onboarding** — App intro, sign up / sign in / visitor mode
-- **Register** — Full registration with anonymous toggle and collector code
-- **Login** — Phone or email + password
-- **Home** — Dashboard: greeting, pledge status, Friday challenge, emergency banner, impact, reminders
-- **Pledge** — USD 10/month pledge, status, history, contribute, anonymous toggle
-- **Campaigns** — Filter by type, progress bars, contribute buttons
-- **Reminders** — Quran, Hadith, Du'a, motivation, Friday reminder with share
-- **Profile** — Display name, pledge status, badges, anonymous toggle, logout
-- **Contribute** — Payment methods, instructions, reference form submission
-- **Friday Challenge** — 200-donor goal, live progress, share button
-- **Emergency Appeal** — Urgent banner, progress, impact breakdown
-- **Updates** — Impact cards, project reports, beneficiary counts
-- **NAMLEF & Messages** — About, Sheikh message, voices of support
-- **Collector Dashboard** — Circle stats, member list, invite code, reminder template
-- **Badges** — All badges, earned vs locked, tiers
-- **Notifications** — In-app notification list
-
-### API Integration
-All API calls are in `services/api.ts`. The app auto-falls back to `constants/mockData.ts` when the backend is unavailable, so the UI is always reviewable.
-
-### Auth Flow
-1. Token stored in `expo-secure-store`
-2. On launch, app checks token — routes to Home if valid
-3. Visitor mode skips auth entirely
-
-### Push Notifications
-- Requests permission on first home load
-- Gets Expo push token and sends to `/auth/save-push-token`
-- Schedules daily (8am) and Friday (9am) local reminders
-
-## Building for Production
+## Local development
 
 ```bash
-# Install EAS CLI
-npm install -g eas-cli
-
-# Login to Expo
-eas login
-
-# Build for Android
-eas build --platform android
-
-# Build for iOS
-eas build --platform ios
-```
-
-## API Endpoints Used
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/auth/register` | Register new user |
-| POST | `/auth/login` | Login |
-| GET | `/auth/me` | Get current user |
-| POST | `/auth/save-push-token` | Save push token |
-| GET | `/dashboard` | Home dashboard data |
-| GET | `/pledges/status` | Pledge status + history |
-| PATCH | `/auth/me` | Update anonymous preference |
-| POST | `/contributions` | Submit contribution |
-| GET | `/campaigns` | List campaigns |
-| GET | `/campaigns/:id` | Campaign details |
-| GET | `/impact` | Impact cards |
-| GET | `/reminders/today` | Daily reminders |
-| GET | `/namlef/content` | NAMLEF content |
-| GET | `/collector/dashboard` | Collector stats |
-
-## Contributing
-
-This app is a NAMLEF initiative. All contributions must align with the project's humanitarian mission.
-
-## Mobile Web Preview Deployment (Vercel)
-
-This web build is a preview/demo deployment of the existing Expo mobile user app. It does **not** replace Android/iOS. Native app store builds should still be produced later with EAS for Google Play and Apple App Store submission.
-
-### Vercel project settings
-
-- **Root Directory:** `frontend/mobile`
-- **Build Command:** `npm run build:web`
-- **Output Directory:** `dist`
-- **Install Command:** `npm install`
-- **Framework Preset:** Other / `null`
-- **Environment Variable:** `EXPO_PUBLIC_API_URL=https://your-backend-domain.com/api/v1`
-
-### Run locally
-
-```bash
+cd frontend/mobile
 npm install
-npm run web
+cp .env.example .env
+npx expo start
 ```
 
-### Build the static web preview
+Run specific targets:
+
+```bash
+npx expo start --android
+npx expo start --ios
+npx expo start --web
+```
+
+## Authentication
+
+The donor app uses the API auth routes under the configured base URL, including:
+
+```text
+POST /auth/register
+POST /auth/login
+GET  /users/me
+POST /auth/save-push-token
+```
+
+Tokens are persisted through the app auth service and attached to authenticated API requests.
+
+When debugging production registration/login, confirm the request reaches:
+
+```text
+https://api.familypledgekenya.org/api/v1/auth/register
+https://api.familypledgekenya.org/api/v1/auth/login
+```
+
+## Main donor flows
+
+- account registration and login;
+- monthly pledge management;
+- contribution submission and proof upload;
+- campaigns and projects;
+- impact updates;
+- daily reminders;
+- NAMLEF content;
+- collector dashboard;
+- notification feed;
+- push-token registration in native builds.
+
+## Native Android/iOS builds with EAS
+
+Application identifiers:
+
+```text
+Android package: org.namlef.familypledge
+iOS bundle identifier: org.namlef.familypledge
+```
+
+Install/login to EAS as needed:
+
+```bash
+npm install -g eas-cli
+eas login
+```
+
+Production Android build:
+
+```bash
+cd frontend/mobile
+eas build --platform android --profile production
+```
+
+Production iOS build:
+
+```bash
+cd frontend/mobile
+eas build --platform ios --profile production
+```
+
+Do not submit a store build until registration, login, contribution flows, media/proof upload, and push-token registration have been tested against the OVH API.
+
+## Donor web deployment on Vercel
+
+The Vercel deployment is a browser build of the Expo app. It does not replace Android/iOS.
+
+Vercel project settings:
+
+```text
+Root Directory: frontend/mobile
+Build Command: npm run build:web
+Output Directory: dist
+Install Command: npm install
+Framework Preset: Other / null
+```
+
+Required Vercel environment variable:
+
+```env
+EXPO_PUBLIC_API_URL=https://api.familypledgekenya.org/api/v1
+```
+
+The backend `CORS_ORIGINS` must include the donor-web Vercel origin because the browser build is subject to CORS.
+
+Build the web export locally:
 
 ```bash
 npm run build:web
 ```
 
-Expo exports the browser preview into `dist/`.
-
-### Preview the exported `dist/`
+Preview it:
 
 ```bash
 npm run preview:web
 ```
 
-### How this differs from Android/iOS EAS builds
+## Important difference: web vs native
 
-- Vercel serves a static browser preview of the Expo app for owner review and demos.
-- Native Android/iOS functionality remains in the Expo app and should be built with `eas build`.
-- Web skips native push-token registration and uses browser-safe fallbacks for storage, clipboard, sharing, and external links.
+Although web and native use the same source code:
+
+- Vercel injects `EXPO_PUBLIC_API_URL` during the web build;
+- EAS uses the profiles in `eas.json` for Android/iOS builds;
+- browser requests require backend CORS approval;
+- native Android/iOS networking does not use browser CORS in the same way;
+- production push notifications require real EAS/FCM/APNs configuration and physical-device testing.
+
+## Media and contribution proof uploads
+
+The app requests upload information from the backend and then uploads to the configured storage service. Production public media is backed by Cloudflare R2; video delivery uses Cloudflare Stream where applicable.
+
+Before store release, test the actual donor proof-upload flow against OVH and confirm the resulting object is accessible only as intended.
+
+## Validation before release
+
+At minimum test on a production/preview native build:
+
+- registration;
+- login/logout;
+- token persistence;
+- dashboard loading;
+- campaigns/projects/impact/reminders;
+- pledge creation/update;
+- contribution submission;
+- contribution proof upload;
+- collector flows if enabled;
+- push-token registration;
+- notification handling;
+- external links and sharing.
+
+The Android Play Store and Apple App Store releases should use the same production API base unless a deliberate environment-specific backend is introduced later.

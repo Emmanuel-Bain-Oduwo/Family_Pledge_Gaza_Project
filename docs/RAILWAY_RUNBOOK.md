@@ -1,148 +1,99 @@
-# Railway Backend Runbook
+# Railway Rollback / Legacy Runbook
 
-This runbook covers the production Railway backend for the Family Pledge API.
+Railway is **not the primary Family Pledge production backend anymore**. The production target is OVH at:
 
-## Required environment variables
+```text
+https://api.familypledgekenya.org/api/v1
+```
 
-Set these on the Railway backend service:
+Keep Railway only as a temporary rollback/fallback while the OVH database migration and full application verification are completed.
 
-```bash
+## When to use this runbook
+
+Use Railway only when:
+
+- production data still needs to be exported from Railway;
+- a deliberate rollback is required before OVH is fully accepted;
+- an old Railway deployment needs to be inspected for comparison/recovery.
+
+Do not point normal production traffic to Railway after OVH has passed the final acceptance checklist.
+
+## Required Railway variables while fallback is retained
+
+```env
 APP_ENV=production
 API_V1_PREFIX=/api/v1
 DATABASE_URL=<Railway Postgres URL>
-JWT_SECRET=<32+ char secret>
+JWT_SECRET=<Railway JWT secret>
 CORS_ORIGINS=https://family-pledge-gaza-project.vercel.app,https://family-pledge-gaza-project-demo.vercel.app
 ```
 
-Do not commit real secrets. `DATABASE_URL` must point to the Railway Postgres database that should hold production data.
+Do not commit real secrets.
 
-## Default startup behavior
+## Export the Railway production database
 
-The Docker container starts the API only:
+Before retiring Railway, export the data that must be moved to OVH:
 
 ```bash
-uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+pg_dump "$RAILWAY_DATABASE_URL" | gzip > railway-familypledge.sql.gz
 ```
 
-Migrations and demo seeding are **not** run automatically by default.
+Restore instructions are in `deploy/ovh/README.md` and `docs/DEPLOYMENT.md`.
 
-Optional startup controls are available when you intentionally want Railway to perform setup during container startup:
+## Railway startup behavior
 
-```bash
+The backend container starts the API with Uvicorn. Migrations and demo seeding should not be enabled casually.
+
+Controlled optional variables:
+
+```env
 RUN_MIGRATIONS_ON_STARTUP=true
 DEMO_SEED_ON_STARTUP=true
 ```
 
-Use these carefully. The safer production workflow is to run migrations and seed commands explicitly with Railway CLI.
+For retained production/fallback data, avoid demo seeding unless it is explicitly required for a non-production demo environment.
 
-## Run migrations after deploy
+## Railway health checks
 
-Run Alembic migrations against the deployed backend service environment:
-
-```bash
-railway run --service <backend-service-name> alembic upgrade head
-```
-
-If this command fails, check that `DATABASE_URL` points to the intended Railway Postgres database and that the backend service can connect to it.
-
-## Seed demo data manually
-
-Only run the demo seed when you intentionally want sample/demo data and the demo admin user:
-
-```bash
-railway run --service <backend-service-name> python scripts/seed_demo_content.py
-```
-
-The demo login seeded by that script is:
-
-```json
-{"identifier":"demo.admin@familypledge.org","password":"ChangeMeDemo123!"}
-```
-
-Do not set `DEMO_SEED_ON_STARTUP=true` unless repeated idempotent demo seeding on startup is desired.
-
-## Post-deploy checks
-
-Replace the host below if Railway provides a different backend domain.
+If the fallback service is still online, verify its actual Railway hostname before using these commands:
 
 ```bash
 curl https://familypledgegazaproject-production.up.railway.app/health
 curl https://familypledgegazaproject-production.up.railway.app/ready
-curl https://familypledgegazaproject-production.up.railway.app/api/v1/campaigns
-curl https://familypledgegazaproject-production.up.railway.app/api/v1/projects
-curl https://familypledgegazaproject-production.up.railway.app/api/v1/daily-reminders
-curl -X POST https://familypledgegazaproject-production.up.railway.app/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"identifier":"demo.admin@familypledge.org","password":"ChangeMeDemo123!"}'
 ```
 
-## Interpreting `/ready`
+The production frontend should **not** normally use this Railway hostname after the OVH cutover.
 
-`/ready` returns operational database and migration state without exposing secrets:
+## Controlled rollback procedure
 
-```json
-{
-  "status": "ready",
-  "service": "family-pledge-api",
-  "database": "connected",
-  "migrations": "ok",
-  "missing_tables": [],
-  "cors_origins_configured": 2
-}
-```
+If OVH develops a blocking issue before migration is complete:
 
-- `status=ready`, `database=connected`, and `migrations=ok`: the API can reach the database and core tables exist.
-- `database=failed`: Railway cannot connect to the configured database. Check `DATABASE_URL`, Railway networking, and database availability.
-- `migrations=missing_tables`: database connectivity works, but one or more required tables are absent. Run `railway run --service <backend-service-name> alembic upgrade head`.
-- Non-empty `missing_tables`: the listed tables are absent from the configured database.
-- `cors_origins_configured` should be `2` for the two Vercel frontend origins listed above.
+1. Confirm Railway backend/database are still healthy.
+2. Change the affected Vercel frontend API variable back to the known-good Railway API base.
+3. Redeploy that frontend.
+4. Keep the rollback temporary.
+5. Resolve the OVH issue and re-run the acceptance checklist before cutting back.
 
-Unhandled database exceptions are logged in Railway logs with request method/path context, while API responses return a generic database error and do not expose credentials or connection strings.
+Do not delete or overwrite either database during an emergency rollback without a clear source-of-truth decision.
 
-## Alembic enum migration recovery
+## Migration recovery notes
 
-If `alembic upgrade head` previously failed with an error like:
+If Railway Alembic previously reported enum conflicts such as an existing `user_role` type, do not delete the database or blindly stamp Alembic head. Verify the actual schema and use the repository's current migrations.
 
-```text
-psycopg2.errors.DuplicateObject: type "user_role" already exists
-```
+If password-hash compatibility is being investigated, inspect only aggregate hash-prefix counts. Do not print or export actual password hashes.
 
-that means PostgreSQL is reachable, but revision `0001` encountered enum types that were already present from a partial migration attempt. Do **not** delete the Railway Postgres database, do **not** manually drop enum types, and do **not** stamp Alembic head unless the tables were actually created.
+## Retirement criteria
 
-After deploying the fixed migration, rerun:
+Railway can be shut down after all of the following are true:
 
-```bash
-railway run --service <backend-service-name> alembic upgrade head
-```
+- required production records are present on OVH PostgreSQL;
+- admin authentication works against OVH;
+- donor registration/login works against OVH;
+- contribution and content flows work;
+- R2 and Stream media paths work;
+- private R2 database backup succeeds on OVH;
+- both Vercel frontends point to OVH;
+- native Android/iOS release candidates use OVH;
+- a deliberate stability window has passed.
 
-The initial migration now creates PostgreSQL enum types with `checkfirst=True` and reuses those same enum objects in table columns, so existing enum types are detected and reused while missing application tables are still created.
-
-## Password hash migration verification
-
-The backend now creates new password hashes with pwdlib's recommended Argon2id hasher. Before deciding whether legacy bcrypt compatibility is needed, inspect the deployed database for existing bcrypt password hashes:
-
-```bash
-railway run --service <backend-service-name> python - <<'PY'
-from sqlalchemy import create_engine, text
-from app.core.config import settings
-
-engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
-with engine.connect() as conn:
-    row = conn.execute(text("""
-        SELECT
-            COUNT(*) AS total_users,
-            COUNT(*) FILTER (
-                WHERE password_hash LIKE '$2a$%'
-                   OR password_hash LIKE '$2b$%'
-                   OR password_hash LIKE '$2y$%'
-            ) AS bcrypt_users,
-            COUNT(*) FILTER (WHERE password_hash LIKE '$argon2id$%') AS argon2id_users
-        FROM users
-    """)).mappings().one()
-    print(dict(row))
-PY
-```
-
-- If `bcrypt_users` is `0`, no legacy bcrypt compatibility is needed.
-- If `bcrypt_users` is greater than `0`, do not delete users or reset real passwords automatically. Add an isolated legacy verification and rehash-on-success path before removing bcrypt support.
-- Do not print or export actual `password_hash` values.
+After retirement, keep this file only as historical recovery documentation unless the Railway fallback is formally removed from the project.

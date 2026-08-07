@@ -1,7 +1,7 @@
 import { getToken } from './auth';
 import type { MediaFolder } from '../components/MediaUrlInput';
 
-const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.familypledge.org/api/v1').replace(/\/+$/, '');
+const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.familypledgekenya.org/api/v1').replace(/\/+$/, '');
 
 export interface UploadedMedia {
   public_url: string;
