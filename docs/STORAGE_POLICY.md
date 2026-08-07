@@ -1,57 +1,165 @@
-# Cloudflare R2 Storage Policy
+# Cloudflare R2 and Stream Storage Policy
 
-Cloudflare R2 stores images, audio, PDFs, documents, and general files. Cloudflare Stream is the production video platform, providing encoded adaptive playback and generated thumbnails. Cloudinary is deprecated.
+Cloudflare R2 stores images, audio, PDFs, documents, contribution-related media where permitted, and other general files. Cloudflare Stream is the production video platform for encoded playback and generated thumbnails. Cloudinary is not a production dependency.
+
+## Production storage targets
+
+Public media bucket:
+
+```text
+family-pledge-media
+```
+
+Public media base URL:
+
+```text
+https://familypledgekenya.org
+```
+
+Private database-backup bucket:
+
+```text
+family-pledge-backup-db
+```
+
+The backup bucket must remain private and must not have a public custom domain.
 
 ## Supported content
 
-Owners and administrators may upload images, videos, audio, PDFs, office documents, CSV/text files, and other recognized media. Videos are supported directly and are not restricted to YouTube. The broad policy blocks executable and server-side extensions such as `.exe`, `.bat`, `.cmd`, `.sh`, `.php`, `.js`, `.html`, `.py`, `.jar`, `.msi`, `.apk`, and `.ipa`.
+Owners and administrators may upload recognized images, video, audio, PDFs, office documents, CSV/text files, and other approved media. Videos are stored in Cloudflare Stream rather than R2.
 
-`R2_MAX_UPLOAD_MB` is a configurable safety ceiling (500 MB by default), not a small product limit. `R2_ALLOWED_UPLOADS_MODE` is reserved for selectable policy modes and defaults to `broad`.
+The broad upload policy blocks executable or server-side file types such as `.exe`, `.bat`, `.cmd`, `.sh`, `.php`, `.js`, `.html`, `.py`, `.jar`, `.msi`, `.apk`, and `.ipa`.
+
+`R2_MAX_UPLOAD_MB` is a configurable safety ceiling and currently defaults to 500 MB. `R2_ALLOWED_UPLOADS_MODE` defaults to `broad`.
 
 ## Upload and content flow
 
 1. An authenticated administrator selects a file.
-2. Non-video files request an R2 presigned PUT; videos request a one-time Stream direct creator upload URL.
-3. The browser uploads bytes directly to R2 or Stream. Large bytes never pass through the backend API.
-4. The client confirms metadata through the matching R2 or Stream confirmation endpoint.
-5. The upload URL is placed in the campaign, project, impact, reminder, or NAMLEF form field and saved with that record.
-6. PostgreSQL stores only the public URL, R2/Stream object identifier, metadata, and usage record—never raw file bytes.
-7. Public APIs return the saved URL and the user application renders or links it. Contribution proofs remain private and are not included in public APIs.
+2. Non-video files request an R2 presigned PUT; videos request a Stream direct-upload URL.
+3. The browser uploads bytes directly to R2 or Stream rather than proxying large payloads through FastAPI.
+4. The client confirms the uploaded object/asset through the corresponding backend confirmation endpoint.
+5. The returned URL is stored with the relevant campaign, project, impact card, reminder, or NAMLEF record.
+6. PostgreSQL stores URLs, object identifiers, metadata, and usage records rather than raw media bytes.
+7. Public application APIs return only media that is intended to be public.
 
-The `media_assets` table tracks file count, declared object size, content type, folder, uploader, status, and related entity when known. The admin Storage Usage page is operational metadata; the Cloudflare dashboard remains the final source of truth for billing, requests, bandwidth, and stored bytes.
+Contribution proof media is sensitive and must not be exposed through public content APIs. Access-control behavior for contribution proofs must be tested independently before production release.
 
-R2 objects use UUID-versioned keys and long-lived immutable caching. Stream encodes
-videos for adaptive playback and supplies a generated cover image; admins can replace
-that generated cover with a custom poster. Replacing media saves a new URL on the
-related record so clients fetch the new version immediately.
+## R2 object naming and metadata
 
-## Object naming and access
+R2 objects use versioned keys similar to:
 
-Objects use `family-pledge/<folder>/<yyyy>/<mm>/<uuid>-<sanitized-filename>`. Filenames are sanitized, extensions normalized to lowercase, and UUIDs prevent collisions. Public content uses the absolute custom-domain URL configured in `R2_PUBLIC_BASE_URL`.
-
-R2 access keys are backend-only secrets. Never add them to frontend code or a `NEXT_PUBLIC_*` variable. Presigned URLs expire after 15 minutes. Admin authorization is required to sign, confirm, and inspect usage.
-
-## Cloudflare setup
-
-1. Create a Cloudflare R2 bucket.
-2. Create an R2 API token limited to that bucket.
-3. Attach a public custom domain, for example `media.familypledge.org`.
-4. Set `R2_PUBLIC_BASE_URL=https://media.familypledge.org`.
-5. Configure bucket CORS to allow production and local admin origins to `PUT`, with `Content-Type` and `Cache-Control` allowed. Example:
-
-```json
-[{"AllowedOrigins":["https://admin.familypledge.org","http://localhost:3000"],"AllowedMethods":["PUT"],"AllowedHeaders":["Content-Type","Cache-Control"],"ExposeHeaders":["ETag"],"MaxAgeSeconds":3600}]
+```text
+family-pledge/<folder>/<yyyy>/<mm>/<uuid>-<sanitized-filename>
 ```
 
-6. Put account ID, access key, and secret access key only in the backend environment.
-7. Verify uploads and public delivery, then monitor final usage and billing in Cloudflare.
+Filenames are sanitized and UUIDs prevent collisions. Public URLs use the absolute base configured by:
 
-## Cloudflare Stream setup
+```env
+R2_PUBLIC_BASE_URL=https://familypledgekenya.org
+```
 
-1. Enable Stream in the same Cloudflare account.
-2. Create a backend-only API token with Stream write permission.
-3. Copy the Stream customer code shown in the Stream player/customer subdomain.
-4. Configure `STREAM_API_TOKEN`, `STREAM_CUSTOMER_CODE`, and optionally `STREAM_MAX_DURATION_SECONDS` on the backend.
-5. Never expose the Stream API token to the admin or mobile frontend. The backend creates a one-time upload URL and the browser sends video bytes directly to Stream.
-6. For files up to 190 MB the admin uses the simple direct upload; larger videos use resumable tus chunks so a network interruption does not restart the entire upload.
-7. Stream returns adaptive player and thumbnail URLs. The admin form saves the player URL and automatically uses the generated thumbnail as the cover, which the admin can replace.
+R2 credentials are backend-only secrets. Never place them in frontend code, `NEXT_PUBLIC_*`, or `EXPO_PUBLIC_*` variables.
+
+Presigned upload URLs are time-limited. Admin authorization is required to request signing/confirmation and storage-usage data.
+
+## Production R2 configuration
+
+Backend-only variables:
+
+```env
+R2_ACCOUNT_ID=<cloudflare-account-id>
+R2_ACCESS_KEY_ID=<secret>
+R2_SECRET_ACCESS_KEY=<secret>
+R2_BUCKET_NAME=family-pledge-media
+R2_PUBLIC_BASE_URL=https://familypledgekenya.org
+R2_MAX_UPLOAD_MB=500
+R2_ALLOWED_UPLOADS_MODE=broad
+```
+
+Use an R2 API token with only the permissions and bucket scope required by the application.
+
+## Browser CORS for direct R2 uploads
+
+The admin browser uploads directly to R2 after requesting a presigned URL from the backend. R2 therefore needs a CORS policy that includes the real browser origins and required methods/headers.
+
+Current production browser origins include:
+
+```text
+https://family-pledge-gaza-project.vercel.app
+https://family-pledge-gaza-project-demo.vercel.app
+```
+
+A representative R2 CORS policy is:
+
+```json
+[
+  {
+    "AllowedOrigins": [
+      "https://family-pledge-gaza-project.vercel.app",
+      "https://family-pledge-gaza-project-demo.vercel.app",
+      "http://localhost:3000"
+    ],
+    "AllowedMethods": ["PUT"],
+    "AllowedHeaders": ["Content-Type", "Cache-Control"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+Use only the origins and headers that the actual upload flow requires. Test browser uploads after every CORS change.
+
+## Cloudflare Stream
+
+Backend-only variables:
+
+```env
+STREAM_API_TOKEN=<secret>
+STREAM_CUSTOMER_CODE=<customer-code>
+STREAM_MAX_DURATION_SECONDS=21600
+```
+
+The Stream API token must never be exposed to the admin or donor frontend. The backend creates one-time upload instructions; the browser sends the video directly to Stream.
+
+For smaller files, the admin uses the simple direct-upload path. Larger videos use the resumable tus flow implemented by the admin media client. Both paths must be tested before production reliance.
+
+Stream provides playback and thumbnail URLs that can be stored with the application record.
+
+## Private PostgreSQL backups
+
+Database backups use a separate R2 credential and bucket:
+
+```env
+AWS_DEFAULT_REGION=auto
+BACKUP_R2_ACCOUNT_ID=<cloudflare-account-id>
+BACKUP_R2_ACCESS_KEY_ID=<secret>
+BACKUP_R2_SECRET_ACCESS_KEY=<secret>
+BACKUP_R2_BUCKET=family-pledge-backup-db
+BACKUP_R2_PREFIX=db
+BACKUP_KEEP_DAYS=7
+```
+
+The backup token must have the required Object Read & Write permission on `family-pledge-backup-db`. It does not need a public base URL because backup objects are intentionally private.
+
+Manual backup verification:
+
+```bash
+cd deploy/ovh
+bash scripts/backup_db_to_r2.sh
+```
+
+## Verification checklist
+
+Before production launch:
+
+- confirm an admin image upload reaches R2;
+- confirm the object appears in `family-pledge-media`;
+- confirm the returned public media URL renders correctly;
+- confirm browser CORS allows the intended upload request;
+- confirm a short video upload appears and processes in Stream;
+- test the resumable Stream path for a larger file;
+- verify contribution-proof privacy behavior;
+- verify a PostgreSQL backup reaches `family-pledge-backup-db`;
+- confirm no R2/Stream secret is present in frontend bundles or public environment variables.
+
+Cloudflare remains the source of truth for actual stored bytes, requests, bandwidth, Stream usage, and billing.
