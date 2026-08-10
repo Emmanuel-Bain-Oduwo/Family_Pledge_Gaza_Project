@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { getToken, removeToken } from './auth';
+import { getApiErrorMessage } from './apiError';
 import {
   Admin, AdminProfileUpdate, AuthTokens, Donor, Contribution, ContributionStatus,
   Campaign, Project, ImpactCard, Reminder, Collector, CollectorMember,
@@ -71,14 +72,10 @@ client.interceptors.request.use((config) => {
 });
 
 const handle = (e: unknown): never => {
-  if (axios.isAxiosError(e)) {
-    if (e.response?.status === 401 || e.response?.status === 403) {
-      removeToken();
-    }
-    const msg = (e.response?.data as any)?.detail || (e.response?.data as any)?.message || e.message;
-    throw new Error(msg);
+  if (axios.isAxiosError(e) && (e.response?.status === 401 || e.response?.status === 403)) {
+    removeToken();
   }
-  throw e;
+  throw new Error(getApiErrorMessage(e, 'Could not complete this admin request.'));
 };
 
 // ── Auth ──────────────────────────────────────────────────────────────────────

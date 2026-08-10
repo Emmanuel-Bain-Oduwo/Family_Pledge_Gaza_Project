@@ -47,7 +47,6 @@ def _push_preference_allows(user: User, notification_type: NotificationType, cat
         "hadith": _preference(user, "notification_hadith"),
         "dua": _preference(user, "notification_dua"),
         "dhikr": _preference(user, "notification_dhikr"),
-        "shirk": _preference(user, "notification_shirk"),
         "sadaqah": _preference(user, "notification_sadaqah"),
         "friday": _preference(user, "notification_friday"),
         "motivation": _preference(user, "notification_motivation"),
