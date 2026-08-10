@@ -95,7 +95,6 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      {/* Profile Header */}
       <View style={styles.profileHeader}>
         <View style={styles.avatarCircle}>
           <Text style={styles.avatarText}>{initial}</Text>
@@ -113,7 +112,6 @@ export default function ProfileScreen() {
         )}
       </View>
 
-      {/* Pledge Status */}
       <AppCard style={styles.card}>
         <View style={styles.cardRow}>
           <View style={styles.cardLabel}>
@@ -135,7 +133,6 @@ export default function ProfileScreen() {
         />
       </AppCard>
 
-      {/* Privacy */}
       <AppCard style={styles.card}>
         <Text style={styles.sectionTitle}>Privacy</Text>
         <View style={styles.toggleRow}>
@@ -153,7 +150,6 @@ export default function ProfileScreen() {
         </View>
       </AppCard>
 
-      {/* Badges */}
       {user.badges && user.badges.length > 0 && (
         <View style={styles.badgesSection}>
           <View style={styles.badgesHeader}>
@@ -170,7 +166,6 @@ export default function ProfileScreen() {
         </View>
       )}
 
-      {/* Menu Items */}
       <AppCard style={styles.card}>
         <Text style={styles.sectionTitle}>More</Text>
         {user.is_collector && (
@@ -186,7 +181,14 @@ export default function ProfileScreen() {
         <MenuItem icon="information-circle-outline" label="About NAMLEF" onPress={() => router.push('/screens/namlef')} color={Colors.primaryDark} />
       </AppCard>
 
-      {/* App Info */}
+      <AppCard style={styles.card}>
+        <Text style={styles.sectionTitle}>Account & Legal</Text>
+        <MenuItem icon="lock-closed-outline" label="Privacy Policy" onPress={() => router.push('/privacy')} color={Colors.primary} />
+        <MenuItem icon="document-text-outline" label="Terms & Conditions" onPress={() => router.push('/terms')} color={Colors.primaryDark} />
+        <MenuItem icon="help-circle-outline" label="Support" onPress={() => router.push('/support')} color={Colors.gold} />
+        <MenuItem icon="trash-outline" label="Delete Account" onPress={() => router.push('/screens/delete-account')} color={Colors.emergency} />
+      </AppCard>
+
       <View style={styles.appInfo}>
         <Text style={styles.appInfoText}>Family Pledge v1.0 · A NAMLEF Initiative</Text>
         <Text style={styles.appInfoText}>Gaza Relief Programme</Text>
