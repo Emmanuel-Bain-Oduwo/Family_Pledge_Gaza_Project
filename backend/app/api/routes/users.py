@@ -10,6 +10,7 @@ from app.models.user import User
 from app.schemas.user import (
     AnonymousUpdateRequest,
     BadgeOut,
+    CommunicationPreferenceRequest,
     DeleteAccountOut,
     DeleteAccountRequest,
     EmailPreferenceRequest,
@@ -61,9 +62,16 @@ def update_email_preferences(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return user_service.update_email_preferences(
-        db, current_user, data.weekly_email_opt_in
-    )
+    return user_service.update_email_preferences(db, current_user, data.weekly_email_opt_in)
+
+
+@router.patch("/me/communication-preferences", response_model=UserOut)
+def update_communication_preferences(
+    data: CommunicationPreferenceRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return user_service.update_communication_preferences(db, current_user, data)
 
 
 @router.patch("/me/notification-preferences", response_model=UserOut)
@@ -77,11 +85,7 @@ def update_notification_preferences(
 
 @router.get("/unsubscribe-weekly-email/{token}", response_model=UserOut)
 def unsubscribe_weekly_email(token: str, db: Session = Depends(get_db)):
-    user = db.scalar(
-        select(User).where(
-            User.email_unsubscribe_token == token, User.deleted_at.is_(None)
-        )
-    )
+    user = db.scalar(select(User).where(User.email_unsubscribe_token == token, User.deleted_at.is_(None)))
     if not user:
         raise HTTPException(status_code=404, detail="Unsubscribe link is invalid")
     return user_service.update_email_preferences(db, user, False)
