@@ -1,7 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { savePushToken } from './api';
+import { registerNotificationEndpoint } from './notificationEndpointApi';
 import { NotificationPreferences } from '../types';
 
 const DAILY_KIND = 'family-pledge-daily-reminder';
@@ -120,7 +120,11 @@ export async function applyLocalReminderPreferences(
 export const registerForPushNotifications = async (
   requestPermission = true,
 ): Promise<string | null> => {
-  if (Platform.OS === 'web') return null;
+  if (Platform.OS === 'web') {
+    const { registerWebPushNotifications } = await import('./webPush');
+    return registerWebPushNotifications(requestPermission);
+  }
+
   await ensureAndroidChannels();
 
   let permission = await Notifications.getPermissionsAsync();
@@ -138,13 +142,34 @@ export const registerForPushNotifications = async (
   }
 
   const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-  await savePushToken(token);
+  await registerNotificationEndpoint(
+    'expo',
+    Platform.OS === 'android' ? 'android' : 'ios',
+    token,
+  );
   return token;
 };
 
-/** Keep an already-authorized token current and route notification taps. */
+/** Keep already-authorized endpoints current and route notification taps. */
 export function addNotificationLifecycleListeners(onOpen: (screen: string) => void) {
-  if (Platform.OS === 'web') return () => {};
+  if (Platform.OS === 'web') {
+    let disposed = false;
+    let remove: (() => void) | undefined;
+    import('./webPush')
+      .then(({ addWebPushLifecycleListeners }) => addWebPushLifecycleListeners(onOpen))
+      .then((cleanup) => {
+        if (disposed) cleanup();
+        else remove = cleanup;
+      })
+      .catch(() => {
+        // Web notifications are optional and must not block the app shell.
+      });
+    return () => {
+      disposed = true;
+      remove?.();
+    };
+  }
+
   const received = Notifications.addNotificationReceivedListener(() => {
     // Foreground presentation is handled by setNotificationHandler above.
   });
