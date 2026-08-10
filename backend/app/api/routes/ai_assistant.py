@@ -17,7 +17,7 @@ from app.schemas.ai_draft import (
     AiWeeklySummaryRequest,
 )
 from app.schemas.common import PaginatedResponse, make_page
-from app.services import ai_draft_edit_service, ai_service, ai_workspace_service
+from app.services import ai_draft_edit_service, ai_flexible_chat_service, ai_service
 from app.utils.pagination import offset_limit
 
 router = APIRouter(prefix="/admin/ai", tags=["AI Assistant"])
@@ -29,7 +29,7 @@ def chat(
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    result = ai_workspace_service.answer_admin_question(
+    result = ai_flexible_chat_service.answer_admin_question(
         db,
         data.message,
         [item.model_dump() for item in data.history],
