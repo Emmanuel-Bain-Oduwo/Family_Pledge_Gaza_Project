@@ -2,27 +2,47 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 
 from app.api.routes.daily_reminders import _notification_category
-from app.models.enums import AiTaskStatus, ReminderType
+from app.models.enums import ReminderType
 from app.schemas.admin_operations import OutboundCampaignCreate
-from app.services.admin_operations_service import _normalize_channels
+from app.services.admin_operations_service import _consecutive_months
 from app.services.ai_task_service import _add_month
+from app.services.communication_channels import send_email_reminder, send_whatsapp_reminder
 
 
-def test_communication_channels_are_deduplicated():
-    assert _normalize_channels(["app", "email", "app", "whatsapp"]) == ["app", "email", "whatsapp"]
+def test_consecutive_months_handles_duplicates_and_breaks():
+    assert _consecutive_months(["2026-08", "2026-07", "2026-07", "2026-06", "2026-03"]) == 3
+    assert _consecutive_months([]) == 0
+    assert _consecutive_months(["bad", "2026-08"]) == 1
 
 
-def test_outbound_campaign_requires_at_least_one_channel():
-    try:
-        OutboundCampaignCreate(
-            title="Reminder",
-            body="Message",
-            segment="all_donors",
-            channels=[],
-        )
-        assert False, "Expected validation error"
-    except Exception:
-        assert True
+def test_outbound_channels_are_deduplicated():
+    payload = OutboundCampaignCreate(
+        title="Monthly reminder",
+        body="Thank you for staying connected with Family Pledge.",
+        segment="missing_this_month",
+        channels=["app", "email", "app"],
+    )
+    assert payload.channels == ["app", "email"]
+
+
+def test_email_delivery_requires_explicit_opt_in_before_provider_call():
+    user = SimpleNamespace(id="u1", email="donor@example.com", email_reminders_opt_in=False)
+    ok, error = send_email_reminder(user, "Hello", "Reminder")
+    assert ok is False
+    assert "consent" in (error or "").lower()
+
+
+def test_whatsapp_delivery_requires_explicit_opt_in_before_provider_call():
+    user = SimpleNamespace(id="u1", phone="+254700000001", whatsapp_reminders_opt_in=False)
+    ok, error = send_whatsapp_reminder(user, "Hello", "Reminder")
+    assert ok is False
+    assert "consent" in (error or "").lower()
+
+
+def test_monthly_ai_schedule_preserves_day_when_possible():
+    start = datetime(2026, 8, 10, 9, 30, tzinfo=timezone.utc)
+    next_run = _add_month(start)
+    assert (next_run.year, next_run.month, next_run.day, next_run.hour) == (2026, 9, 10, 9)
 
 
 def test_monthly_ai_schedule_clamps_end_of_month():
