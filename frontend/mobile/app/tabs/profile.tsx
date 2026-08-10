@@ -15,6 +15,7 @@ import AppCard from '../../components/AppCard';
 import AppButton from '../../components/AppButton';
 import BadgeCard from '../../components/BadgeCard';
 import LoadingState from '../../components/LoadingState';
+import ErrorState from '../../components/ErrorState';
 import { getMe, updateAnonymousPreference } from '../../services/api';
 import { getUser, saveUser, logout } from '../../services/auth';
 import { User } from '../../types';
@@ -39,21 +40,35 @@ export default function ProfileScreen() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatingAnon, setUpdatingAnon] = useState(false);
+  const [error, setError] = useState('');
 
   const load = useCallback(async () => {
+    setError('');
     try {
       const me = await getMe();
       setUser(me);
       await saveUser(me);
     } catch {
       const stored = await getUser();
-      setUser(stored || MOCK_USER);
+      if (stored) {
+        setUser(stored);
+      } else if (__DEV__) {
+        setUser(MOCK_USER);
+      } else {
+        setUser(null);
+        setError('We could not load your profile. Check your connection and try again.');
+      }
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const retry = () => {
+    setLoading(true);
+    load();
+  };
 
   const toggleAnonymous = async (val: boolean) => {
     if (!user) return;
@@ -88,7 +103,7 @@ export default function ProfileScreen() {
   };
 
   if (loading) return <LoadingState fullScreen message="Loading profile..." />;
-  if (!user) return null;
+  if (!user) return <ErrorState title="Could not load your profile" message={error} onRetry={retry} />;
 
   const initial = (user.nickname || user.full_name || 'D').charAt(0).toUpperCase();
   const pledgeStatus = user.pledge_status || 'none';
@@ -177,7 +192,8 @@ export default function ProfileScreen() {
           />
         )}
         <MenuItem icon="shield-outline" label="Badges & Achievements" onPress={() => router.push('/screens/badges')} color={Colors.gold} />
-        <MenuItem icon="notifications-outline" label="Notifications" onPress={() => router.push('/screens/notifications')} color={Colors.primaryLight} />
+        <MenuItem icon="notifications-outline" label="Notification Feed" onPress={() => router.push('/screens/notifications')} color={Colors.primaryLight} />
+        <MenuItem icon="options-outline" label="Notification Preferences" onPress={() => router.push('/screens/notification-preferences')} color={Colors.primary} />
         <MenuItem icon="information-circle-outline" label="About NAMLEF" onPress={() => router.push('/screens/namlef')} color={Colors.primaryDark} />
       </AppCard>
 

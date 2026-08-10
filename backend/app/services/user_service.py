@@ -15,7 +15,11 @@ from app.models.enums import UserRole
 from app.models.media_asset import MediaAsset
 from app.models.tracked_contact import TrackedContact
 from app.models.user import User
-from app.schemas.user import AnonymousUpdateRequest, UserUpdateRequest
+from app.schemas.user import (
+    AnonymousUpdateRequest,
+    NotificationPreferenceRequest,
+    UserUpdateRequest,
+)
 from app.services.private_proof_service import delete_object as delete_private_proof
 
 
@@ -80,6 +84,20 @@ def update_anonymous(db: Session, user: User, data: AnonymousUpdateRequest) -> U
     user.anonymous_publicly = data.anonymous_publicly
     if data.public_display_name is not None:
         user.public_display_name = data.public_display_name
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def update_notification_preferences(
+    db: Session, user: User, data: NotificationPreferenceRequest
+) -> User:
+    user.notification_daily = data.daily
+    user.notification_friday = data.friday
+    user.notification_campaigns = data.campaigns
+    user.notification_emergency = data.emergency
+    user.notification_onboarding_seen = data.onboarding_seen
+    db.add(user)
     db.commit()
     db.refresh(user)
     return user
@@ -191,6 +209,11 @@ def delete_account(db: Session, user: User, password: str) -> None:
     user.collector_code = None
     user.anonymous_publicly = True
     user.weekly_email_opt_in = False
+    user.notification_daily = False
+    user.notification_friday = False
+    user.notification_campaigns = False
+    user.notification_emergency = False
+    user.notification_onboarding_seen = True
     user.email_unsubscribe_token = secrets.token_urlsafe(32)
     user.password_hash = hash_password(secrets.token_urlsafe(48))
     user.is_active = False

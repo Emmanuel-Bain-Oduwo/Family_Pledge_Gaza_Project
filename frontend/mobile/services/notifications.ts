@@ -2,6 +2,7 @@ import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { savePushToken } from './api';
+import { NotificationPreferences } from '../types';
 
 const DAILY_KIND = 'family-pledge-daily-reminder';
 const FRIDAY_KIND = 'family-pledge-friday-reminder';
@@ -9,7 +10,8 @@ const FRIDAY_KIND = 'family-pledge-friday-reminder';
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
-      shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
       shouldPlaySound: true,
       shouldSetBadge: true,
     }),
@@ -42,15 +44,27 @@ async function ensureAndroidChannels() {
   ]);
 }
 
-async function replaceScheduledNotification(kind: string, content: Notifications.NotificationContentInput, trigger: Notifications.NotificationTriggerInput) {
+async function cancelScheduledNotification(kind: string) {
+  if (Platform.OS === 'web') return;
   const existing = await Notifications.getAllScheduledNotificationsAsync();
   await Promise.all(
     existing
       .filter((item) => item.content.data?.kind === kind)
       .map((item) => Notifications.cancelScheduledNotificationAsync(item.identifier)),
   );
+}
+
+async function replaceScheduledNotification(
+  kind: string,
+  content: Notifications.NotificationContentInput,
+  trigger: Notifications.NotificationTriggerInput,
+) {
+  await cancelScheduledNotification(kind);
   await Notifications.scheduleNotificationAsync({
-    content: { ...content, data: { ...content.data, kind, screen: '/screens/notifications' } },
+    content: {
+      ...content,
+      data: { ...content.data, kind, screen: '/screens/notifications' },
+    },
     trigger,
   });
 }
@@ -64,7 +78,12 @@ export const scheduleDailyReminder = async (): Promise<void> => {
       body: 'Remember Gaza in your prayers, pledge, and daily actions.',
       sound: 'default',
     },
-    { hour: 8, minute: 0, repeats: true, channelId: 'reminders' },
+    {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour: 8,
+      minute: 0,
+      channelId: 'reminders',
+    },
   );
 };
 
@@ -77,51 +96,70 @@ export const scheduleFridayReminder = async (): Promise<void> => {
       body: 'It is Jumu’ah—open Family Pledge to see today’s campaign and share it.',
       sound: 'default',
     },
-    { weekday: 6, hour: 9, minute: 0, repeats: true, channelId: 'reminders' },
+    {
+      type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+      weekday: 6,
+      hour: 9,
+      minute: 0,
+      channelId: 'reminders',
+    },
   );
 };
 
-export const registerForPushNotifications = async (): Promise<string | null> => {
+export async function applyLocalReminderPreferences(
+  preferences: NotificationPreferences,
+): Promise<void> {
+  if (Platform.OS === 'web') return;
+  if (preferences.daily) await scheduleDailyReminder();
+  else await cancelScheduledNotification(DAILY_KIND);
+
+  if (preferences.friday) await scheduleFridayReminder();
+  else await cancelScheduledNotification(FRIDAY_KIND);
+}
+
+export const registerForPushNotifications = async (
+  requestPermission = true,
+): Promise<string | null> => {
   if (Platform.OS === 'web') return null;
   await ensureAndroidChannels();
 
-  const current = await Notifications.getPermissionsAsync();
-  const permission = current.status === 'granted'
-    ? current
-    : await Notifications.requestPermissionsAsync();
+  let permission = await Notifications.getPermissionsAsync();
+  if (permission.status !== 'granted' && requestPermission) {
+    permission = await Notifications.requestPermissionsAsync();
+  }
   if (permission.status !== 'granted') return null;
 
-  const projectId = (process.env as Record<string, string | undefined>).EXPO_PUBLIC_EAS_PROJECT_ID
+  const projectId =
+    (process.env as Record<string, string | undefined>).EXPO_PUBLIC_EAS_PROJECT_ID
+    || Constants.expoConfig?.extra?.eas?.projectId
     || Constants.easConfig?.projectId;
-  if (!projectId) throw new Error('EAS project ID is not configured for push notifications.');
+  if (!projectId) {
+    throw new Error('EAS project ID is not configured for push notifications.');
+  }
 
   const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
   await savePushToken(token);
-  await Promise.all([scheduleDailyReminder(), scheduleFridayReminder()]);
   return token;
 };
 
-/** Keep the backend token current and route notification taps into the in-app feed. */
+/** Keep an already-authorized token current and route notification taps. */
 export function addNotificationLifecycleListeners(onOpen: (screen: string) => void) {
   if (Platform.OS === 'web') return () => {};
   const received = Notifications.addNotificationReceivedListener(() => {
-    // The foreground popup is presented by setNotificationHandler above.
+    // Foreground presentation is handled by setNotificationHandler above.
   });
   const response = Notifications.addNotificationResponseReceivedListener((event) => {
     const screen = event.notification.request.content.data?.screen;
     onOpen(typeof screen === 'string' ? screen : '/screens/notifications');
   });
   const token = Notifications.addPushTokenListener(() => {
-    // Native APNs/FCM tokens can rotate. Resolve a fresh Expo token before
-    // updating our backend, which intentionally stores Expo-format tokens only.
-    registerForPushNotifications().catch(() => {});
+    // Token rotation must never trigger a surprise permission prompt.
+    registerForPushNotifications(false).catch(() => {});
   });
-  Notifications.getLastNotificationResponseAsync()
-    .then((event) => {
-      const screen = event?.notification.request.content.data?.screen;
-      if (event) onOpen(typeof screen === 'string' ? screen : '/screens/notifications');
-    })
-    .catch(() => {});
+  const lastResponse = Notifications.getLastNotificationResponse();
+  const screen = lastResponse?.notification.request.content.data?.screen;
+  if (lastResponse) onOpen(typeof screen === 'string' ? screen : '/screens/notifications');
+
   return () => {
     received.remove();
     response.remove();

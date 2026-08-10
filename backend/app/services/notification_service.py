@@ -8,7 +8,12 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.models.audit import AdminAuditLog
 from app.models.contribution import Contribution
-from app.models.enums import ContributionStatus, NotificationAudience, UserRole
+from app.models.enums import (
+    ContributionStatus,
+    NotificationAudience,
+    NotificationType,
+    UserRole,
+)
 from app.models.notification import Notification
 from app.models.user import User
 from app.schemas.notification import NotificationSend
@@ -36,6 +41,24 @@ def _audience_query(audience: NotificationAudience):
         )
         return query.where(User.role == UserRole.donor, User.id.not_in(confirmed_users))
     return query
+
+
+def _push_preference_allows(user: User, notification_type: NotificationType) -> bool:
+    """Apply opt-in preferences to remote push delivery.
+
+    Daily/Friday reminders are scheduled locally by the app. Admin-created
+    reminder/pledge notifications use the daily opt-in; campaign and impact
+    updates use the campaign opt-in; emergency alerts use the emergency opt-in.
+    System notices remain deliverable because they can contain account/service
+    information rather than marketing or campaign content.
+    """
+    if notification_type == NotificationType.emergency:
+        return user.notification_emergency
+    if notification_type in (NotificationType.campaign, NotificationType.impact):
+        return user.notification_campaigns
+    if notification_type in (NotificationType.reminder, NotificationType.pledge):
+        return user.notification_daily
+    return True
 
 
 def _send_expo_push(
@@ -87,7 +110,12 @@ def _send_expo_push(
 
 
 def send(db: Session, admin: User, data: NotificationSend) -> Notification:
-    users = list(db.scalars(_audience_query(data.audience)).all())
+    audience_users = list(db.scalars(_audience_query(data.audience)).all())
+    users = [
+        user
+        for user in audience_users
+        if _push_preference_allows(user, data.notification_type)
+    ]
     tokens = [user.push_token for user in users if user.push_token]
     sent_count, failure_count = _send_expo_push(
         tokens, data.title, data.body, data.notification_type.value
@@ -112,6 +140,8 @@ def send(db: Session, admin: User, data: NotificationSend) -> Notification:
             metadata_={
                 "title": data.title,
                 "audience": data.audience.value,
+                "eligible_push_users": len(users),
+                "preference_filtered_users": len(audience_users) - len(users),
                 "sent_count": sent_count,
                 "failure_count": failure_count,
             },

@@ -20,6 +20,11 @@ class UserOut(BaseModel):
     public_display_name: Optional[str] = None
     is_active: bool
     weekly_email_opt_in: bool
+    notification_daily: bool = False
+    notification_friday: bool = False
+    notification_campaigns: bool = False
+    notification_emergency: bool = False
+    notification_onboarding_seen: bool = False
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -56,6 +61,14 @@ class EmailPreferenceRequest(BaseModel):
     weekly_email_opt_in: bool
 
 
+class NotificationPreferenceRequest(BaseModel):
+    daily: bool
+    friday: bool
+    campaigns: bool
+    emergency: bool
+    onboarding_seen: bool = True
+
+
 class AnonymousUpdateRequest(BaseModel):
     anonymous_publicly: bool
     public_display_name: Optional[str] = None
@@ -67,7 +80,9 @@ class DeleteAccountRequest(BaseModel):
 
 class DeleteAccountOut(BaseModel):
     deleted: bool = True
-    retained_records: list[str] = ["contributions", "pledges"]
+    retained_records: list[str] = Field(
+        default_factory=lambda: ["contributions", "pledges"]
+    )
 
 
 class BadgeOut(BaseModel):
