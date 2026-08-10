@@ -18,7 +18,7 @@ def send_email_reminder(user: User, title: str, body: str) -> tuple[bool, str | 
         return False, "SMTP reminder delivery is not configured"
 
     unsubscribe_url = (
-        f"{settings.WEB_APP_BASE_URL.rstrip('/')}/api/v1/users/unsubscribe-weekly-email/"
+        f"{settings.PUBLIC_API_BASE_URL.rstrip('/')}/users/unsubscribe-reminders/"
         f"{user.email_unsubscribe_token}"
     )
     message = EmailMessage()
@@ -28,8 +28,8 @@ def send_email_reminder(user: User, title: str, body: str) -> tuple[bool, str | 
     message.set_content(
         f"{body}\n\n"
         "You are receiving this because you opted in to Family Pledge email reminders.\n"
-        f"Manage your reminder preferences in the Family Pledge app.\n"
-        f"Unsubscribe from weekly email: {unsubscribe_url}"
+        "You can change Email and WhatsApp reminder preferences in the Family Pledge app.\n"
+        f"Stop Family Pledge reminder emails: {unsubscribe_url}"
     )
     try:
         with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=20) as client:
