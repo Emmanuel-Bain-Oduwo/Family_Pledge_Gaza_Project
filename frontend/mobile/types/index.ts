@@ -204,6 +204,7 @@ export interface ContributionPayload {
   payment_method?: string;
   transaction_reference?: string;
   proof_image_url?: string;
+  proof_object_key?: string;
   contribution_channel?: string;
   contribution_month?: string;
   payment_link_used?: string;
