@@ -4,6 +4,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.api.routes import storage
+from app.services import private_proof_service
 
 
 def test_valid_broad_media_types(monkeypatch):
@@ -37,12 +38,36 @@ def test_safe_object_key_preserves_normalized_extension():
     assert " " not in key
 
 
+def test_private_proof_key_is_separate_from_public_media_namespace():
+    key = storage.make_private_proof_key(
+        " Receipt FINAL.JPG ", datetime(2026, 8, 10, tzinfo=timezone.utc)
+    )
+    assert key.startswith("family-pledge-private/contribution_proofs/2026/08/")
+    assert key.endswith("-receipt-final.jpg")
+    assert not key.startswith("family-pledge/contribution_proofs/")
+
+
 def test_missing_r2_configuration_is_friendly(monkeypatch):
     monkeypatch.setattr(storage.settings, "R2_ACCOUNT_ID", "")
     with pytest.raises(HTTPException) as exc:
         storage._require_r2_config()
     assert exc.value.status_code == 503
     assert exc.value.detail == "Media storage is not configured. Please contact admin."
+
+
+def test_missing_private_proof_configuration_is_friendly(monkeypatch):
+    monkeypatch.setattr(private_proof_service.settings, "PROOF_R2_ACCOUNT_ID", "")
+    with pytest.raises(HTTPException) as exc:
+        private_proof_service.require_private_proof_config()
+    assert exc.value.status_code == 503
+    assert exc.value.detail == "Private contribution-proof storage is not configured."
+
+
+def test_private_presigned_response_has_no_public_url_or_credentials():
+    fields = storage.PrivateProofPresignedOut.model_fields
+    assert "public_url" not in fields
+    assert "secret" not in fields
+    assert "access_key" not in fields
 
 
 def test_presigned_response_schema_cannot_include_credentials():
@@ -52,6 +77,7 @@ def test_presigned_response_schema_cannot_include_credentials():
 
 def test_r2_objects_use_immutable_browser_cache_policy():
     assert storage.R2_CACHE_CONTROL == "public, max-age=31536000, immutable"
+    assert private_proof_service.PRIVATE_CACHE_CONTROL == "private, no-store, max-age=0"
 
 
 def test_storage_routes_require_admin_dependency():
@@ -68,6 +94,20 @@ def test_storage_routes_require_admin_dependency():
         if route.path in protected_paths:
             dependencies = {dependency.call for dependency in route.dependant.dependencies}
             assert require_admin in dependencies
+
+
+def test_contribution_proof_routes_require_authenticated_user_not_admin():
+    from app.core.deps import get_current_user, require_admin
+
+    paths = {
+        "/admin/storage/contribution-proof/presigned-upload",
+        "/admin/storage/contribution-proof/confirm-upload",
+    }
+    for route in storage.router.routes:
+        if route.path in paths:
+            dependencies = {dependency.call for dependency in route.dependant.dependencies}
+            assert get_current_user in dependencies
+            assert require_admin not in dependencies
 
 
 def test_missing_stream_configuration_is_friendly(monkeypatch):
@@ -98,14 +138,14 @@ def test_confirm_upload_creates_media_asset(monkeypatch):
                 value.created_at = datetime.now(timezone.utc)
 
     monkeypatch.setattr(storage, "_require_r2_config", lambda: None)
-    monkeypatch.setattr(storage.settings, "R2_PUBLIC_BASE_URL", "https://media.familypledge.org")
+    monkeypatch.setattr(storage.settings, "R2_PUBLIC_BASE_URL", "https://media.familypledgekenya.org")
     monkeypatch.setattr(storage.settings, "R2_MAX_UPLOAD_MB", 500)
     key = "family-pledge/impact/2026/07/asset-impact.jpg"
     db = FakeDb()
     saved = storage.confirm_upload(
         storage.ConfirmUploadRequest(
             object_key=key,
-            public_url=f"https://media.familypledge.org/{key}",
+            public_url=f"https://media.familypledgekenya.org/{key}",
             original_filename="impact.jpg",
             content_type="image/jpeg",
             size_bytes=1234,
@@ -120,3 +160,24 @@ def test_confirm_upload_creates_media_asset(monkeypatch):
     assert saved.status == "uploaded"
     assert saved.related_entity_type == "impact"
     assert saved.uploaded_at is not None
+    assert saved.is_public is True
+
+
+def test_public_admin_uploader_refuses_contribution_proofs(monkeypatch):
+    from types import SimpleNamespace
+    from uuid import uuid4
+
+    monkeypatch.setattr(storage.settings, "R2_MAX_UPLOAD_MB", 500)
+    with pytest.raises(HTTPException) as exc:
+        storage.create_presigned_upload(
+            storage.PresignedUploadRequest(
+                folder="contribution_proofs",
+                filename="proof.jpg",
+                content_type="image/jpeg",
+                size_bytes=100,
+            ),
+            SimpleNamespace(id=uuid4()),
+            SimpleNamespace(),
+        )
+    assert exc.value.status_code == 400
+    assert "dedicated private-proof" in exc.value.detail
