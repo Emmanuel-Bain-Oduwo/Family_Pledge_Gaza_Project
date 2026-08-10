@@ -66,6 +66,8 @@ class ReminderType(str, enum.Enum):
     quran = "quran"
     hadith = "hadith"
     dua = "dua"
+    dhikr = "dhikr"
+    shirk = "shirk"
     motivation = "motivation"
     friday = "friday"
     sadaqah = "sadaqah"
