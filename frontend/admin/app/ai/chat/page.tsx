@@ -166,7 +166,7 @@ export default function FamilyPledgeAiChatPage() {
 
             <form onSubmit={submit} className="border-t border-gray-200 bg-white p-3 sm:p-4">
               <div className="flex gap-2">
-                <textarea value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void send(); } }} rows={2} maxLength={4000} className="input min-h-[52px] flex-1 resize-none" placeholder="Ask Family Pledge AI…" />
+                <textarea value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void send(); } }} rows={2} maxLength={4000} className="input min-h-[52px] flex-1 resize-none" placeholder="Ask Family Pledge AI about operations, campaigns or approved reminders…" />
                 <button disabled={busy || !input.trim()} className="btn-primary self-end px-4 disabled:opacity-50" aria-label="Send AI message"><Send size={18} /></button>
               </div>
               <p className="mt-2 text-xs text-gray-400">Enter to send · Shift+Enter for a new line</p>
