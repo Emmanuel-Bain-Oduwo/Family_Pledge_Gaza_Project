@@ -28,6 +28,18 @@ def upgrade():
         unique=False,
     )
 
+    # Existing transaction references / legacy proof URLs are also sensitive.
+    # Give them the same 30-day lifetime based on their original submission time
+    # so the purge worker can clean old records immediately after deployment.
+    op.execute(
+        """
+        UPDATE contributions
+        SET proof_expires_at = created_at + INTERVAL '30 days'
+        WHERE proof_expires_at IS NULL
+          AND (transaction_reference IS NOT NULL OR proof_image_url IS NOT NULL)
+        """
+    )
+
 
 def downgrade():
     op.drop_index("ix_contributions_proof_expires_at", table_name="contributions")
