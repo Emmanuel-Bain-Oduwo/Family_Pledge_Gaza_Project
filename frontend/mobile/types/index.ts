@@ -14,7 +14,20 @@ export interface User {
   pledge_status?: PledgeStatus;
   donor_number?: number;
   badges?: Badge[];
+  notification_daily?: boolean;
+  notification_friday?: boolean;
+  notification_campaigns?: boolean;
+  notification_emergency?: boolean;
+  notification_onboarding_seen?: boolean;
   created_at: string;
+}
+
+export interface NotificationPreferences {
+  daily: boolean;
+  friday: boolean;
+  campaigns: boolean;
+  emergency: boolean;
+  onboarding_seen: boolean;
 }
 
 export type PledgeStatus = 'paid' | 'pending' | 'missed' | 'free_participant' | 'none';
