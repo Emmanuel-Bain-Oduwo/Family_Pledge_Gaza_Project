@@ -16,9 +16,10 @@ export async function setAppearancePreference(value: AppearancePreference): Prom
 }
 
 export function applyAppearancePreference(value: AppearancePreference): void {
-  // RN's Appearance override updates native controls/system color scheme. Existing
-  // Family Pledge screens still use static brand tokens, so this is intentionally
-  // the non-breaking foundation for a later full tokenized dark-theme migration.
-  const override: 'light' | 'dark' | null = value === 'system' ? null : value;
-  if (typeof Appearance.setColorScheme === 'function') Appearance.setColorScheme(override);
+  // Keep "system" OS-managed in this SDK rather than forcing an unsupported
+  // null override. Light/dark can be explicitly requested without changing the
+  // existing Family Pledge screen styles.
+  if (value !== 'system' && typeof Appearance.setColorScheme === 'function') {
+    Appearance.setColorScheme(value);
+  }
 }
