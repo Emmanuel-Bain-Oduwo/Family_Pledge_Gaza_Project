@@ -31,6 +31,7 @@ class UserOut(BaseModel):
     notification_dua: bool = False
     notification_dhikr: bool = False
     notification_shirk: bool = False
+    notification_sadaqah: bool = False
     notification_motivation: bool = False
     notification_impact: bool = False
     notification_humanitarian: bool = False
@@ -84,6 +85,7 @@ class NotificationPreferenceRequest(BaseModel):
     dua: bool = False
     dhikr: bool = False
     shirk: bool = False
+    sadaqah: bool = False
     motivation: bool = False
     impact: bool = False
     humanitarian: bool = False
