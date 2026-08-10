@@ -13,6 +13,7 @@ from app.models.collector import Collector, CollectorMember
 from app.models.contribution import Contribution
 from app.models.enums import UserRole
 from app.models.media_asset import MediaAsset
+from app.models.notification_endpoint import NotificationEndpoint
 from app.models.tracked_contact import TrackedContact
 from app.models.user import User
 from app.schemas.user import (
@@ -179,9 +180,10 @@ def delete_account(db: Session, user: User, password: str) -> None:
         contribution.transaction_reference = None
         contribution.proof_expires_at = None
 
-    # Remove app-only recognition/referral/collector data. Pledges and
-    # contributions deliberately remain linked to the anonymized internal UUID.
+    # Remove app-only recognition/referral/collector/notification endpoint data.
+    # Pledges and contributions deliberately remain linked to the anonymized UUID.
     db.execute(delete(UserBadge).where(UserBadge.user_id == user.id))
+    db.execute(delete(NotificationEndpoint).where(NotificationEndpoint.user_id == user.id))
     db.execute(
         delete(CollectorMember).where(CollectorMember.donor_user_id == user.id)
     )
