@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
 import AppButton from '../../components/AppButton';
@@ -19,13 +20,35 @@ import { PAYMENT_SETTINGS, currentContributionMonth } from '../../constants/paym
 import { copyText } from '../../services/webCompat';
 
 type PledgeOptionKey = 'kes10' | 'usd10' | 'usd20' | 'usd50' | 'usd100' | 'open' | 'free';
+type ProofFile = { uri: string; fileName: string; mimeType: string; fileSize: number };
+
+const MAX_PROOF_BYTES = 10 * 1024 * 1024;
+const ALLOWED_PROOF_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+function inferMimeType(filename: string): string {
+  const lower = filename.toLowerCase();
+  if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+  return '';
+}
+
+function validateProof(file: ProofFile): string | null {
+  if (!ALLOWED_PROOF_TYPES.has(file.mimeType)) {
+    return 'Please choose a JPG, PNG or WebP screenshot.';
+  }
+  if (file.fileSize > MAX_PROOF_BYTES) {
+    return 'The payment screenshot must be 10 MB or smaller.';
+  }
+  return null;
+}
 
 export default function ContributeScreen() {
   const [selectedMethod, setSelectedMethod] = useState('mpesa');
   const [selectedOption, setSelectedOption] = useState<PledgeOptionKey>('usd10');
   const [openAmount, setOpenAmount] = useState('');
   const [reference, setReference] = useState('');
-  const [proof, setProof] = useState<{ uri: string; fileName: string; mimeType: string; fileSize: number } | null>(null);
+  const [proof, setProof] = useState<ProofFile | null>(null);
   const proofInputRef = useRef<any>(null);
   const [loading, setLoading] = useState(false);
 
@@ -39,6 +62,36 @@ export default function ContributeScreen() {
 
   const copy = (label: string, value: string) => {
     copyText(label, value);
+  };
+
+  const selectNativeProof = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 1,
+        selectionLimit: 1,
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+
+      const asset = result.assets[0];
+      const fileName = asset.fileName || `payment-proof-${Date.now()}.jpg`;
+      const mimeType = asset.mimeType || inferMimeType(fileName);
+      const selectedFile: ProofFile = {
+        uri: asset.uri,
+        fileName,
+        mimeType,
+        fileSize: asset.fileSize || 0,
+      };
+      const error = validateProof(selectedFile);
+      if (error) {
+        Alert.alert('Unsupported screenshot', error);
+        return;
+      }
+      setProof(selectedFile);
+    } catch {
+      Alert.alert('Could not open photos', 'Please try again or submit the transaction message/reference instead.');
+    }
   };
 
   const handleSubmit = async () => {
@@ -154,15 +207,33 @@ export default function ContributeScreen() {
                 </View>
               </View>
               {Platform.OS === 'web' && React.createElement('input', {
-                ref: proofInputRef, type: 'file', accept: 'image/jpeg,image/png,image/webp', style: { display: 'none' },
-                onChange: (event: any) => { const file = event.target.files?.[0]; if (file) setProof({ uri: URL.createObjectURL(file), fileName: file.name, mimeType: file.type, fileSize: file.size }); },
+                ref: proofInputRef,
+                type: 'file',
+                accept: 'image/jpeg,image/png,image/webp',
+                style: { display: 'none' },
+                onChange: (event: any) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  const selectedFile: ProofFile = {
+                    uri: URL.createObjectURL(file),
+                    fileName: file.name,
+                    mimeType: file.type,
+                    fileSize: file.size,
+                  };
+                  const error = validateProof(selectedFile);
+                  if (error) Alert.alert('Unsupported screenshot', error);
+                  else setProof(selectedFile);
+                },
               })}
               <TouchableOpacity style={styles.uploadButton} onPress={() => {
                 if (Platform.OS === 'web') proofInputRef.current?.click();
-                else Alert.alert('Payment proof', 'Screenshot selection is available in the web app. You can submit your transaction message/reference here.');
+                else selectNativeProof();
               }}>
                 <Ionicons name={proof ? 'checkmark-circle' : 'cloud-upload-outline'} size={22} color={Colors.primary} />
-                <View style={{ flex: 1 }}><Text style={styles.uploadTitle}>{proof ? 'Screenshot selected' : 'Upload payment screenshot'}</Text><Text style={styles.uploadHelp}>{proof?.fileName || 'JPG, PNG or WebP'}</Text></View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.uploadTitle}>{proof ? 'Screenshot selected' : 'Upload payment screenshot'}</Text>
+                  <Text style={styles.uploadHelp}>{proof?.fileName || 'JPG, PNG or WebP · max 10 MB'}</Text>
+                </View>
               </TouchableOpacity>
             </>
           )}
