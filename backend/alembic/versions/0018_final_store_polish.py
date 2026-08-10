@@ -23,6 +23,7 @@ def upgrade():
 
     op.add_column("users", sa.Column("notification_dhikr", sa.Boolean(), nullable=False, server_default=sa.false()))
     op.add_column("users", sa.Column("notification_shirk", sa.Boolean(), nullable=False, server_default=sa.false()))
+    op.add_column("users", sa.Column("notification_sadaqah", sa.Boolean(), nullable=False, server_default=sa.false()))
 
     op.create_table(
         "support_messages",
@@ -49,6 +50,7 @@ def downgrade():
     op.drop_index("ix_support_messages_status_created", table_name="support_messages")
     op.drop_index("ix_support_messages_user", table_name="support_messages")
     op.drop_table("support_messages")
+    op.drop_column("users", "notification_sadaqah")
     op.drop_column("users", "notification_shirk")
     op.drop_column("users", "notification_dhikr")
     op.drop_column("pledges", "agreement_version")
