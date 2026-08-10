@@ -15,6 +15,10 @@ class ContributionSubmit(BaseModel):
     contribution_channel: Optional[str] = None
     payment_link_used: Optional[str] = None
     transaction_reference: Optional[str] = None
+    # New uploads use a private R2 object key. proof_image_url remains accepted
+    # temporarily for legacy clients/data migration only and is never generated
+    # by the current donor application.
+    proof_object_key: Optional[str] = None
     proof_image_url: Optional[str] = None
     contribution_month: str  # YYYY-MM
 
@@ -36,9 +40,20 @@ class ContributionSubmit(BaseModel):
     @classmethod
     def validate_month(cls, v: str) -> str:
         import re
+
         if not re.match(r"^\d{4}-(0[1-9]|1[0-2])$", v):
             raise ValueError("contribution_month must be YYYY-MM format")
         return v
+
+    @field_validator("proof_object_key")
+    @classmethod
+    def validate_private_proof_key(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        value = value.strip()
+        if not value.startswith("family-pledge-private/contribution_proofs/"):
+            raise ValueError("Invalid private contribution-proof reference")
+        return value
 
 
 class ContributionOut(BaseModel):
@@ -51,6 +66,8 @@ class ContributionOut(BaseModel):
     contribution_channel: Optional[str] = None
     payment_link_used: Optional[str] = None
     transaction_reference: Optional[str] = None
+    # Legacy-only. Private proof object keys are deliberately not exposed in
+    # donor-facing contribution responses.
     proof_image_url: Optional[str] = None
     status: ContributionStatus
     contribution_month: str
@@ -71,3 +88,5 @@ class ContributionAdminOut(ContributionOut):
     user_full_name: Optional[str] = None
     user_phone: Optional[str] = None
     user_email: Optional[str] = None
+    proof_available: bool = False
+    proof_expires_at: Optional[datetime] = None

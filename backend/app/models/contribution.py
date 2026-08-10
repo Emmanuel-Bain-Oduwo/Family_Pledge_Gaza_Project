@@ -34,8 +34,18 @@ class Contribution(Base, TimestampMixin):
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
     contribution_channel: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     payment_link_used: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+
+    # Raw transaction proof is intentionally short-lived. A screenshot is stored
+    # in a dedicated private R2 bucket by object key; raw reference/message text
+    # is also purged after the same retention window. The contribution amount,
+    # month, status and audit history remain as the accounting record.
     transaction_reference: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     proof_image_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    proof_object_key: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    proof_expires_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     status: Mapped[ContributionStatus] = mapped_column(
         Enum(ContributionStatus, name="contribution_status"),
         nullable=False,
@@ -51,7 +61,6 @@ class Contribution(Base, TimestampMixin):
         DateTime(timezone=True), nullable=True
     )
 
-    # Relationships
     user: Mapped["User"] = relationship(
         "User", back_populates="contributions", foreign_keys=[user_id]
     )
@@ -73,6 +82,7 @@ class Contribution(Base, TimestampMixin):
         Index("ix_contributions_month", "contribution_month"),
         Index("ix_contributions_confirmed_by", "confirmed_by"),
         Index("ix_contributions_reference", "transaction_reference"),
+        Index("ix_contributions_proof_expires_at", "proof_expires_at"),
     )
 
     def __repr__(self) -> str:

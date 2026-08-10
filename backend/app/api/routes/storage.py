@@ -1,7 +1,7 @@
-"""Cloudflare R2 direct-upload and media usage APIs — admin only.
+"""Cloudflare R2 direct-upload, private proof, Stream, and usage APIs.
 
-Large file bytes travel directly from the browser to R2. The API only signs a
-short-lived PUT and stores object URLs/keys and metadata in PostgreSQL.
+Large file bytes travel directly from the browser/device to Cloudflare. The API
+only issues short-lived upload URLs and stores metadata in PostgreSQL.
 """
 from __future__ import annotations
 
@@ -26,37 +26,93 @@ from app.core.database import get_db
 from app.core.deps import get_current_user, require_admin
 from app.models.media_asset import MediaAsset
 from app.models.user import User
+from app.services.private_proof_service import (
+    PRIVATE_CACHE_CONTROL,
+    create_upload_url as create_private_proof_upload_url,
+    require_private_proof_config,
+    verify_uploaded_object,
+)
 
 router = APIRouter(prefix="/admin/storage", tags=["Storage"])
 
-# UUID-versioned object keys make long-lived caching safe: replacing media creates
-# a new URL, while unchanged files remain fast at the browser/Cloudflare edge.
 R2_CACHE_CONTROL = "public, max-age=31536000, immutable"
 
 FolderKey = Literal[
-    "projects", "impact", "namlef", "reminders", "contribution_proofs",
-    "documents", "general",
+    "projects",
+    "impact",
+    "namlef",
+    "reminders",
+    "contribution_proofs",
+    "documents",
+    "general",
 ]
 ALLOWED_CONTENT_TYPES = {
-    "image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml",
-    "video/mp4", "video/webm", "video/quicktime", "video/x-msvideo", "video/mpeg",
-    "audio/mpeg", "audio/mp4", "audio/wav", "audio/webm", "audio/ogg",
-    "application/pdf", "application/msword",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+    "image/svg+xml",
+    "video/mp4",
+    "video/webm",
+    "video/quicktime",
+    "video/x-msvideo",
+    "video/mpeg",
+    "audio/mpeg",
+    "audio/mp4",
+    "audio/wav",
+    "audio/webm",
+    "audio/ogg",
+    "application/pdf",
+    "application/msword",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "application/vnd.ms-excel",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "application/vnd.ms-powerpoint",
     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    "text/plain", "text/csv",
+    "text/plain",
+    "text/csv",
 }
 SAFE_EXTENSIONS = {
-    ".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg", ".mp4", ".webm",
-    ".mov", ".avi", ".mpeg", ".mpg", ".mp3", ".m4a", ".wav", ".ogg",
-    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt", ".csv",
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp",
+    ".gif",
+    ".svg",
+    ".mp4",
+    ".webm",
+    ".mov",
+    ".avi",
+    ".mpeg",
+    ".mpg",
+    ".mp3",
+    ".m4a",
+    ".wav",
+    ".ogg",
+    ".pdf",
+    ".doc",
+    ".docx",
+    ".xls",
+    ".xlsx",
+    ".ppt",
+    ".pptx",
+    ".txt",
+    ".csv",
 }
 DANGEROUS_EXTENSIONS = {
-    ".exe", ".bat", ".cmd", ".sh", ".php", ".js", ".html", ".htm", ".py",
-    ".jar", ".msi", ".apk", ".ipa",
+    ".exe",
+    ".bat",
+    ".cmd",
+    ".sh",
+    ".php",
+    ".js",
+    ".html",
+    ".htm",
+    ".py",
+    ".jar",
+    ".msi",
+    ".apk",
+    ".ipa",
 }
 
 
@@ -74,6 +130,25 @@ class PresignedUploadOut(BaseModel):
     public_url: str
     object_key: str
     bucket: str
+    size_bytes: int
+    content_type: str
+
+
+class PrivateProofPresignedOut(BaseModel):
+    upload_url: str
+    method: Literal["PUT"] = "PUT"
+    required_headers: dict[str, str]
+    object_key: str
+    size_bytes: int
+    content_type: str
+
+
+class PrivateProofConfirmRequest(BaseModel):
+    object_key: str = Field(min_length=1, max_length=1024)
+
+
+class PrivateProofConfirmOut(BaseModel):
+    object_key: str
     size_bytes: int
     content_type: str
 
@@ -129,98 +204,9 @@ class MediaAssetOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-@router.post("/contribution-proof/presigned-upload", response_model=PresignedUploadOut)
-def create_contribution_proof_upload(
-    body: PresignedUploadRequest,
-    user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """Let an authenticated donor upload an image receipt directly to R2."""
-    _require_r2_config()
-    if body.folder != "contribution_proofs":
-        raise HTTPException(400, "Contribution proof uploads must use the contribution_proofs folder.")
-    content_type = validate_upload(body.filename, body.content_type, body.size_bytes)
-    if not content_type.startswith("image/"):
-        raise HTTPException(400, "Payment proof must be an image.")
-    object_key = make_object_key(body.folder, body.filename)
-    try:
-        upload_url = _r2_client().generate_presigned_url(
-            "put_object",
-            Params={
-                "Bucket": settings.R2_BUCKET_NAME,
-                "Key": object_key,
-                "ContentType": content_type,
-                "CacheControl": R2_CACHE_CONTROL,
-            },
-            ExpiresIn=900,
-        )
-    except Exception as exc:
-        raise HTTPException(503, "Payment proof storage is temporarily unavailable.") from exc
-    public_url = f"{settings.R2_PUBLIC_BASE_URL.rstrip('/')}/{quote(object_key, safe='/')}"
-    db.add(MediaAsset(
-        object_key=object_key, public_url=public_url,
-        original_filename=body.filename, content_type=content_type,
-        file_extension=_extension(body.filename), folder=body.folder,
-        size_bytes=body.size_bytes, uploaded_by=user.id,
-        upload_source="donor_contribution", status="pending_upload", is_public=True,
-    ))
-    db.commit()
-    return PresignedUploadOut(
-        upload_url=upload_url, required_headers={"Content-Type": content_type, "Cache-Control": R2_CACHE_CONTROL},
-        public_url=public_url, object_key=object_key, bucket=settings.R2_BUCKET_NAME,
-        size_bytes=body.size_bytes, content_type=content_type,
-    )
+def _extension(filename: str) -> str:
+    return Path(filename.strip()).suffix.lower()
 
-
-def _require_r2_config() -> None:
-    if not all((settings.R2_ACCOUNT_ID, settings.R2_ACCESS_KEY_ID,
-                settings.R2_SECRET_ACCESS_KEY, settings.R2_BUCKET_NAME,
-                settings.R2_PUBLIC_BASE_URL)):
-        raise HTTPException(503, "Media storage is not configured. Please contact admin.")
-
-
-def _require_stream_config() -> None:
-    if not all((settings.R2_ACCOUNT_ID, settings.STREAM_API_TOKEN, settings.STREAM_CUSTOMER_CODE)):
-        raise HTTPException(503, "Video streaming is not configured. Please contact admin.")
-
-
-@router.post("/stream-direct-upload", response_model=StreamDirectUploadOut)
-def create_stream_direct_upload(body: StreamDirectUploadRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    """Create a one-time direct creator upload; video bytes never touch this API."""
-    _require_stream_config()
-    try:
-        response = httpx.post(
-            f"https://api.cloudflare.com/client/v4/accounts/{settings.R2_ACCOUNT_ID}/stream/direct_upload",
-            headers={"Authorization": f"Bearer {settings.STREAM_API_TOKEN}"},
-            json={
-                "maxDurationSeconds": settings.STREAM_MAX_DURATION_SECONDS,
-                "meta": {"name": safe_filename(body.filename), "uploadedBy": str(admin.id)},
-                "requireSignedURLs": False,
-            },
-            timeout=20,
-        )
-        response.raise_for_status()
-        result = response.json()["result"]
-        uid = result["uid"]
-    except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
-        raise HTTPException(503, "Video streaming is not configured. Please contact admin.") from exc
-    base = f"https://customer-{settings.STREAM_CUSTOMER_CODE}.cloudflarestream.com/{uid}"
-    playback_url = f"{base}/iframe"
-    db.add(MediaAsset(
-        object_key=f"stream/{uid}", public_url=playback_url,
-        original_filename=body.filename, content_type="video/stream",
-        file_extension=_extension(body.filename), folder=body.folder,
-        size_bytes=body.size_bytes, uploaded_by=admin.id,
-        related_entity_type=body.related_entity_type,
-        related_entity_id=body.related_entity_id,
-        status="pending_upload", is_public=True,
-    ))
-    db.commit()
-    return StreamDirectUploadOut(
-        upload_url=result["uploadURL"], uid=uid,
-        playback_url=playback_url,
-        thumbnail_url=f"{base}/thumbnails/thumbnail.jpg?time=1s&height=720",
-    )
 
 def safe_filename(filename: str) -> str:
     extension = _extension(filename)
@@ -229,24 +215,21 @@ def safe_filename(filename: str) -> str:
     stem = re.sub(r"[^a-zA-Z0-9._-]+", "-", stem).strip("-._").lower()
     return f"{stem[:120] or 'file'}{extension}"
 
-@router.post("/stream-confirm-upload", response_model=MediaAssetOut)
-def confirm_stream_upload(body: StreamConfirmUploadRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    asset = db.scalar(select(MediaAsset).where(MediaAsset.object_key == f"stream/{body.uid}"))
-    if not asset:
-        raise HTTPException(404, "Video upload was not found.")
-    if asset.uploaded_by != admin.id:
-        raise HTTPException(403, "This upload belongs to another administrator.")
-    asset.status = "uploaded"
-    asset.uploaded_at = datetime.now(timezone.utc)
-    db.commit(); db.refresh(asset)
-    return asset
 
 def make_object_key(folder: str, filename: str, now: datetime | None = None) -> str:
     now = now or datetime.now(timezone.utc)
-    return f"family-pledge/{folder}/{now:%Y}/{now:%m}/{uuid.uuid4()}-{safe_filename(filename)}"
+    return (
+        f"family-pledge/{folder}/{now:%Y}/{now:%m}/"
+        f"{uuid.uuid4()}-{safe_filename(filename)}"
+    )
 
-def _extension(filename: str) -> str:
-    return Path(filename.strip()).suffix.lower()
+
+def make_private_proof_key(filename: str, now: datetime | None = None) -> str:
+    now = now or datetime.now(timezone.utc)
+    return (
+        f"family-pledge-private/contribution_proofs/{now:%Y}/{now:%m}/"
+        f"{uuid.uuid4()}-{safe_filename(filename)}"
+    )
 
 
 def validate_upload(filename: str, content_type: str, size_bytes: int) -> str:
@@ -264,21 +247,30 @@ def validate_upload(filename: str, content_type: str, size_bytes: int) -> str:
     return normalized_type
 
 
-def safe_filename(filename: str) -> str:
-    extension = _extension(filename)
-    stem = Path(filename.strip()).stem
-    stem = unicodedata.normalize("NFKD", stem).encode("ascii", "ignore").decode()
-    stem = re.sub(r"[^a-zA-Z0-9._-]+", "-", stem).strip("-._").lower()
-    return f"{stem[:120] or 'file'}{extension}"
-
-
-def make_object_key(folder: str, filename: str, now: datetime | None = None) -> str:
-    now = now or datetime.now(timezone.utc)
-    return f"family-pledge/{folder}/{now:%Y}/{now:%m}/{uuid.uuid4()}-{safe_filename(filename)}"
-
-
 def public_url_for(object_key: str) -> str:
     return f"{settings.R2_PUBLIC_BASE_URL.rstrip('/')}/{quote(object_key, safe='/')}"
+
+
+def _require_r2_config() -> None:
+    if not all(
+        (
+            settings.R2_ACCOUNT_ID,
+            settings.R2_ACCESS_KEY_ID,
+            settings.R2_SECRET_ACCESS_KEY,
+            settings.R2_BUCKET_NAME,
+            settings.R2_PUBLIC_BASE_URL,
+        )
+    ):
+        raise HTTPException(503, "Media storage is not configured. Please contact admin.")
+
+
+def _require_stream_config() -> None:
+    if not all(
+        (settings.R2_ACCOUNT_ID, settings.STREAM_API_TOKEN, settings.STREAM_CUSTOMER_CODE)
+    ):
+        raise HTTPException(
+            503, "Video streaming is not configured. Please contact admin."
+        )
 
 
 def _r2_client():
@@ -292,12 +284,179 @@ def _r2_client():
     )
 
 
+@router.post(
+    "/contribution-proof/presigned-upload",
+    response_model=PrivateProofPresignedOut,
+)
+def create_contribution_proof_upload(
+    body: PresignedUploadRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Issue a private-bucket upload URL for an authenticated donor receipt."""
+    require_private_proof_config()
+    if body.folder != "contribution_proofs":
+        raise HTTPException(
+            400, "Contribution proof uploads must use the contribution_proofs folder."
+        )
+    content_type = validate_upload(body.filename, body.content_type, body.size_bytes)
+    if content_type not in {"image/jpeg", "image/png", "image/webp"}:
+        raise HTTPException(400, "Payment proof must be a JPG, PNG, or WebP image.")
+
+    object_key = make_private_proof_key(body.filename)
+    upload_url = create_private_proof_upload_url(object_key, content_type)
+    db.add(
+        MediaAsset(
+            object_key=object_key,
+            public_url=None,
+            original_filename=body.filename,
+            content_type=content_type,
+            file_extension=_extension(body.filename),
+            folder="contribution_proofs",
+            size_bytes=body.size_bytes,
+            uploaded_by=user.id,
+            upload_source="donor_contribution",
+            status="pending_upload",
+            is_public=False,
+        )
+    )
+    db.commit()
+    return PrivateProofPresignedOut(
+        upload_url=upload_url,
+        required_headers={
+            "Content-Type": content_type,
+            "Cache-Control": PRIVATE_CACHE_CONTROL,
+        },
+        object_key=object_key,
+        size_bytes=body.size_bytes,
+        content_type=content_type,
+    )
+
+
+@router.post(
+    "/contribution-proof/confirm-upload",
+    response_model=PrivateProofConfirmOut,
+)
+def confirm_contribution_proof_upload(
+    body: PrivateProofConfirmRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    prefix = "family-pledge-private/contribution_proofs/"
+    if not body.object_key.startswith(prefix):
+        raise HTTPException(400, "Invalid private proof object key.")
+
+    asset = db.scalar(select(MediaAsset).where(MediaAsset.object_key == body.object_key))
+    if not asset:
+        raise HTTPException(404, "Contribution proof upload was not found.")
+    if asset.uploaded_by != user.id:
+        raise HTTPException(403, "This contribution proof belongs to another user.")
+    if asset.is_public:
+        raise HTTPException(400, "Contribution proof must be private.")
+
+    head = verify_uploaded_object(body.object_key)
+    actual_size = int(head.get("ContentLength") or 0)
+    actual_type = str(head.get("ContentType") or asset.content_type or "")
+    if actual_size != asset.size_bytes:
+        raise HTTPException(400, "Uploaded contribution proof size does not match.")
+    if actual_type and asset.content_type and actual_type != asset.content_type:
+        raise HTTPException(400, "Uploaded contribution proof type does not match.")
+
+    asset.status = "uploaded"
+    asset.uploaded_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(asset)
+    return PrivateProofConfirmOut(
+        object_key=asset.object_key,
+        size_bytes=asset.size_bytes,
+        content_type=asset.content_type or actual_type,
+    )
+
+
+@router.post("/stream-direct-upload", response_model=StreamDirectUploadOut)
+def create_stream_direct_upload(
+    body: StreamDirectUploadRequest,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    _require_stream_config()
+    try:
+        response = httpx.post(
+            f"https://api.cloudflare.com/client/v4/accounts/{settings.R2_ACCOUNT_ID}/stream/direct_upload",
+            headers={"Authorization": f"Bearer {settings.STREAM_API_TOKEN}"},
+            json={
+                "maxDurationSeconds": settings.STREAM_MAX_DURATION_SECONDS,
+                "meta": {"name": safe_filename(body.filename), "uploadedBy": str(admin.id)},
+                "requireSignedURLs": False,
+            },
+            timeout=20,
+        )
+        response.raise_for_status()
+        result = response.json()["result"]
+        uid = result["uid"]
+    except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
+        raise HTTPException(
+            503, "Video streaming is not configured. Please contact admin."
+        ) from exc
+
+    base = f"https://customer-{settings.STREAM_CUSTOMER_CODE}.cloudflarestream.com/{uid}"
+    playback_url = f"{base}/iframe"
+    db.add(
+        MediaAsset(
+            object_key=f"stream/{uid}",
+            public_url=playback_url,
+            original_filename=body.filename,
+            content_type="video/stream",
+            file_extension=_extension(body.filename),
+            folder=body.folder,
+            size_bytes=body.size_bytes,
+            uploaded_by=admin.id,
+            related_entity_type=body.related_entity_type,
+            related_entity_id=body.related_entity_id,
+            status="pending_upload",
+            is_public=True,
+        )
+    )
+    db.commit()
+    return StreamDirectUploadOut(
+        upload_url=result["uploadURL"],
+        uid=uid,
+        playback_url=playback_url,
+        thumbnail_url=f"{base}/thumbnails/thumbnail.jpg?time=1s&height=720",
+    )
+
+
+@router.post("/stream-confirm-upload", response_model=MediaAssetOut)
+def confirm_stream_upload(
+    body: StreamConfirmUploadRequest,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    asset = db.scalar(
+        select(MediaAsset).where(MediaAsset.object_key == f"stream/{body.uid}")
+    )
+    if not asset:
+        raise HTTPException(404, "Video upload was not found.")
+    if asset.uploaded_by != admin.id:
+        raise HTTPException(403, "This upload belongs to another administrator.")
+    asset.status = "uploaded"
+    asset.uploaded_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(asset)
+    return asset
+
+
 @router.post("/r2-presigned-upload", response_model=PresignedUploadOut)
 def create_presigned_upload(
     body: PresignedUploadRequest,
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    if body.folder == "contribution_proofs":
+        raise HTTPException(
+            400,
+            "Contribution proofs must use the dedicated private-proof upload endpoint.",
+        )
     _require_r2_config()
     content_type = validate_upload(body.filename, body.content_type, body.size_bytes)
     object_key = make_object_key(body.folder, body.filename)
@@ -315,15 +474,23 @@ def create_presigned_upload(
             HttpMethod="PUT",
         )
     except Exception as exc:
-        raise HTTPException(503, "Media storage is not configured. Please contact admin.") from exc
+        raise HTTPException(
+            503, "Media storage is not configured. Please contact admin."
+        ) from exc
 
-    db.add(MediaAsset(
-        object_key=object_key, public_url=public_url,
-        original_filename=body.filename, content_type=content_type,
-        file_extension=_extension(body.filename), folder=body.folder,
-        size_bytes=body.size_bytes, uploaded_by=admin.id,
-        is_public=body.folder != "contribution_proofs",
-    ))
+    db.add(
+        MediaAsset(
+            object_key=object_key,
+            public_url=public_url,
+            original_filename=body.filename,
+            content_type=content_type,
+            file_extension=_extension(body.filename),
+            folder=body.folder,
+            size_bytes=body.size_bytes,
+            uploaded_by=admin.id,
+            is_public=True,
+        )
+    )
     db.commit()
     return PresignedUploadOut(
         upload_url=upload_url,
@@ -331,8 +498,11 @@ def create_presigned_upload(
             "Content-Type": content_type,
             "Cache-Control": R2_CACHE_CONTROL,
         },
-        public_url=public_url, object_key=object_key, bucket=settings.R2_BUCKET_NAME,
-        size_bytes=body.size_bytes, content_type=content_type,
+        public_url=public_url,
+        object_key=object_key,
+        bucket=settings.R2_BUCKET_NAME,
+        size_bytes=body.size_bytes,
+        content_type=content_type,
     )
 
 
@@ -342,8 +512,15 @@ def confirm_upload(
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    if body.folder == "contribution_proofs":
+        raise HTTPException(
+            400,
+            "Contribution proofs must use the dedicated private-proof upload endpoint.",
+        )
     _require_r2_config()
-    content_type = validate_upload(body.original_filename, body.content_type, body.size_bytes)
+    content_type = validate_upload(
+        body.original_filename, body.content_type, body.size_bytes
+    )
     prefix = f"family-pledge/{body.folder}/"
     if not body.object_key.startswith(prefix):
         raise HTTPException(400, "Invalid storage object key.")
@@ -365,7 +542,7 @@ def confirm_upload(
     asset.size_bytes = body.size_bytes
     asset.related_entity_type = body.related_entity_type
     asset.related_entity_id = body.related_entity_id
-    asset.is_public = body.folder != "contribution_proofs"
+    asset.is_public = True
     asset.status = "uploaded"
     asset.uploaded_at = datetime.now(timezone.utc)
     db.commit()
@@ -380,31 +557,57 @@ def storage_usage(
 ):
     active = (MediaAsset.status == "uploaded", MediaAsset.deleted_at.is_(None))
     total_files, total_bytes = db.execute(
-        select(func.count(MediaAsset.id), func.coalesce(func.sum(MediaAsset.size_bytes), 0)).where(*active)
+        select(
+            func.count(MediaAsset.id),
+            func.coalesce(func.sum(MediaAsset.size_bytes), 0),
+        ).where(*active)
     ).one()
     folder_rows = db.execute(
-        select(MediaAsset.folder, func.count(MediaAsset.id), func.coalesce(func.sum(MediaAsset.size_bytes), 0))
-        .where(*active).group_by(MediaAsset.folder)
+        select(
+            MediaAsset.folder,
+            func.count(MediaAsset.id),
+            func.coalesce(func.sum(MediaAsset.size_bytes), 0),
+        )
+        .where(*active)
+        .group_by(MediaAsset.folder)
     ).all()
     type_rows = db.execute(
-        select(MediaAsset.content_type, func.count(MediaAsset.id), func.coalesce(func.sum(MediaAsset.size_bytes), 0))
-        .where(*active).group_by(MediaAsset.content_type)
+        select(
+            MediaAsset.content_type,
+            func.count(MediaAsset.id),
+            func.coalesce(func.sum(MediaAsset.size_bytes), 0),
+        )
+        .where(*active)
+        .group_by(MediaAsset.content_type)
     ).all()
     latest = db.scalars(
-        select(MediaAsset).where(*active).order_by(MediaAsset.uploaded_at.desc()).limit(10)
+        select(MediaAsset)
+        .where(*active)
+        .order_by(MediaAsset.uploaded_at.desc())
+        .limit(10)
     ).all()
     total_bytes = int(total_bytes or 0)
     return {
-        "total_files": int(total_files), "total_bytes": total_bytes,
-        "total_mb": round(total_bytes / 1024**2, 2), "total_gb": round(total_bytes / 1024**3, 3),
+        "total_files": int(total_files),
+        "total_bytes": total_bytes,
+        "total_mb": round(total_bytes / 1024**2, 2),
+        "total_gb": round(total_bytes / 1024**3, 3),
         "files_by_folder": {name: int(count) for name, count, _ in folder_rows},
         "bytes_by_folder": {name: int(size) for name, _, size in folder_rows},
-        "files_by_content_type": {(name or "unknown"): int(count) for name, count, _ in type_rows},
-        "bytes_by_content_type": {(name or "unknown"): int(size) for name, _, size in type_rows},
-        "latest_uploads": [MediaAssetOut.model_validate(item).model_dump(mode="json") for item in latest],
+        "files_by_content_type": {
+            (name or "unknown"): int(count) for name, count, _ in type_rows
+        },
+        "bytes_by_content_type": {
+            (name or "unknown"): int(size) for name, _, size in type_rows
+        },
+        "latest_uploads": [
+            MediaAssetOut.model_validate(item).model_dump(mode="json") for item in latest
+        ],
     }
 
 
 @router.post("/cloudinary-signature", deprecated=True, status_code=410)
 def deprecated_cloudinary_upload(admin: User = Depends(require_admin)):
-    raise HTTPException(410, "Cloudinary uploads are deprecated. Use Cloudflare R2 storage.")
+    raise HTTPException(
+        410, "Cloudinary uploads are deprecated. Use Cloudflare R2 storage."
+    )

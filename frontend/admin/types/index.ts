@@ -50,7 +50,10 @@ export interface Contribution {
   amount: number;
   currency: string;
   reference: string;
+  /** Legacy public proof URL; new proof storage uses proof_available + signed fetch. */
   proof_url?: string;
+  proof_available?: boolean;
+  proof_expires_at?: string;
   payment_method: string;
   status: ContributionStatus;
   admin_note?: string;

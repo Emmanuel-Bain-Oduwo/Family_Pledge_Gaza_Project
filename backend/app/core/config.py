@@ -39,7 +39,8 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     EMAIL_FROM: str = ""
     WEEKLY_EMAILS_ENABLED: bool = False
-    # Cloudflare R2 — S3-compatible direct browser uploads (backend secrets only)
+
+    # Cloudflare R2 — public application media (backend secrets only)
     R2_ACCOUNT_ID: str = ""
     R2_ACCESS_KEY_ID: str = ""
     R2_SECRET_ACCESS_KEY: str = ""
@@ -47,6 +48,17 @@ class Settings(BaseSettings):
     R2_PUBLIC_BASE_URL: str = ""
     R2_MAX_UPLOAD_MB: int = 500
     R2_ALLOWED_UPLOADS_MODE: str = "broad"
+
+    # Cloudflare R2 — private payment/contribution proofs.
+    # Keep these credentials scoped to the private proof bucket and never expose
+    # this bucket through a public custom domain or r2.dev URL.
+    PROOF_R2_ACCOUNT_ID: str = ""
+    PROOF_R2_ACCESS_KEY_ID: str = ""
+    PROOF_R2_SECRET_ACCESS_KEY: str = ""
+    PROOF_R2_BUCKET_NAME: str = ""
+    PROOF_RETENTION_DAYS: int = 30
+    PROOF_SIGNED_GET_TTL_SECONDS: int = 600
+
     # Cloudflare Stream — adaptive video delivery (backend token only)
     STREAM_API_TOKEN: str = ""
     STREAM_CUSTOMER_CODE: str = ""

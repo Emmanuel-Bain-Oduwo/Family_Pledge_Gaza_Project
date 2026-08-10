@@ -182,6 +182,8 @@ export const submitContribution = async (payload: ContributionPayload): Promise<
     contribution_channel: payload.contribution_channel || payload.payment_method,
     payment_link_used: payload.payment_link_used,
     transaction_reference: payload.transaction_reference || payload.reference,
+    proof_object_key: payload.proof_object_key,
+    // Legacy only; new clients never create a public proof URL.
     proof_image_url: payload.proof_image_url || payload.proof_url,
     contribution_month: payload.contribution_month || currentContributionMonth(),
   };
@@ -202,11 +204,22 @@ export const uploadContributionProof = async (asset: {
   const sizeBytes = asset.fileSize || blob.size;
   try {
     const { data } = await client.post('/admin/storage/contribution-proof/presigned-upload', {
-      folder: 'contribution_proofs', filename, content_type: contentType, size_bytes: sizeBytes,
+      folder: 'contribution_proofs',
+      filename,
+      content_type: contentType,
+      size_bytes: sizeBytes,
     });
-    const uploaded = await fetch(data.upload_url, { method: 'PUT', headers: data.required_headers, body: blob });
+    const uploaded = await fetch(data.upload_url, {
+      method: 'PUT',
+      headers: data.required_headers,
+      body: blob,
+    });
     if (!uploaded.ok) throw new Error('The screenshot could not be uploaded.');
-    return data.public_url;
+
+    const confirmed = await client.post('/admin/storage/contribution-proof/confirm-upload', {
+      object_key: data.object_key,
+    });
+    return confirmed.data.object_key as string;
   } catch (e) {
     return handleApiError(e);
   }
