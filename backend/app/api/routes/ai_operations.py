@@ -142,3 +142,21 @@ def retry_task_run(
     db: Session = Depends(get_db),
 ):
     return ai_task_service.retry_run(db, admin, run_id)
+
+
+@router.post("/task-runs/{run_id}/approve", response_model=AiTaskRunOut)
+def approve_task_run(
+    run_id: UUID,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return ai_task_service.approve_run(db, admin, run_id)
+
+
+@router.post("/task-runs/{run_id}/dismiss", response_model=AiTaskRunOut)
+def dismiss_task_run(
+    run_id: UUID,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return ai_task_service.dismiss_run(db, admin, run_id)
