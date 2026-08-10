@@ -1,11 +1,3 @@
-import { getApp, getApps, initializeApp } from 'firebase/app';
-import {
-  getMessaging,
-  getToken,
-  isSupported,
-  onMessage,
-  type MessagePayload,
-} from 'firebase/messaging';
 import { registerNotificationEndpoint } from './notificationEndpointApi';
 
 const env = process.env as Record<string, string | undefined>;
@@ -33,15 +25,23 @@ function assertConfigured() {
   }
 }
 
-function app() {
-  return getApps().length ? getApp() : initializeApp(firebaseConfig);
+async function getFirebaseMessaging() {
+  // These modules are loaded only after the caller has confirmed it is running
+  // in a browser. Android/iOS continue to use expo-notifications exclusively.
+  const appModule = await import('firebase/app');
+  const messagingModule = await import('firebase/messaging');
+  const firebaseApp = appModule.getApps().length
+    ? appModule.getApp()
+    : appModule.initializeApp(firebaseConfig);
+  return { messagingModule, messaging: messagingModule.getMessaging(firebaseApp) };
 }
 
 export async function registerWebPushNotifications(
   requestPermission = true,
 ): Promise<string | null> {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') return null;
-  if (!(await isSupported())) {
+  const { messagingModule } = await getFirebaseMessaging();
+  if (!(await messagingModule.isSupported())) {
     throw new Error('This browser does not support Web push notifications.');
   }
   assertConfigured();
@@ -56,8 +56,8 @@ export async function registerWebPushNotifications(
     throw new Error('This browser does not support notification service workers.');
   }
   const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-  const messaging = getMessaging(app());
-  const token = await getToken(messaging, {
+  const { messaging } = await getFirebaseMessaging();
+  const token = await messagingModule.getToken(messaging, {
     vapidKey,
     serviceWorkerRegistration: registration,
   });
@@ -70,11 +70,13 @@ export async function registerWebPushNotifications(
 export async function addWebPushLifecycleListeners(
   onOpen: (screen: string) => void,
 ): Promise<() => void> {
-  if (typeof window === 'undefined' || !(await isSupported())) return () => {};
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return () => {};
   if (!firebaseConfig.apiKey || !firebaseConfig.messagingSenderId) return () => {};
 
-  const messaging = getMessaging(app());
-  return onMessage(messaging, (payload: MessagePayload) => {
+  const { messagingModule, messaging } = await getFirebaseMessaging();
+  if (!(await messagingModule.isSupported())) return () => {};
+
+  return messagingModule.onMessage(messaging, (payload) => {
     const screen = payload.data?.screen || '/screens/notifications';
     const title = payload.notification?.title || 'Family Pledge';
     const body = payload.notification?.body || '';
