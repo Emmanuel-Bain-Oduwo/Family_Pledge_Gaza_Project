@@ -15,6 +15,8 @@ def test_unrelated_general_assistant_questions_are_out_of_scope():
     assert not is_in_scope("Write me a Python video game about racing cars")
     assert not is_in_scope("Recommend the best gaming laptop for school")
     assert not is_in_scope("Explain how to train a computer vision model")
+    assert not is_in_scope("Write a weekly report about cryptocurrency prices")
+    assert not is_in_scope("Create an admin task to summarize Mars exploration")
 
 
 def test_task_requires_human_approval_even_when_scope_is_valid():
