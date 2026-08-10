@@ -20,12 +20,7 @@ from app.schemas.ai_operations import (
     AiTaskRunOut,
     AiTaskUpdate,
 )
-from app.services import (
-    ai_operations_content_service,
-    ai_operations_service,
-    ai_task_service,
-    ai_workspace_service,
-)
+from app.services import ai_operations_content_service, ai_operations_service, ai_task_service, ai_workspace_service
 
 router = APIRouter(prefix="/admin/ai", tags=["AI Operations Assistant"])
 ALLOWED_SCHEDULES = (None, "once", "daily", "weekly", "monthly")
@@ -104,7 +99,16 @@ def create_task(data: AiTaskCreate, admin: User = Depends(require_admin), db: Se
     if not ai_workspace_service.is_in_scope(data.instruction):
         raise HTTPException(400, "AI tasks are limited to Family Pledge/NAMLEF operations, Gaza humanitarian donations, and relevant Islamic context.")
     _validate_schedule(data.schedule_type, data.next_run_at)
-    return ai_operations_service.create_ai_task(db, admin, data)
+    task = ai_operations_service.create_ai_task(db, admin, data)
+    # The older creation service historically calculated daily/weekly from 'now'.
+    # Preserve the exact first run selected by the admin; recurrence is calculated
+    # only after that run by ai_task_service.
+    if data.next_run_at is not None and task.next_run_at != data.next_run_at:
+        task.next_run_at = data.next_run_at
+        db.add(task)
+        db.commit()
+        db.refresh(task)
+    return task
 
 
 @router.patch("/tasks/{task_id}", response_model=AiTaskOut)
@@ -131,11 +135,7 @@ def run_task(task_id: UUID, admin: User = Depends(require_admin), db: Session = 
 
 
 @router.get("/task-runs", response_model=list[AiTaskRunOut])
-def list_task_runs(
-    task_id: UUID | None = Query(default=None),
-    admin: User = Depends(require_admin),
-    db: Session = Depends(get_db),
-):
+def list_task_runs(task_id: UUID | None = Query(default=None), admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     query = select(AiTaskRun)
     if task_id:
         query = query.where(AiTaskRun.task_id == task_id)
