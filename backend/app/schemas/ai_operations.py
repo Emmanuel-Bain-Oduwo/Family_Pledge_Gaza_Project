@@ -87,6 +87,10 @@ class AiTaskOut(BaseModel):
     updated_at: datetime
 
 
+class AiTaskRunEdit(BaseModel):
+    generated_text: str = Field(..., min_length=1, max_length=12000)
+
+
 class AiTaskRunOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: UUID
