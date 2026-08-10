@@ -10,6 +10,8 @@ from app.models.user import User
 from app.schemas.user import (
     AnonymousUpdateRequest,
     BadgeOut,
+    DeleteAccountOut,
+    DeleteAccountRequest,
     EmailPreferenceRequest,
     UserOut,
     UserUpdateRequest,
@@ -31,6 +33,16 @@ def update_me(
     db: Session = Depends(get_db),
 ):
     return user_service.update_me(db, current_user, data)
+
+
+@router.delete("/me", response_model=DeleteAccountOut)
+def delete_me(
+    data: DeleteAccountRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    user_service.delete_account(db, current_user, data.password)
+    return DeleteAccountOut()
 
 
 @router.patch("/me/anonymous", response_model=UserOut)

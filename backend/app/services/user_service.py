@@ -1,13 +1,22 @@
+import secrets
+from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from app.core.security import hash_password, verify_password
 from app.models.badge import Badge, UserBadge
+from app.models.collector import Collector, CollectorMember
+from app.models.contribution import Contribution
+from app.models.enums import UserRole
+from app.models.media_asset import MediaAsset
+from app.models.tracked_contact import TrackedContact
 from app.models.user import User
 from app.schemas.user import AnonymousUpdateRequest, UserUpdateRequest
+from app.services.private_proof_service import delete_object as delete_private_proof
 
 
 def _clean_optional(value: Optional[str], *, lowercase: bool = False) -> Optional[str]:
@@ -112,3 +121,80 @@ def update_email_preferences(
     db.commit()
     db.refresh(user)
     return user
+
+
+def delete_account(db: Session, user: User, password: str) -> None:
+    """Anonymize an app account while retaining only pledge/accounting history.
+
+    Admin/super-admin identities are excluded because they are referenced by audit
+    and publishing records that require a separate governance/offboarding flow.
+    """
+    if user.role in (UserRole.admin, UserRole.super_admin):
+        raise HTTPException(
+            403,
+            "Administrator accounts must be offboarded through the admin governance process.",
+        )
+    if not verify_password(password, user.password_hash):
+        raise HTTPException(400, "Password is incorrect")
+
+    contributions = list(
+        db.scalars(select(Contribution).where(Contribution.user_id == user.id)).all()
+    )
+
+    # Delete sensitive proof files before making the account inaccessible. If
+    # private storage fails, abort so we do not claim deletion while proof bytes
+    # remain. Legacy public URLs are cleared from the account records and are
+    # covered by the PR-A retention purge for object deletion.
+    for contribution in contributions:
+        if contribution.proof_object_key:
+            delete_private_proof(contribution.proof_object_key)
+            asset = db.scalar(
+                select(MediaAsset).where(
+                    MediaAsset.object_key == contribution.proof_object_key
+                )
+            )
+            if asset:
+                asset.status = "deleted"
+                asset.deleted_at = datetime.now(timezone.utc)
+        contribution.proof_object_key = None
+        contribution.proof_image_url = None
+        contribution.transaction_reference = None
+        contribution.proof_expires_at = None
+
+    # Remove app-only recognition/referral/collector data. Pledges and
+    # contributions deliberately remain linked to the anonymized internal UUID.
+    db.execute(delete(UserBadge).where(UserBadge.user_id == user.id))
+    db.execute(
+        delete(CollectorMember).where(CollectorMember.donor_user_id == user.id)
+    )
+
+    collector = db.scalar(select(Collector).where(Collector.user_id == user.id))
+    if collector:
+        db.execute(
+            delete(CollectorMember).where(CollectorMember.collector_id == collector.id)
+        )
+        db.delete(collector)
+
+    db.execute(
+        delete(TrackedContact).where(TrackedContact.linked_user_id == user.id)
+    )
+
+    now = datetime.now(timezone.utc)
+    user.full_name = None
+    user.nickname = None
+    user.email = None
+    user.phone = None
+    user.country = None
+    user.city = None
+    user.push_token = None
+    user.public_display_name = None
+    user.collector_code = None
+    user.anonymous_publicly = True
+    user.weekly_email_opt_in = False
+    user.email_unsubscribe_token = secrets.token_urlsafe(32)
+    user.password_hash = hash_password(secrets.token_urlsafe(48))
+    user.is_active = False
+    user.deleted_at = now
+
+    db.add(user)
+    db.commit()

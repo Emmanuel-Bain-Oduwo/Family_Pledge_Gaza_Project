@@ -37,6 +37,11 @@ export default function RootLayout() {
         <Stack.Screen name="screens/collector-dashboard" options={{ title: 'Collector Dashboard' }} />
         <Stack.Screen name="screens/badges" options={{ title: 'My Badges' }} />
         <Stack.Screen name="screens/notifications" options={{ title: 'Notifications' }} />
+        <Stack.Screen name="screens/delete-account" options={{ title: 'Delete Account' }} />
+        <Stack.Screen name="privacy" options={{ title: 'Privacy Policy' }} />
+        <Stack.Screen name="terms" options={{ title: 'Terms & Conditions' }} />
+        <Stack.Screen name="account-deletion" options={{ title: 'Account Deletion' }} />
+        <Stack.Screen name="support" options={{ title: 'Support' }} />
       </Stack>
       </View>
     </View>
