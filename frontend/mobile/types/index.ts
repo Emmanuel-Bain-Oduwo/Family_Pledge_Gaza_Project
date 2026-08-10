@@ -33,12 +33,12 @@ export interface NotificationPreferences {
   friday: boolean;
   campaigns: boolean;
   emergency: boolean;
-  quran: boolean;
-  hadith: boolean;
-  dua: boolean;
-  motivation: boolean;
-  impact: boolean;
-  humanitarian: boolean;
+  quran?: boolean;
+  hadith?: boolean;
+  dua?: boolean;
+  motivation?: boolean;
+  impact?: boolean;
+  humanitarian?: boolean;
   onboarding_seen: boolean;
 }
 
