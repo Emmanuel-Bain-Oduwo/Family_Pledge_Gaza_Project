@@ -10,6 +10,9 @@ from app.models.user import User
 from app.services.ai_task_service import run_task_once
 
 
+SCHEDULED_TYPES = ("once", "daily", "weekly", "monthly")
+
+
 def main() -> None:
     now = datetime.now(timezone.utc)
     with SessionLocal() as db:
@@ -20,7 +23,7 @@ def main() -> None:
                 select(AiTask)
                 .where(
                     AiTask.status == AiTaskStatus.active,
-                    AiTask.schedule_type.in_(["daily", "weekly"]),
+                    AiTask.schedule_type.in_(SCHEDULED_TYPES),
                     AiTask.next_run_at.is_not(None),
                     AiTask.next_run_at <= now,
                 )
@@ -29,8 +32,8 @@ def main() -> None:
             for task in tasks:
                 admin = db.get(User, task.created_by_admin_id)
                 if admin and admin.is_active and admin.deleted_at is None:
-                    # run_task_once creates the reviewable output and computes the
-                    # next daily/weekly run. It does not send or publish anything.
+                    # run_task_once creates reviewable output and computes the
+                    # next recurring run. It does not send or publish anything.
                     run_task_once(db, admin, task)
         finally:
             db.execute(text("SELECT pg_advisory_unlock(742019)"))
