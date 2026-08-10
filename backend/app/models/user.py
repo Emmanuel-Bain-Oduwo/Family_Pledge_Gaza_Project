@@ -54,6 +54,7 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
     notification_dua: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     notification_dhikr: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     notification_shirk: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    notification_sadaqah: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     notification_motivation: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     notification_impact: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     notification_humanitarian: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
