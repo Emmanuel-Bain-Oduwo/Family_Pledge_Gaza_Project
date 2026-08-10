@@ -1,4 +1,4 @@
-import { Appearance, ColorSchemeName } from 'react-native';
+import { Appearance } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { storage } from './webCompat';
 
@@ -19,6 +19,6 @@ export function applyAppearancePreference(value: AppearancePreference): void {
   // RN's Appearance override updates native controls/system color scheme. Existing
   // Family Pledge screens still use static brand tokens, so this is intentionally
   // the non-breaking foundation for a later full tokenized dark-theme migration.
-  const override: ColorSchemeName = value === 'system' ? null : value;
+  const override: 'light' | 'dark' | null = value === 'system' ? null : value;
   if (typeof Appearance.setColorScheme === 'function') Appearance.setColorScheme(override);
 }
