@@ -2,6 +2,7 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 import { Config } from '../constants/config';
 import { currentContributionMonth } from '../constants/payment';
 import { getToken } from './auth';
+import { getApiErrorMessage } from './apiError';
 import {
   User,
   Dashboard,
@@ -38,11 +39,7 @@ client.interceptors.request.use(async (config) => {
 client.interceptors.response.use((response) => response, (error: AxiosError) => Promise.reject(error));
 
 const handleApiError = (error: unknown): never => {
-  if (axios.isAxiosError(error)) {
-    const msg = (error.response?.data as any)?.detail || (error.response?.data as any)?.message || error.message;
-    throw new Error(msg);
-  }
-  throw error;
+  throw new Error(getApiErrorMessage(error, 'Something went wrong. Please try again.'));
 };
 
 const optionalTrimmed = (value?: string): string | undefined => {
