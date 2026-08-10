@@ -45,6 +45,12 @@ class AiCollectorMessageRequest(BaseModel):
     language: str = "English"
 
 
+class AiDraftUpdateRequest(BaseModel):
+    """Human-edited draft text. Only draft-status records may be edited."""
+
+    generated_text: str = Field(min_length=1, max_length=12000)
+
+
 class AiDraftOut(BaseModel):
     id: UUID
     admin_id: UUID

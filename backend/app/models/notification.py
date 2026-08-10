@@ -16,35 +16,33 @@ if TYPE_CHECKING:
 class Notification(Base, TimestampMixin):
     __tablename__ = "notifications"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     body: Mapped[str] = mapped_column(Text, nullable=False)
     notification_type: Mapped[NotificationType] = mapped_column(
         Enum(NotificationType, name="notification_type"), nullable=False
     )
+    # Optional content category lets donors independently opt into Quran, hadith,
+    # dua, motivation, impact and humanitarian updates while preserving the
+    # broader transport type used for Android channels and notification history.
+    content_category: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     audience: Mapped[NotificationAudience] = mapped_column(
         Enum(NotificationAudience, name="notification_audience"), nullable=False
     )
     sent_by: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
     )
-    sent_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     sent_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     failure_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
-    # Relationships
-    sent_by_user: Mapped["User"] = relationship(
-        "User", back_populates="sent_notifications"
-    )
+    sent_by_user: Mapped["User"] = relationship("User", back_populates="sent_notifications")
 
     __table_args__ = (
         Index("ix_notifications_sent_by", "sent_by"),
         Index("ix_notifications_audience", "audience"),
         Index("ix_notifications_type", "notification_type"),
+        Index("ix_notifications_content_category", "content_category"),
         Index("ix_notifications_sent_at", "sent_at"),
     )
 

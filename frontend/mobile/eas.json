@@ -7,18 +7,31 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "environment": "development",
+      "node": "20.19.4",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.familypledgekenya.org/api/v1"
       }
     },
     "preview": {
       "distribution": "internal",
+      "environment": "preview",
+      "node": "20.19.4",
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.familypledgekenya.org/api/v1"
       }
     },
     "production": {
+      "distribution": "store",
+      "environment": "production",
+      "node": "20.19.4",
       "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.familypledgekenya.org/api/v1"
       }

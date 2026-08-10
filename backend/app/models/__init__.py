@@ -32,9 +32,17 @@ from .contribution import Contribution  # noqa: F401
 from .impact import ImpactCard  # noqa: F401
 from .reminder import DailyReminder  # noqa: F401
 from .notification import Notification  # noqa: F401
+from .notification_endpoint import NotificationEndpoint  # noqa: F401
 from .collector import Collector, CollectorMember  # noqa: F401
 from .namlef import NamlefContent  # noqa: F401
 from .badge import Badge, UserBadge  # noqa: F401
+from .engagement import (  # noqa: F401
+    EngagementEvent,
+    EngagementGoal,
+    FeatureRequest,
+    PledgeCircle,
+    PledgeCircleMember,
+)
 from .ai_draft import AiDraft  # noqa: F401
 from .ai_operations import AiTask, AiTaskRun, AiGeneratedContent, AiFollowupSuggestion  # noqa: F401
 from .audit import AdminAuditLog  # noqa: F401
@@ -47,7 +55,6 @@ __all__ = [
     "Base",
     "TimestampMixin",
     "SoftDeleteMixin",
-    # Enums
     "UserRole",
     "PledgeType",
     "PledgeStatus",
@@ -70,7 +77,6 @@ __all__ = [
     "AiTaskRunStatus",
     "AiTaskStatus",
     "AiTaskType",
-    # Models
     "User",
     "Pledge",
     "Contribution",
@@ -79,11 +85,17 @@ __all__ = [
     "ImpactCard",
     "DailyReminder",
     "Notification",
+    "NotificationEndpoint",
     "Collector",
     "CollectorMember",
     "NamlefContent",
     "Badge",
     "UserBadge",
+    "EngagementGoal",
+    "EngagementEvent",
+    "PledgeCircle",
+    "PledgeCircleMember",
+    "FeatureRequest",
     "AiDraft",
     "AiFollowupSuggestion",
     "AiGeneratedContent",

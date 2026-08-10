@@ -1,6 +1,6 @@
-from typing import Optional
+from typing import Literal, Optional
 
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class RegisterRequest(BaseModel):
@@ -50,6 +50,8 @@ class TokenResponse(BaseModel):
 
 
 class PushTokenRequest(BaseModel):
+    """Legacy Expo-only registration request retained for old app builds."""
+
     push_token: str
 
     @field_validator("push_token")
@@ -61,6 +63,39 @@ class PushTokenRequest(BaseModel):
         if len(v) > 512:
             raise ValueError("Push token is too long")
         return v
+
+
+class NotificationEndpointRequest(BaseModel):
+    provider: Literal["expo", "fcm_web"]
+    platform: Literal["android", "ios", "web", "native"]
+    token: str = Field(min_length=8, max_length=2048)
+    device_id: str | None = Field(default=None, max_length=255)
+
+    @field_validator("token")
+    @classmethod
+    def validate_provider_token(cls, v: str, info) -> str:
+        token = v.strip()
+        provider = info.data.get("provider")
+        if provider == "expo" and not (
+            token.startswith("ExponentPushToken[") or token.startswith("ExpoPushToken[")
+        ):
+            raise ValueError("Invalid Expo push token")
+        return token
+
+    @field_validator("platform")
+    @classmethod
+    def provider_matches_platform(cls, v: str, info) -> str:
+        provider = info.data.get("provider")
+        if provider == "fcm_web" and v != "web":
+            raise ValueError("FCM Web endpoints must use platform 'web'")
+        if provider == "expo" and v == "web":
+            raise ValueError("Expo push endpoints are Android/iOS only")
+        return v
+
+
+class NotificationEndpointDeactivateRequest(BaseModel):
+    provider: Literal["expo", "fcm_web"]
+    token: str = Field(min_length=8, max_length=2048)
 
 
 class PasswordResetRequest(BaseModel):

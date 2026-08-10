@@ -14,7 +14,32 @@ export interface User {
   pledge_status?: PledgeStatus;
   donor_number?: number;
   badges?: Badge[];
+  notification_daily?: boolean;
+  notification_friday?: boolean;
+  notification_campaigns?: boolean;
+  notification_emergency?: boolean;
+  notification_quran?: boolean;
+  notification_hadith?: boolean;
+  notification_dua?: boolean;
+  notification_motivation?: boolean;
+  notification_impact?: boolean;
+  notification_humanitarian?: boolean;
+  notification_onboarding_seen?: boolean;
   created_at: string;
+}
+
+export interface NotificationPreferences {
+  daily: boolean;
+  friday: boolean;
+  campaigns: boolean;
+  emergency: boolean;
+  quran: boolean;
+  hadith: boolean;
+  dua: boolean;
+  motivation: boolean;
+  impact: boolean;
+  humanitarian: boolean;
+  onboarding_seen: boolean;
 }
 
 export type PledgeStatus = 'paid' | 'pending' | 'missed' | 'free_participant' | 'none';
@@ -125,6 +150,7 @@ export interface UserNotification {
   title: string;
   body: string;
   notification_type: string;
+  content_category?: string;
   audience: string;
   sent_at?: string;
   created_at: string;
@@ -137,6 +163,67 @@ export interface Badge {
   icon: string;
   tier: 'bronze' | 'silver' | 'gold' | 'platinum';
   earned_at?: string;
+}
+
+export interface EngagementGoal {
+  id: string;
+  goal_type: string;
+  title: string;
+  target_count: number;
+  current_count: number;
+  cadence: string;
+  status: 'active' | 'completed' | 'archived';
+  starts_on: string;
+  ends_on?: string;
+  created_at: string;
+}
+
+export interface ImpactJourney {
+  current_consistency_months: number;
+  longest_consistency_months: number;
+  confirmed_contributions: number;
+  pledge_since?: string | null;
+  campaigns_supported: number;
+  impact_updates_viewed: number;
+  campaigns_shared: number;
+  circles_joined: number;
+}
+
+export interface Achievement {
+  key: string;
+  name: string;
+  description: string;
+  icon: string;
+  earned: boolean;
+  progress: number;
+  target: number;
+}
+
+export interface PledgeCircleStats {
+  member_count: number;
+  active_members: number;
+  participation_rate: number;
+  confirmed_actions_this_month: number;
+  consistency_score: number;
+}
+
+export interface PledgeCircleMember {
+  user_id: string;
+  display_name: string;
+  role: string;
+  joined_at: string;
+}
+
+export interface PledgeCircle {
+  id: string;
+  name: string;
+  description?: string;
+  invite_code: string;
+  owner_user_id: string;
+  is_owner: boolean;
+  share_url: string;
+  stats: PledgeCircleStats;
+  members?: PledgeCircleMember[];
 }
 
 export interface CollectorDashboard {
@@ -165,10 +252,7 @@ export interface Dashboard {
   emergency_appeal?: Campaign;
   latest_reminder?: Reminder;
   latest_impact?: ImpactCard;
-  monthly_progress: {
-    target: number;
-    current: number;
-  };
+  monthly_progress: { target: number; current: number };
   pledge_summary?: PledgeStatusOut;
 }
 

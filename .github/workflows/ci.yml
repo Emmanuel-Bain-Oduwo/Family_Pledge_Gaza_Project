@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
   pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   backend-checks:
@@ -26,11 +26,13 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
       - name: Install dependencies
         run: |
           cd backend
@@ -40,44 +42,76 @@ jobs:
         run: |
           cd backend
           python -m compileall app scripts tests
-      - name: Alembic Upgrade Check
+      - name: Alembic upgrade check
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/familypledge
         run: |
           cd backend
           alembic upgrade head
-      - name: Run Pytest
+      - name: Run pytest
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/familypledge
         run: |
           cd backend
-          pytest
+          pytest -q
 
   admin-checks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v6
         with:
-          node-version: '18'
-      - name: Install and Build Admin
+          node-version: '20.19.4'
+          cache: 'npm'
+          cache-dependency-path: frontend/admin/package-lock.json
+      - name: Install admin dependencies
         run: |
           cd frontend/admin
-          npm install
+          npm ci
+      - name: Typecheck admin
+        run: |
+          cd frontend/admin
           npx tsc --noEmit
+      - name: Build admin
+        run: |
+          cd frontend/admin
           npm run build
 
   mobile-checks:
     runs-on: ubuntu-latest
+    env:
+      CI: '1'
+      EXPO_PUBLIC_API_URL: https://api.familypledgekenya.org/api/v1
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v6
         with:
-          node-version: '18'
-      - name: Install and Build Mobile Web Preview
+          node-version: '20.19.4'
+          package-manager-cache: false
+      - name: Install SDK 55 dependencies
         run: |
           cd frontend/mobile
-          npm install
+          npm install --no-audit --no-fund
+      - name: Verify Expo dependency alignment
+        run: |
+          cd frontend/mobile
+          npx expo install --check
+      - name: Expo Doctor
+        run: |
+          cd frontend/mobile
+          npx --yes expo-doctor@latest
+      - name: Typecheck mobile
+        run: |
+          cd frontend/mobile
+          npm run typecheck
+      - name: Validate public Expo config
+        run: |
+          cd frontend/mobile
+          npx expo config --type public >/tmp/family-pledge-expo-config.json
+          test -s /tmp/family-pledge-expo-config.json
+      - name: Build mobile web export
+        run: |
+          cd frontend/mobile
           npm run build:web
