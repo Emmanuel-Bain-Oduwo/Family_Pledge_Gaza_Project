@@ -13,6 +13,7 @@ from app.schemas.user import (
     DeleteAccountOut,
     DeleteAccountRequest,
     EmailPreferenceRequest,
+    NotificationPreferenceRequest,
     UserOut,
     UserUpdateRequest,
 )
@@ -63,6 +64,15 @@ def update_email_preferences(
     return user_service.update_email_preferences(
         db, current_user, data.weekly_email_opt_in
     )
+
+
+@router.patch("/me/notification-preferences", response_model=UserOut)
+def update_notification_preferences(
+    data: NotificationPreferenceRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return user_service.update_notification_preferences(db, current_user, data)
 
 
 @router.get("/unsubscribe-weekly-email/{token}", response_model=UserOut)
