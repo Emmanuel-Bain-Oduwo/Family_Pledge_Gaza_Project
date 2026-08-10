@@ -157,3 +157,49 @@ def retry_run(db: Session, admin: User, run_id: UUID) -> AiTaskRun:
     if task is None:
         raise HTTPException(404, "AI task not found")
     return run_task_once(db, admin, task)
+
+
+def approve_run(db: Session, admin: User, run_id: UUID) -> AiTaskRun:
+    run = db.get(AiTaskRun, run_id)
+    if run is None:
+        raise HTTPException(404, "AI task run not found")
+    if run.status != AiTaskRunStatus.waiting_approval:
+        raise HTTPException(400, "Only task output waiting for approval can be approved")
+
+    # `validated` means a human reviewed the prepared output. Approval here still
+    # executes no notification, publication, database update, or donor action.
+    run.status = AiTaskRunStatus.validated
+    db.add(
+        AdminAuditLog(
+            admin_id=admin.id,
+            action="ai_task_run.approve",
+            entity_type="ai_task_run",
+            entity_id=str(run.id),
+            metadata_={"external_actions_executed": []},
+        )
+    )
+    db.commit()
+    db.refresh(run)
+    return run
+
+
+def dismiss_run(db: Session, admin: User, run_id: UUID) -> AiTaskRun:
+    run = db.get(AiTaskRun, run_id)
+    if run is None:
+        raise HTTPException(404, "AI task run not found")
+    if run.status not in (AiTaskRunStatus.waiting_approval, AiTaskRunStatus.validated):
+        raise HTTPException(400, "This task output cannot be dismissed")
+
+    run.status = AiTaskRunStatus.cancelled
+    db.add(
+        AdminAuditLog(
+            admin_id=admin.id,
+            action="ai_task_run.dismiss",
+            entity_type="ai_task_run",
+            entity_id=str(run.id),
+            metadata_={"external_actions_executed": []},
+        )
+    )
+    db.commit()
+    db.refresh(run)
+    return run
