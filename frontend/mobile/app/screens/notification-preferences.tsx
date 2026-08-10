@@ -78,18 +78,18 @@ export default function NotificationPreferencesScreen() {
       </View>
 
       <PreferenceSection title="Faith & reminders">
-        <PreferenceRow icon="book-outline" title="Quran Reminders" description="Approved Quran reminder content from Family Pledge." value={preferences.quran} onChange={(v) => setValue('quran', v)} />
-        <PreferenceRow icon="library-outline" title="Hadith Reminders" description="Approved hadith reminders and source-referenced messages." value={preferences.hadith} onChange={(v) => setValue('hadith', v)} />
-        <PreferenceRow icon="heart-outline" title="Dua Reminders" description="Duas and prayer reminders shared through Family Pledge." value={preferences.dua} onChange={(v) => setValue('dua', v)} />
-        <PreferenceRow icon="sparkles-outline" title="Motivation" description="Short motivation around consistency, compassion and humanitarian action." value={preferences.motivation} onChange={(v) => setValue('motivation', v)} last />
+        <PreferenceRow icon="book-outline" title="Quran Reminders" description="Approved Quran reminder content from Family Pledge." value={Boolean(preferences.quran)} onChange={(v) => setValue('quran', v)} />
+        <PreferenceRow icon="library-outline" title="Hadith Reminders" description="Approved hadith reminders and source-referenced messages." value={Boolean(preferences.hadith)} onChange={(v) => setValue('hadith', v)} />
+        <PreferenceRow icon="heart-outline" title="Dua Reminders" description="Duas and prayer reminders shared through Family Pledge." value={Boolean(preferences.dua)} onChange={(v) => setValue('dua', v)} />
+        <PreferenceRow icon="sparkles-outline" title="Motivation" description="Short motivation around consistency, compassion and humanitarian action." value={Boolean(preferences.motivation)} onChange={(v) => setValue('motivation', v)} last />
       </PreferenceSection>
 
       <PreferenceSection title="Pledge & humanitarian updates">
         <PreferenceRow icon="sunny-outline" title="Daily Pledge Reminder" description="Daily reminder for your pledge and humanitarian action." value={preferences.daily} onChange={(v) => setValue('daily', v)} />
         <PreferenceRow icon="calendar-outline" title="Friday / Jumu’ah Reminder" description="Weekly Friday Family Pledge reminder." value={preferences.friday} onChange={(v) => setValue('friday', v)} />
         <PreferenceRow icon="megaphone-outline" title="Campaign Updates" description="Verified campaign news and actions from Family Pledge." value={preferences.campaigns} onChange={(v) => setValue('campaigns', v)} />
-        <PreferenceRow icon="images-outline" title="Impact Updates" description="New verified impact stories and delivery updates." value={preferences.impact} onChange={(v) => setValue('impact', v)} />
-        <PreferenceRow icon="earth-outline" title="Humanitarian Assistance" description="Humanitarian assistance and relief updates pushed by admins." value={preferences.humanitarian} onChange={(v) => setValue('humanitarian', v)} />
+        <PreferenceRow icon="images-outline" title="Impact Updates" description="New verified impact stories and delivery updates." value={Boolean(preferences.impact)} onChange={(v) => setValue('impact', v)} />
+        <PreferenceRow icon="earth-outline" title="Humanitarian Assistance" description="Humanitarian assistance and relief updates pushed by admins." value={Boolean(preferences.humanitarian)} onChange={(v) => setValue('humanitarian', v)} />
         <PreferenceRow icon="alert-circle-outline" title="Emergency Appeals" description="Urgent humanitarian appeals from Family Pledge." value={preferences.emergency} onChange={(v) => setValue('emergency', v)} last />
       </PreferenceSection>
 
