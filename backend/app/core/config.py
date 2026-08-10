@@ -25,6 +25,15 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     OPENAI_BASE_URL: str = ""
     OPENAI_MODEL: str = "gpt-oss-120b"
+
+    # Optional OVH visual-language model. The app stays fully functional when
+    # these are blank. Model/base URL are env-configurable so a catalog model can
+    # be changed without another code release.
+    AI_VISION_API_KEY: str = ""
+    AI_VISION_BASE_URL: str = ""
+    AI_VISION_MODEL: str = ""
+    AI_VISION_MAX_IMAGE_MB: int = 5
+
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8081"
     SQL_ECHO: bool = False
     DB_POOL_SIZE: int = 20
