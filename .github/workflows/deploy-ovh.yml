@@ -59,4 +59,10 @@ jobs:
             -o BatchMode=yes \
             -o StrictHostKeyChecking=yes \
             "${OVH_USER}@${OVH_HOST}" \
-            "FAMILY_PLEDGE_EXPECTED_SHA='${EXPECTED_SHA}' bash ~/Family_Pledge_Gaza_Project/deploy/ovh/scripts/deploy_from_main.sh"
+            "set -euo pipefail; \
+             cd ~/Family_Pledge_Gaza_Project; \
+             git fetch --prune origin main; \
+             git show origin/main:deploy/ovh/scripts/deploy_from_main.sh > /tmp/family-pledge-deploy.sh; \
+             chmod 700 /tmp/family-pledge-deploy.sh; \
+             FAMILY_PLEDGE_EXPECTED_SHA='${EXPECTED_SHA}' bash /tmp/family-pledge-deploy.sh; \
+             rm -f /tmp/family-pledge-deploy.sh"
