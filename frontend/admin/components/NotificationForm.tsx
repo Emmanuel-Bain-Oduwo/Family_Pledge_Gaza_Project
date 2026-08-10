@@ -17,13 +17,17 @@ const CATEGORIES = [
   ['general', 'General update'],
   ['quran', 'Quran reminder'],
   ['hadith', 'Hadith reminder'],
-  ['dua', 'Dua reminder'],
+  ['dua', "Du'a reminder"],
+  ['dhikr', 'Dhikr reminder'],
+  ['shirk', 'Shirk Awareness'],
+  ['sadaqah', 'Sadaqah reminder'],
+  ['friday', "Friday / Jumu'ah reminder"],
   ['motivation', 'Motivation'],
   ['impact', 'Impact update'],
   ['humanitarian', 'Humanitarian assistance'],
   ['campaign', 'Campaign update'],
   ['emergency', 'Emergency appeal'],
-  ['pledge', 'Pledge reminder'],
+  ['pledge', 'Daily pledge reminder'],
 ] as const;
 
 export interface NotifPayload {
@@ -86,7 +90,7 @@ export default function NotificationForm({ onSuccess, onSubmit: onSubmitOverride
           <select {...register('content_category')} className="input">
             {CATEGORIES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
-          <p className="mt-1 text-xs text-gray-400">Used to respect each donor’s notification preferences.</p>
+          <p className="mt-1 text-xs text-gray-400">Used to respect each donor's category-level notification choices.</p>
         </div>
         <div className="sm:col-span-2">
           <label className="label">Audience *</label>
