@@ -32,6 +32,15 @@ class Settings(BaseSettings):
     DB_POOL_TIMEOUT_SECONDS: int = 30
     SENTRY_TRACES_SAMPLE_RATE: float = 0.1
     EXPO_ACCESS_TOKEN: str = ""
+
+    # Firebase is used only for notification delivery. No Firebase Auth,
+    # Firestore, Realtime Database, or Firebase Storage is used by this app.
+    # Store the service-account JSON as base64 so multiline private keys remain
+    # safe in Docker/OVH environment variables.
+    FIREBASE_PROJECT_ID: str = ""
+    FIREBASE_SERVICE_ACCOUNT_JSON_B64: str = ""
+    WEB_APP_BASE_URL: str = "https://familypledgekenya.org"
+
     EMAIL_PROVIDER: str = "smtp"
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
