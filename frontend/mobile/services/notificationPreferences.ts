@@ -7,6 +7,12 @@ export function preferencesFromUser(user: User): NotificationPreferences {
     friday: Boolean(user.notification_friday),
     campaigns: Boolean(user.notification_campaigns),
     emergency: Boolean(user.notification_emergency),
+    quran: Boolean(user.notification_quran),
+    hadith: Boolean(user.notification_hadith),
+    dua: Boolean(user.notification_dua),
+    motivation: Boolean(user.notification_motivation),
+    impact: Boolean(user.notification_impact),
+    humanitarian: Boolean(user.notification_humanitarian),
     onboarding_seen: Boolean(user.notification_onboarding_seen),
   };
 }
@@ -15,9 +21,7 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
   return preferencesFromUser(await getMe());
 }
 
-export async function updateNotificationPreferences(
-  preferences: NotificationPreferences,
-): Promise<User> {
+export async function updateNotificationPreferences(preferences: NotificationPreferences): Promise<User> {
   const { data } = await api.patch<User>('/users/me/notification-preferences', preferences);
   return data;
 }

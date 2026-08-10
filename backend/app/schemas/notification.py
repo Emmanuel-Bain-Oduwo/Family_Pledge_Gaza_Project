@@ -1,10 +1,23 @@
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
 from app.models.enums import NotificationAudience, NotificationType
+
+NotificationContentCategory = Literal[
+    "quran",
+    "hadith",
+    "dua",
+    "motivation",
+    "impact",
+    "humanitarian",
+    "campaign",
+    "emergency",
+    "pledge",
+    "general",
+]
 
 
 class NotificationSend(BaseModel):
@@ -12,6 +25,7 @@ class NotificationSend(BaseModel):
     body: str
     notification_type: NotificationType
     audience: NotificationAudience
+    content_category: NotificationContentCategory | None = None
 
 
 class NotificationOut(BaseModel):
@@ -19,6 +33,7 @@ class NotificationOut(BaseModel):
     title: str
     body: str
     notification_type: NotificationType
+    content_category: Optional[str] = None
     audience: NotificationAudience
     sent_by: UUID
     sent_at: Optional[datetime] = None

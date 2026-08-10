@@ -19,6 +19,7 @@ from app.api.routes import (
     collectors,
     contributions,
     daily_reminders,
+    engagement,
     impact_cards,
     mobile,
     namlef_content,
@@ -32,7 +33,6 @@ from app.api.routes import (
 
 logger = logging.getLogger(__name__)
 
-# Sentry initialization
 if settings.SENTRY_DSN:
     sentry_sdk.init(
         dsn=settings.SENTRY_DSN,
@@ -58,11 +58,16 @@ CORE_TABLES = (
     "ai_tasks",
     "ai_generated_content",
     "ai_followup_suggestions",
+    "engagement_goals",
+    "engagement_events",
+    "pledge_circles",
+    "pledge_circle_members",
+    "feature_requests",
 )
 
 app = FastAPI(
     title="Family Pledge API",
-    description="Family Pledge / NAMLEF Gaza Family Support backend for pledge signing, awareness content, contributions, reminders, collectors, and admin operations.",
+    description="Family Pledge / NAMLEF Gaza Family Support backend for pledge signing, awareness content, contributions, reminders, collectors, community engagement, and admin operations.",
     version="1.0.0",
 )
 
@@ -89,10 +94,7 @@ async def security_headers(request: Request, call_next):
 @app.exception_handler(SQLAlchemyError)
 async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
     logger.exception("Unhandled database error on %s %s", request.method, request.url.path)
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Database operation failed"},
-    )
+    return JSONResponse(status_code=500, content={"detail": "Database operation failed"})
 
 ROUTERS = (
     mobile.router,
@@ -106,6 +108,7 @@ ROUTERS = (
     daily_reminders.router,
     namlef_content.router,
     collectors.router,
+    engagement.router,
     notifications.router,
     ai_assistant.router,
     ai_operations.router,
@@ -133,25 +136,17 @@ def readiness_check(response: Response):
     database_status = "failed"
     migrations_status = "missing_tables"
     missing_tables = list(CORE_TABLES)
-
     try:
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
             database_status = "connected"
-
             existing_tables = set(inspect(connection).get_table_names())
             missing_tables = [table for table in CORE_TABLES if table not in existing_tables]
             migrations_status = "ok" if not missing_tables else "missing_tables"
     except SQLAlchemyError:
         logger.exception("Readiness check failed while checking database state")
-
-    status = (
-        "ready"
-        if database_status == "connected" and migrations_status == "ok"
-        else "unavailable"
-    )
+    status = "ready" if database_status == "connected" and migrations_status == "ok" else "unavailable"
     response.status_code = 200 if status == "ready" else 503
-
     return {
         "status": status,
         "database": database_status,
