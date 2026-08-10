@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, PanelsTopLeft, Users, UserPlus, CreditCard, Megaphone, FolderOpen,
-  Heart, BookOpen, UserCheck, Tv, Bell, Bot, MessageCircle, ListChecks,
+  Heart, BookOpen, UserCheck, Tv, Bell, Bot, MessageCircle, ListChecks, Inbox,
   Settings, HardDrive, LogOut, X,
 } from 'lucide-react';
 import { removeToken } from '../lib/auth';
@@ -17,6 +17,7 @@ const NAV = [
   { href: '/donors', icon: Users, label: 'Donors' },
   { href: '/prospects', icon: UserPlus, label: 'Prospects' },
   { href: '/contributions', icon: CreditCard, label: 'Contributions' },
+  { href: '/support', icon: Inbox, label: 'Support Inbox' },
   { href: '/campaigns', icon: Megaphone, label: 'Campaigns' },
   { href: '/projects', icon: FolderOpen, label: 'Projects' },
   { href: '/impact', icon: Heart, label: 'Impact' },
