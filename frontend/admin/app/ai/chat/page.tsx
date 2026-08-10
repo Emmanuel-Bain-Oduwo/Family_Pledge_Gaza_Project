@@ -5,14 +5,15 @@ import { useRouter } from 'next/navigation';
 import { Bot, History, LogOut, MessageSquarePlus, Send, Trash2, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../components/AdminLayout';
+import AiMessageContent from '../../../components/AiMessageContent';
 import { askFamilyPledgeAi, type AiChatMessage, type AiContextBlock } from '../../../lib/aiWorkspaceApi';
 
 const STORAGE_KEY = 'family-pledge-ai-chat-sessions-v1';
 const STARTERS = [
   'Summarize what needs admin attention from the Family Pledge database today.',
   'How many contributions are confirmed this month and what is still pending?',
-  'Summarize the active campaigns and their current progress.',
-  'What approved Islamic reminder material is available for a sadaqah message?',
+  'Help me prepare a thoughtful Islamic reminder for the Family Pledge community.',
+  'Help me plan and write something clearly for today.',
 ];
 
 interface ChatItem extends AiChatMessage { context?: AiContextBlock[]; }
@@ -112,7 +113,7 @@ export default function FamilyPledgeAiChatPage() {
   const submit = (event: FormEvent) => { event.preventDefault(); void send(); };
 
   return (
-    <AdminLayout title="Family Pledge AI Chat" subtitle="Family Pledge admin assistant">
+    <AdminLayout title="Family Pledge AI Chat" subtitle="Islamic-aware admin and general assistant">
       <div className="mx-auto max-w-6xl">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <button type="button" onClick={newChat} className="btn-primary inline-flex items-center gap-2"><MessageSquarePlus size={16} /> New Chat</button>
@@ -142,6 +143,7 @@ export default function FamilyPledgeAiChatPage() {
                 <div className="mx-auto max-w-2xl py-10 text-center">
                   <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary"><Bot size={24} /></div>
                   <h2 className="font-bold text-gray-900">What do you want to work on?</h2>
+                  <p className="mt-1 text-sm text-gray-500">Ask about Family Pledge, Islam, admin work, planning, writing, technology, study or another useful topic.</p>
                   <div className="mt-5 grid gap-2 text-left sm:grid-cols-2">
                     {STARTERS.map((starter) => <button key={starter} type="button" onClick={() => void send(starter)} className="rounded-xl border border-gray-200 bg-white p-3 text-left text-sm text-gray-700 hover:border-primary/40 hover:bg-primary/5">{starter}</button>)}
                   </div>
@@ -152,7 +154,7 @@ export default function FamilyPledgeAiChatPage() {
                     <div key={`${message.role}-${index}`} className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : ''}`}>
                       {message.role === 'assistant' && <div className="flex h-8 w-8 flex-none items-center justify-center rounded-xl bg-primary text-white"><Bot size={16} /></div>}
                       <div className={`max-w-[86%] rounded-2xl px-4 py-3 ${message.role === 'user' ? 'bg-primary text-white' : 'border border-gray-200 bg-white text-gray-800'}`}>
-                        <div className="whitespace-pre-wrap text-sm leading-6">{message.content}</div>
+                        {message.role === 'assistant' ? <AiMessageContent content={message.content} /> : <div className="whitespace-pre-wrap text-sm leading-6">{message.content}</div>}
                         {message.context && message.context.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5 border-t border-gray-100 pt-2">{message.context.map((block) => <span key={block.name} title={block.description} className="rounded-full bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-600">{block.name.replace(/_/g, ' ')}</span>)}</div>}
                       </div>
                       {message.role === 'user' && <div className="flex h-8 w-8 flex-none items-center justify-center rounded-xl bg-gray-800 text-white"><User size={15} /></div>}
@@ -166,7 +168,7 @@ export default function FamilyPledgeAiChatPage() {
 
             <form onSubmit={submit} className="border-t border-gray-200 bg-white p-3 sm:p-4">
               <div className="flex gap-2">
-                <textarea value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void send(); } }} rows={2} maxLength={4000} className="input min-h-[52px] flex-1 resize-none" placeholder="Ask Family Pledge AI about operations, campaigns or approved reminders…" />
+                <textarea value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void send(); } }} rows={2} maxLength={4000} className="input min-h-[52px] flex-1 resize-none" placeholder="Ask anything useful — Family Pledge, Islam, writing, planning, technology, study…" />
                 <button disabled={busy || !input.trim()} className="btn-primary self-end px-4 disabled:opacity-50" aria-label="Send AI message"><Send size={18} /></button>
               </div>
               <p className="mt-2 text-xs text-gray-400">Enter to send · Shift+Enter for a new line</p>
