@@ -51,6 +51,7 @@ from .settings import AppSettings  # noqa: F401
 from .password_reset import PasswordResetToken  # noqa: F401
 from .tracked_contact import TrackedContact  # noqa: F401
 from .media_asset import MediaAsset  # noqa: F401
+from .support_message import SupportMessage  # noqa: F401
 
 __all__ = [
     "Base",
@@ -109,4 +110,5 @@ __all__ = [
     "AppSettings",
     "PasswordResetToken",
     "MediaAsset",
+    "SupportMessage",
 ]
