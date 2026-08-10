@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import List, Tuple
 
 import httpx
-from sqlalchemy import and_, exists, func, or_, select
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -46,6 +46,8 @@ def _push_preference_allows(user: User, notification_type: NotificationType, cat
         "quran": _preference(user, "notification_quran"),
         "hadith": _preference(user, "notification_hadith"),
         "dua": _preference(user, "notification_dua"),
+        "dhikr": _preference(user, "notification_dhikr"),
+        "shirk": _preference(user, "notification_shirk"),
         "motivation": _preference(user, "notification_motivation"),
         "impact": _preference(user, "notification_impact") or _preference(user, "notification_campaigns"),
         "humanitarian": _preference(user, "notification_humanitarian"),
