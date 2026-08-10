@@ -33,11 +33,14 @@ class Settings(BaseSettings):
     SENTRY_TRACES_SAMPLE_RATE: float = 0.1
     EXPO_ACCESS_TOKEN: str = ""
 
+    # Public user-facing and API origins. No secret values belong here.
+    WEB_APP_BASE_URL: str = "https://familypledgekenya.org"
+    PUBLIC_API_BASE_URL: str = "https://api.familypledgekenya.org/api/v1"
+
     # Firebase is used only for notification delivery. No Firebase Auth,
     # Firestore, Realtime Database, or Firebase Storage is used by this app.
     FIREBASE_PROJECT_ID: str = ""
     FIREBASE_SERVICE_ACCOUNT_JSON_B64: str = ""
-    WEB_APP_BASE_URL: str = "https://familypledgekenya.org"
 
     # Email reminder delivery. The same SMTP foundation can serve weekly emails
     # and consent-based admin reminders; both are disabled unless configured.
@@ -51,10 +54,11 @@ class Settings(BaseSettings):
     WEEKLY_EMAILS_ENABLED: bool = False
 
     # WhatsApp Business Cloud API. Only users who explicitly opt in are eligible.
-    # Business-initiated reminders use an approved template configured in Meta.
+    # Keep the Graph API version explicit in OVH rather than hard-coding a version
+    # that can become stale after a Meta platform upgrade.
     WHATSAPP_ENABLED: bool = False
     WHATSAPP_GRAPH_BASE_URL: str = "https://graph.facebook.com"
-    WHATSAPP_GRAPH_API_VERSION: str = "v23.0"
+    WHATSAPP_GRAPH_API_VERSION: str = ""
     WHATSAPP_PHONE_NUMBER_ID: str = ""
     WHATSAPP_ACCESS_TOKEN: str = ""
     WHATSAPP_TEMPLATE_NAME: str = "family_pledge_reminder"
@@ -107,11 +111,12 @@ class Settings(BaseSettings):
             if self.WEEKLY_EMAILS_ENABLED and not all([self.SMTP_HOST, self.SMTP_USER, self.SMTP_PASSWORD, self.EMAIL_FROM]):
                 raise ValueError("SMTP_HOST, SMTP_USER, SMTP_PASSWORD, and EMAIL_FROM are required when WEEKLY_EMAILS_ENABLED=true")
             if self.WHATSAPP_ENABLED and not all([
+                self.WHATSAPP_GRAPH_API_VERSION,
                 self.WHATSAPP_PHONE_NUMBER_ID,
                 self.WHATSAPP_ACCESS_TOKEN,
                 self.WHATSAPP_TEMPLATE_NAME,
             ]):
-                raise ValueError("WhatsApp provider credentials/template are required when WHATSAPP_ENABLED=true")
+                raise ValueError("WhatsApp Graph version, credentials, and approved template are required when WHATSAPP_ENABLED=true")
         return self
 
     @property
