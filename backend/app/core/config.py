@@ -35,19 +35,36 @@ class Settings(BaseSettings):
 
     # Firebase is used only for notification delivery. No Firebase Auth,
     # Firestore, Realtime Database, or Firebase Storage is used by this app.
-    # Store the service-account JSON as base64 so multiline private keys remain
-    # safe in Docker/OVH environment variables.
     FIREBASE_PROJECT_ID: str = ""
     FIREBASE_SERVICE_ACCOUNT_JSON_B64: str = ""
     WEB_APP_BASE_URL: str = "https://familypledgekenya.org"
 
+    # Email reminder delivery. The same SMTP foundation can serve weekly emails
+    # and consent-based admin reminders; both are disabled unless configured.
     EMAIL_PROVIDER: str = "smtp"
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
     EMAIL_FROM: str = ""
+    SMTP_USE_TLS: bool = True
     WEEKLY_EMAILS_ENABLED: bool = False
+
+    # WhatsApp Business Cloud API. Only users who explicitly opt in are eligible.
+    # Business-initiated reminders use an approved template configured in Meta.
+    WHATSAPP_ENABLED: bool = False
+    WHATSAPP_GRAPH_BASE_URL: str = "https://graph.facebook.com"
+    WHATSAPP_GRAPH_API_VERSION: str = "v23.0"
+    WHATSAPP_PHONE_NUMBER_ID: str = ""
+    WHATSAPP_ACCESS_TOKEN: str = ""
+    WHATSAPP_TEMPLATE_NAME: str = "family_pledge_reminder"
+    WHATSAPP_TEMPLATE_LANGUAGE: str = "en"
+
+    # The outbound worker processes queued App/Email/WhatsApp campaigns in small
+    # batches so a 2,000-user send does not block an admin HTTP request.
+    OUTBOUND_WORKER_ENABLED: bool = False
+    OUTBOUND_WORKER_INTERVAL_SECONDS: int = 30
+    OUTBOUND_WORKER_BATCH_SIZE: int = 250
 
     # Cloudflare R2 — public application media (backend secrets only)
     R2_ACCOUNT_ID: str = ""
@@ -59,8 +76,6 @@ class Settings(BaseSettings):
     R2_ALLOWED_UPLOADS_MODE: str = "broad"
 
     # Cloudflare R2 — private payment/contribution proofs.
-    # Keep these credentials scoped to the private proof bucket and never expose
-    # this bucket through a public custom domain or r2.dev URL.
     PROOF_R2_ACCOUNT_ID: str = ""
     PROOF_R2_ACCESS_KEY_ID: str = ""
     PROOF_R2_SECRET_ACCESS_KEY: str = ""
@@ -84,31 +99,19 @@ class Settings(BaseSettings):
     def validate_production_settings(self):
         if self.APP_ENV.lower() == "production":
             if not self.DATABASE_URL or "localhost" in self.DATABASE_URL:
-                raise ValueError(
-                    "DATABASE_URL must be explicitly configured for production"
-                )
-            if (
-                not self.JWT_SECRET
-                or self.JWT_SECRET == "change-me-in-production"
-                or len(self.JWT_SECRET) < 32
-            ):
-                raise ValueError(
-                    "JWT_SECRET must be changed for production and be at least 32 characters"
-                )
-            if (
-                not self.CORS_ORIGINS
-                or "localhost" in self.CORS_ORIGINS
-                or "*" in self.cors_origins_list
-            ):
-                raise ValueError(
-                    "CORS_ORIGINS must list deployed frontend origins in production"
-                )
-            if self.WEEKLY_EMAILS_ENABLED and not all(
-                [self.SMTP_HOST, self.SMTP_USER, self.SMTP_PASSWORD, self.EMAIL_FROM]
-            ):
-                raise ValueError(
-                    "SMTP_HOST, SMTP_USER, SMTP_PASSWORD, and EMAIL_FROM are required when WEEKLY_EMAILS_ENABLED=true"
-                )
+                raise ValueError("DATABASE_URL must be explicitly configured for production")
+            if not self.JWT_SECRET or self.JWT_SECRET == "change-me-in-production" or len(self.JWT_SECRET) < 32:
+                raise ValueError("JWT_SECRET must be changed for production and be at least 32 characters")
+            if not self.CORS_ORIGINS or "localhost" in self.CORS_ORIGINS or "*" in self.cors_origins_list:
+                raise ValueError("CORS_ORIGINS must list deployed frontend origins in production")
+            if self.WEEKLY_EMAILS_ENABLED and not all([self.SMTP_HOST, self.SMTP_USER, self.SMTP_PASSWORD, self.EMAIL_FROM]):
+                raise ValueError("SMTP_HOST, SMTP_USER, SMTP_PASSWORD, and EMAIL_FROM are required when WEEKLY_EMAILS_ENABLED=true")
+            if self.WHATSAPP_ENABLED and not all([
+                self.WHATSAPP_PHONE_NUMBER_ID,
+                self.WHATSAPP_ACCESS_TOKEN,
+                self.WHATSAPP_TEMPLATE_NAME,
+            ]):
+                raise ValueError("WhatsApp provider credentials/template are required when WHATSAPP_ENABLED=true")
         return self
 
     @property
