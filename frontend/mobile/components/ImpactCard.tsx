@@ -26,7 +26,7 @@ export default function ImpactCard({ impact, onPress }: ImpactCardProps) {
   const cat = CATEGORY_ICONS[impact.category] || CATEGORY_ICONS.general;
   const description = impact.description || impact.story || '';
   const beneficiaries = impact.beneficiaries ?? impact.beneficiaries_count;
-  const long = description.length > 170;
+  const long = description.length > 125;
 
   return (
     <AppCard onPress={onPress} style={styles.card}>
@@ -42,7 +42,7 @@ export default function ImpactCard({ impact, onPress }: ImpactCardProps) {
         </View>
         <Text style={styles.title} numberOfLines={2}>{impact.title}</Text>
         {!!description && <Text style={styles.description} numberOfLines={expanded ? undefined : 3}>{description}</Text>}
-        {long && <TouchableOpacity accessibilityRole="button" onPress={()=>setExpanded(value=>!value)}><Text style={styles.readMore}>{expanded?'Show less':'Read more'}</Text></TouchableOpacity>}
+        {long && <TouchableOpacity accessibilityRole="button" accessibilityLabel={expanded?'Show less impact story':'Read full impact story'} onPress={()=>setExpanded(value=>!value)} style={styles.readMoreButton}><Text style={styles.readMore}>{expanded?'Show less':'Read full impact'}</Text><Ionicons name={expanded?'chevron-up':'chevron-down'} size={14} color={Colors.primary}/></TouchableOpacity>}
         {!!beneficiaries && <View style={styles.stat}><Ionicons name="people" size={14} color={Colors.primary} /><Text style={styles.statText}>{beneficiaries.toLocaleString()} beneficiaries</Text></View>}
         {impact.location && <View style={styles.stat}><Ionicons name="location" size={14} color={Colors.primary} /><Text style={styles.statText}>{impact.location}</Text></View>}
         {impact.video_url && <VideoButton url={impact.video_url} />}
@@ -60,7 +60,8 @@ const styles = StyleSheet.create({
   category: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
   title: { fontSize: 16, fontWeight: '700', color: Colors.text.primary, marginBottom: 6, lineHeight: 22 },
   description: { fontSize: 13, color: Colors.text.secondary, lineHeight: 19, marginBottom: 5 },
-  readMore:{fontSize:12.5,fontWeight:'900',color:Colors.primary,marginBottom:7},
+  readMoreButton:{alignSelf:'flex-start',flexDirection:'row',alignItems:'center',gap:3,paddingVertical:4,marginBottom:7},
+  readMore:{fontSize:12.5,fontWeight:'900',color:Colors.primary},
   stat: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
   statText: { fontSize: 13, color: Colors.text.secondary, fontWeight: '500' },
 });
