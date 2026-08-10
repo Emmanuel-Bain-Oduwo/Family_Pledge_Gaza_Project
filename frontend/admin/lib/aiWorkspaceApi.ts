@@ -14,6 +14,7 @@ export interface AiChatMessage { role: 'user' | 'assistant'; content: string; }
 export interface AiContextBlock { name: string; description: string; data: Record<string, unknown> | Array<Record<string, unknown>>; }
 export interface AiChatResponse { answer: string; context_used: AiContextBlock[]; scope: string; actions_executed: string[]; }
 export async function askFamilyPledgeAi(message: string, history: AiChatMessage[]): Promise<AiChatResponse> { try { return (await aiClient.post<AiChatResponse>('/admin/ai/chat', { message, history: history.slice(-12) })).data; } catch (error) { return fail(error); } }
+export async function askFamilyPledgeVision(message:string,image:File):Promise<AiChatResponse>{try{const form=new FormData();form.append('message',message);form.append('image',image);return(await aiClient.post<AiChatResponse>('/admin/ai/chat-image',form,{headers:{'Content-Type':'multipart/form-data'},timeout:60000})).data;}catch(error){return fail(error);}}
 
 export type AiScheduleType = 'once' | 'daily' | 'weekly' | 'monthly' | null;
 export interface AiTask { id:string;created_by_admin_id:string;title:string;task_type:string;instruction:string;schedule_type?:AiScheduleType;cron_expression?:string|null;timezone:string;requires_approval:boolean;status:'draft'|'active'|'paused'|'cancelled';last_run_at?:string|null;next_run_at?:string|null;created_at:string;updated_at:string; }
