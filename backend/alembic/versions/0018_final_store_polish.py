@@ -45,6 +45,19 @@ def upgrade():
     op.create_index("ix_support_messages_user", "support_messages", ["user_id"])
     op.create_index("ix_support_messages_status_created", "support_messages", ["status", "created_at"])
 
+    # Raw transaction references are 30-day sensitive proof data. Older builds copied
+    # them into immutable contribution audit metadata, which would defeat that policy.
+    # Keep the audit event/status/amount while removing only the raw reference value.
+    op.execute(
+        """
+        UPDATE admin_audit_logs
+        SET metadata = metadata - 'transaction_reference'
+        WHERE entity_type = 'contribution'
+          AND metadata IS NOT NULL
+          AND metadata ? 'transaction_reference'
+        """
+    )
+
 
 def downgrade():
     op.drop_index("ix_support_messages_status_created", table_name="support_messages")
@@ -56,3 +69,4 @@ def downgrade():
     op.drop_column("pledges", "agreement_version")
     op.drop_column("pledges", "agreement_accepted_at")
     # PostgreSQL enum values are intentionally left in place on downgrade.
+    # Redacted raw transaction references cannot and should not be restored.
