@@ -97,6 +97,7 @@ def update_notification_preferences(db: Session, user: User, data: NotificationP
     user.notification_dua = data.dua
     user.notification_dhikr = data.dhikr
     user.notification_shirk = data.shirk
+    user.notification_sadaqah = data.sadaqah
     user.notification_motivation = data.motivation
     user.notification_impact = data.impact
     user.notification_humanitarian = data.humanitarian
@@ -221,6 +222,7 @@ def delete_account(db: Session, user: User, password: str) -> None:
         "notification_dua",
         "notification_dhikr",
         "notification_shirk",
+        "notification_sadaqah",
         "notification_motivation",
         "notification_impact",
         "notification_humanitarian",
