@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import require_admin
+from app.models.audit import AdminAuditLog
 from app.models.user import User
+from app.schemas.ai_chat import AiChatOut, AiChatRequest
 from app.schemas.ai_draft import (
     AiCollectorMessageRequest,
     AiDraftOut,
@@ -15,10 +17,37 @@ from app.schemas.ai_draft import (
     AiWeeklySummaryRequest,
 )
 from app.schemas.common import PaginatedResponse, make_page
-from app.services import ai_draft_edit_service, ai_service
+from app.services import ai_draft_edit_service, ai_service, ai_workspace_service
 from app.utils.pagination import offset_limit
 
 router = APIRouter(prefix="/admin/ai", tags=["AI Assistant"])
+
+
+@router.post("/chat", response_model=AiChatOut)
+def chat(
+    data: AiChatRequest,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    result = ai_workspace_service.answer_admin_question(
+        db,
+        data.message,
+        [item.model_dump() for item in data.history],
+    )
+    db.add(
+        AdminAuditLog(
+            admin_id=admin.id,
+            action="ai_chat.query",
+            entity_type="ai_workspace",
+            entity_id=None,
+            metadata_={
+                "context_tools": [block["name"] for block in result["context_used"]],
+                "message_characters": len(data.message),
+            },
+        )
+    )
+    db.commit()
+    return result
 
 
 @router.post("/reminder-draft", response_model=AiDraftOut, status_code=201)
