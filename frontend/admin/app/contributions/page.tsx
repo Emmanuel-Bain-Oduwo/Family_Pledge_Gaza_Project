@@ -5,6 +5,7 @@ import AdminLayout from '../../components/AdminLayout';
 import DataTable, { Column } from '../../components/DataTable';
 import StatusBadge from '../../components/StatusBadge';
 import { getContributions, reviewContribution } from '../../lib/api';
+import { getContributionProofLink } from '../../lib/contributionProof';
 import { Contribution, ContributionStatus } from '../../types';
 import { formatDate, formatCurrency } from '../../lib/utils';
 import toast from 'react-hot-toast';
@@ -17,6 +18,7 @@ export default function ContributionsPage() {
   const [adminNote, setAdminNote] = useState('');
   const [reviewAction, setReviewAction] = useState<ContributionStatus | null>(null);
   const [reviewing, setReviewing] = useState(false);
+  const [openingProofId, setOpeningProofId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -44,12 +46,34 @@ export default function ContributionsPage() {
     setAdminNote(item.admin_note || '');
   };
 
+  const openProof = async (item: Contribution) => {
+    setOpeningProofId(item.id);
+    try {
+      const proof = await getContributionProofLink(item.id);
+      const opened = window.open(proof.url, '_blank', 'noopener,noreferrer');
+      if (!opened) {
+        toast.error('Your browser blocked the proof window. Allow pop-ups and try again.');
+      }
+    } catch (e: any) {
+      toast.error(e.message || 'Could not open this contribution proof.');
+    } finally {
+      setOpeningProofId(null);
+    }
+  };
+
   const submitReview = async () => {
     if (!modalItem || !reviewAction) return;
     setReviewing(true);
     try {
       const updated = await reviewContribution(modalItem.id, { status: reviewAction, admin_note: adminNote });
-      setContributions((prev) => prev.map((c) => c.id === updated.id ? { ...updated, donor_name: c.donor_name, donor_phone: c.donor_phone, user_id: c.user_id } : c));
+      setContributions((prev) => prev.map((c) => c.id === updated.id ? {
+        ...updated,
+        donor_name: c.donor_name,
+        donor_phone: c.donor_phone,
+        user_id: c.user_id,
+        proof_available: c.proof_available,
+        proof_expires_at: c.proof_expires_at,
+      } : c));
       toast.success(`Marked as ${reviewAction.replace(/_/g, ' ')}.`);
       setModalItem(null);
     } catch (e: any) {
@@ -59,12 +83,36 @@ export default function ContributionsPage() {
     }
   };
 
+  const proofButton = (c: Contribution, compact = false) => {
+    if (!(c.proof_available || c.proof_url)) {
+      return <span className="text-xs text-gray-400">Message/reference</span>;
+    }
+    const opening = openingProofId === c.id;
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={() => openProof(c)}
+          disabled={opening}
+          className={`${compact ? 'inline-flex' : 'flex w-full justify-center'} items-center gap-1 rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-primary hover:bg-gray-50 disabled:opacity-60`}
+        >
+          <ImageIcon size={14} /> {opening ? 'Opening…' : 'View screenshot'}
+        </button>
+        {c.proof_expires_at && !compact && (
+          <p className="mt-1 text-center text-[11px] text-gray-400">
+            Private proof retained until {formatDate(c.proof_expires_at)}.
+          </p>
+        )}
+      </div>
+    );
+  };
+
   const columns: Column<Contribution>[] = [
     { key: 'donor_name', header: 'Donor', render: (c) => <div><div className="font-medium">{c.donor_name}</div><div className="text-xs text-gray-400">{c.month} {c.year}</div></div> },
     { key: 'amount', header: 'Amount', render: (c) => <span className="font-semibold">{formatCurrency(c.amount, c.currency)}</span> },
     { key: 'reference', header: 'Reference', render: (c) => <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">{c.reference}</span> },
     { key: 'payment_method', header: 'Method', render: (c) => <span className="text-xs capitalize">{c.payment_method.replace(/_/g, ' ')}</span> },
-    { key: 'proof_url', header: 'Proof', render: (c) => c.proof_url ? <a href={c.proof_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"><ImageIcon size={14} /> View screenshot</a> : <span className="text-xs text-gray-400">Message/reference</span> },
+    { key: 'proof_url', header: 'Proof', render: (c) => proofButton(c, true) },
     { key: 'status', header: 'Status', render: (c) => <StatusBadge status={c.status} /> },
     { key: 'submitted_at', header: 'Submitted', render: (c) => formatDate(c.submitted_at) },
     {
@@ -104,7 +152,6 @@ export default function ContributionsPage() {
 
   return (
     <AdminLayout title="Contributions" subtitle="Review and manage contribution submissions">
-      {/* Filter Tabs */}
       <div className="flex flex-wrap gap-2 items-center mb-5">
         {[
           { value: '', label: 'All' },
@@ -131,7 +178,6 @@ export default function ContributionsPage() {
         <DataTable columns={columns} data={contributions} loading={loading} />
       </div>
 
-      {/* Review Modal */}
       {modalItem && (
         <div className="modal-shell">
           <div className="modal-panel max-w-md">
@@ -142,7 +188,7 @@ export default function ContributionsPage() {
               Ref: <span className="font-mono font-semibold">{modalItem.reference}</span> · {modalItem.donor_name}
             </p>
 
-            {modalItem.proof_url && <a href={modalItem.proof_url} target="_blank" rel="noreferrer" className="mb-4 flex items-center justify-center gap-2 rounded-lg border border-gray-200 p-3 text-sm font-semibold text-primary hover:bg-gray-50"><ImageIcon size={17} /> Open payment screenshot</a>}
+            {(modalItem.proof_available || modalItem.proof_url) && <div className="mb-4">{proofButton(modalItem)}</div>}
 
             <div className="mb-4">
               <label className="label">Admin Note {reviewAction ? '(optional)' : ''}</label>
