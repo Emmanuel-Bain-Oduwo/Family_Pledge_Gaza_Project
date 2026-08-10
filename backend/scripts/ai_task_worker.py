@@ -7,7 +7,7 @@ import logging
 import os
 import time
 
-from scripts.run_due_ai_tasks import main as run_due_tasks
+from run_due_ai_tasks import main as run_due_tasks
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("family_pledge.ai_task_worker")
