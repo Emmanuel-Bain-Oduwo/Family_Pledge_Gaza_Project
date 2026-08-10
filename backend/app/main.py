@@ -29,6 +29,7 @@ from app.api.routes import (
     projects,
     settings as settings_routes,
     storage,
+    support,
     users,
 )
 
@@ -67,6 +68,7 @@ CORE_TABLES = (
     "donor_admin_profiles",
     "outbound_campaigns",
     "outbound_recipients",
+    "support_messages",
 )
 
 app = FastAPI(
@@ -114,6 +116,7 @@ ROUTERS = (
     collectors.router,
     engagement.router,
     notifications.router,
+    support.router,
     ai_assistant.router,
     ai_operations.router,
     admin_operations.router,
