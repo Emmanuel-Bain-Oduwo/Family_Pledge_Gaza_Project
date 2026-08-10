@@ -11,7 +11,9 @@ export function preferencesFromUser(user: User): NotificationPreferences {
     hadith: Boolean(user.notification_hadith),
     dua: Boolean(user.notification_dua),
     dhikr: Boolean(user.notification_dhikr),
-    shirk: Boolean(user.notification_shirk),
+    // Kept only for backward API/database compatibility. There is no Shirk
+    // notification surface in the donor app and updates always keep it disabled.
+    shirk: false,
     sadaqah: Boolean(user.notification_sadaqah),
     motivation: Boolean(user.notification_motivation),
     impact: Boolean(user.notification_impact),
@@ -25,6 +27,6 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
 }
 
 export async function updateNotificationPreferences(preferences: NotificationPreferences): Promise<User> {
-  const { data } = await api.patch<User>('/users/me/notification-preferences', preferences);
+  const { data } = await api.patch<User>('/users/me/notification-preferences', { ...preferences, shirk: false });
   return data;
 }
