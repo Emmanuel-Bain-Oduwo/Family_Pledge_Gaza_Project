@@ -39,22 +39,37 @@ Rules:
 - If the request is unrelated to Family Pledge, Gaza humanitarian donations, Islam in this context, or the supplied operational data, say it is outside the Family Pledge AI workspace scope.
 """
 
-_ALLOWED_SCOPE_TERMS = {
+_DOMAIN_SCOPE_TERMS = {
     "family pledge", "namlef", "gaza", "palestine", "humanitarian", "donation",
     "donor", "pledge", "contribution", "campaign", "collector", "impact",
-    "reminder", "notification", "fundraising", "charity", "sadaqah", "zakat",
-    "islam", "islamic", "muslim", "allah", "quran", "qur'an", "hadith", "dua",
-    "jumu", "friday", "mercy", "accounting", "dashboard", "database", "stats",
-    "statistics", "pending", "confirmed", "rejected", "raised", "progress", "total",
-    "amount", "month", "week", "today", "report", "summary", "follow-up",
-    "follow up", "task", "admin", "operations", "beneficiar", "relief", "food",
-    "water", "orphans", "widows", "support", "payment", "status", "action",
+    "fundraising", "charity", "sadaqah", "zakat", "islam", "islamic", "muslim",
+    "allah", "quran", "qur'an", "hadith", "dua", "jumu", "relief", "beneficiar",
+    "orphans", "widows",
+}
+
+_PLATFORM_SCOPE_TERMS = {
+    "dashboard", "database", "accounting", "payment", "notification", "reminder",
+    "pending", "confirmed", "rejected", "raised", "progress", "collector",
+    "contribution", "pledge", "campaign", "donor",
+}
+
+_PLATFORM_CONTEXT_TERMS = {
+    "admin", "platform", "family pledge", "namlef", "database", "dashboard",
+    "operations", "accounting", "stats", "statistics",
 }
 
 
 def is_in_scope(text: str) -> bool:
     normalized = " ".join(text.lower().split())
-    return any(term in normalized for term in _ALLOWED_SCOPE_TERMS)
+    if any(term in normalized for term in _DOMAIN_SCOPE_TERMS):
+        return True
+    # Generic words such as report/task/summary are never sufficient by themselves.
+    # A platform-operational request needs both an operational object and explicit
+    # Family Pledge/admin/database context.
+    return (
+        any(term in normalized for term in _PLATFORM_SCOPE_TERMS)
+        and any(term in normalized for term in _PLATFORM_CONTEXT_TERMS)
+    )
 
 
 def _number(value):
@@ -201,7 +216,6 @@ def select_context(db: Session, question: str) -> list[dict]:
             "data": approved_religious_context(db),
         })
 
-    # A scoped but broad admin question should still have one safe snapshot.
     if not blocks:
         blocks.append({
             "name": "platform_summary",
