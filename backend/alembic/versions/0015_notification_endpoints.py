@@ -43,20 +43,9 @@ def upgrade():
         unique=False,
     )
 
-    # Preserve currently registered Expo tokens while the clients migrate to the
-    # multi-endpoint API. Platform is intentionally "native" because the legacy
-    # users.push_token column does not record Android vs iOS.
-    op.execute(
-        """
-        INSERT INTO notification_endpoints
-            (id, user_id, provider, platform, token, is_active, last_seen_at, created_at, updated_at)
-        SELECT
-            gen_random_uuid(), id, 'expo', 'native', push_token, true, now(), now(), now()
-        FROM users
-        WHERE push_token IS NOT NULL
-        ON CONFLICT (provider, token) DO NOTHING
-        """
-    )
+    # Existing users.push_token values remain supported by the notification
+    # service for backward compatibility. New app builds populate this table,
+    # avoiding any migration dependency on PostgreSQL UUID extensions.
 
 
 def downgrade():
