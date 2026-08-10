@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -27,11 +28,23 @@ from app.services import (
 )
 
 router = APIRouter(prefix="/admin/ai", tags=["AI Operations Assistant"])
+ALLOWED_SCHEDULES = (None, "once", "daily", "weekly", "monthly")
 
 
 def _followup_out(s: AiFollowupSuggestion) -> AiFollowupSuggestionOut:
     donor = s.user.full_name or s.user.nickname or "Donor" if s.user else None
     return AiFollowupSuggestionOut(id=s.id, type=s.suggestion_type, user_id=s.user_id, donor_name=donor, reason=s.reason, recommended_action="Before any message is sent.", suggested_message=s.suggested_message, priority=s.priority, related_contribution_id=s.contribution_id, related_pledge_id=s.pledge_id, status=s.status)
+
+
+def _validate_schedule(schedule_type: str | None, next_run_at: datetime | None) -> None:
+    if schedule_type not in ALLOWED_SCHEDULES:
+        raise HTTPException(400, "Schedule must be manual, once, daily, weekly, or monthly")
+    if schedule_type in ("once", "daily", "weekly", "monthly") and next_run_at is None:
+        raise HTTPException(400, "Choose the first date and time for this scheduled task")
+    if next_run_at is not None:
+        value = next_run_at if next_run_at.tzinfo else next_run_at.replace(tzinfo=timezone.utc)
+        if value <= datetime.now(timezone.utc):
+            raise HTTPException(400, "Scheduled task time must be in the future")
 
 
 @router.get("/summary", response_model=AiSummaryOut)
@@ -46,9 +59,7 @@ def summary(admin: User = Depends(require_admin), db: Session = Depends(get_db))
 
 @router.post("/content/draft", response_model=AiGeneratedContentOut, status_code=201)
 def draft_content(data: AiContentDraftCreate, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    return ai_operations_content_service.generate_content_draft(
-        db, admin, data.prompt, data.content_type, data.channel
-    )
+    return ai_operations_content_service.generate_content_draft(db, admin, data.prompt, data.content_type, data.channel)
 
 
 @router.get("/content", response_model=list[AiGeneratedContentOut])
@@ -91,12 +102,8 @@ def create_task(data: AiTaskCreate, admin: User = Depends(require_admin), db: Se
     if not data.requires_approval:
         raise HTTPException(400, "Family Pledge AI tasks must require admin approval")
     if not ai_workspace_service.is_in_scope(data.instruction):
-        raise HTTPException(
-            400,
-            "AI tasks are limited to Family Pledge/NAMLEF operations, Gaza humanitarian donations, and relevant Islamic context.",
-        )
-    if data.schedule_type not in (None, "daily", "weekly"):
-        raise HTTPException(400, "Schedule must be manual, daily, or weekly")
+        raise HTTPException(400, "AI tasks are limited to Family Pledge/NAMLEF operations, Gaza humanitarian donations, and relevant Islamic context.")
+    _validate_schedule(data.schedule_type, data.next_run_at)
     return ai_operations_service.create_ai_task(db, admin, data)
 
 
@@ -110,8 +117,8 @@ def update_task(task_id: UUID, data: AiTaskUpdate, admin: User = Depends(require
         raise HTTPException(400, "Updated AI task instruction is outside the Family Pledge AI scope")
     if "requires_approval" in changes and not changes["requires_approval"]:
         raise HTTPException(400, "Family Pledge AI tasks must require admin approval")
-    if changes.get("schedule_type") not in (None, "daily", "weekly") and "schedule_type" in changes:
-        raise HTTPException(400, "Schedule must be manual, daily, or weekly")
+    if "schedule_type" in changes or "next_run_at" in changes:
+        _validate_schedule(changes.get("schedule_type", task.schedule_type), changes.get("next_run_at", task.next_run_at))
     return ai_task_service.update_task(db, admin, task, changes)
 
 
@@ -136,27 +143,15 @@ def list_task_runs(
 
 
 @router.post("/task-runs/{run_id}/retry", response_model=AiTaskRunOut)
-def retry_task_run(
-    run_id: UUID,
-    admin: User = Depends(require_admin),
-    db: Session = Depends(get_db),
-):
+def retry_task_run(run_id: UUID, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     return ai_task_service.retry_run(db, admin, run_id)
 
 
 @router.post("/task-runs/{run_id}/approve", response_model=AiTaskRunOut)
-def approve_task_run(
-    run_id: UUID,
-    admin: User = Depends(require_admin),
-    db: Session = Depends(get_db),
-):
+def approve_task_run(run_id: UUID, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     return ai_task_service.approve_run(db, admin, run_id)
 
 
 @router.post("/task-runs/{run_id}/dismiss", response_model=AiTaskRunOut)
-def dismiss_task_run(
-    run_id: UUID,
-    admin: User = Depends(require_admin),
-    db: Session = Depends(get_db),
-):
+def dismiss_task_run(run_id: UUID, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     return ai_task_service.dismiss_run(db, admin, run_id)
