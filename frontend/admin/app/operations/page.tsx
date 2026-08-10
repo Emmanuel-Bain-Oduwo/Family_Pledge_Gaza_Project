@@ -25,6 +25,22 @@ const SEGMENTS: Array<{key:DonorSegment;label:string;hint:string}> = [
   { key:'collectors', label:'Collectors', hint:'Donors who also coordinate groups' },
 ];
 
+const CONTENT_CATEGORIES = [
+  ['pledge', 'Daily pledge reminder'],
+  ['friday', "Friday / Jumu'ah reminder"],
+  ['quran', 'Quran reminder'],
+  ['hadith', 'Hadith reminder'],
+  ['dua', "Du'a reminder"],
+  ['dhikr', 'Dhikr reminder'],
+  ['shirk', 'Shirk Awareness'],
+  ['sadaqah', 'Sadaqah reminder'],
+  ['motivation', 'Motivation'],
+  ['campaign', 'Campaign update'],
+  ['impact', 'Impact update'],
+  ['humanitarian', 'Humanitarian assistance'],
+  ['emergency', 'Emergency appeal'],
+] as const;
+
 export default function OperationsPage() {
   const [stats,setStats]=useState<CommandCenter|null>(null);
   const [followups,setFollowups]=useState<FollowupCase[]>([]);
@@ -75,7 +91,7 @@ export default function OperationsPage() {
 
         <section className="card p-5">
           <div className="flex items-center justify-between mb-4"><div><h2 className="font-black text-gray-900">AI workbench</h2><p className="text-sm text-gray-500">AI can read approved aggregate operations context and prepare work for human review.</p></div><Bot className="text-primary"/></div>
-          <div className="space-y-2"><Link href="/ai/chat" className="block rounded-xl border p-3 text-sm font-semibold hover:bg-gray-50">Ask what needs attention today</Link><Link href="/ai-assistant" className="block rounded-xl border p-3 text-sm font-semibold hover:bg-gray-50">Draft Quran / Hadith / Dua / campaign / impact content</Link><Link href="/ai/tasks" className="block rounded-xl border p-3 text-sm font-semibold hover:bg-gray-50">Schedule recurring admin preparation</Link></div>
+          <div className="space-y-2"><Link href="/ai/chat" className="block rounded-xl border p-3 text-sm font-semibold hover:bg-gray-50">Ask what needs attention today</Link><Link href="/ai-assistant" className="block rounded-xl border p-3 text-sm font-semibold hover:bg-gray-50">Draft Quran / Hadith / Du&apos;a / Dhikr / Sadaqah / campaign / impact content</Link><Link href="/ai/tasks" className="block rounded-xl border p-3 text-sm font-semibold hover:bg-gray-50">Schedule recurring admin preparation</Link></div>
         </section>
       </div>
 
@@ -85,9 +101,9 @@ export default function OperationsPage() {
       </section>
 
       <section className="card p-5 mt-6">
-        <div className="mb-5"><h2 className="font-black text-gray-900">Consent-aware reminder campaign</h2><p className="text-sm text-gray-500">Draft once, choose a donor segment and approved channels. Email and WhatsApp are only queued for users who opted in.</p></div>
+        <div className="mb-5"><h2 className="font-black text-gray-900">Consent-aware reminder campaign</h2><p className="text-sm text-gray-500">Draft once, choose a donor segment and approved channels. App, Email and WhatsApp eligibility is calculated before you queue the message.</p></div>
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className="space-y-3"><div><label className="label">Audience</label><select className="input" value={form.segment} onChange={e=>setForm({...form,segment:e.target.value as DonorSegment})}>{SEGMENTS.map(s=><option value={s.key} key={s.key}>{s.label}</option>)}</select></div><div><label className="label">Category</label><select className="input" value={form.content_category} onChange={e=>setForm({...form,content_category:e.target.value})}><option value="pledge">Pledge reminder</option><option value="campaign">Campaign update</option><option value="impact">Impact update</option><option value="humanitarian">Humanitarian assistance</option><option value="quran">Quran reminder</option><option value="hadith">Hadith reminder</option><option value="dua">Du&apos;a reminder</option><option value="motivation">Motivation</option><option value="emergency">Emergency appeal</option></select></div><div className="grid grid-cols-3 gap-2">{(['app','email','whatsapp'] as CommunicationChannel[]).map(channel=><button type="button" onClick={()=>toggleChannel(channel)} key={channel} className={`rounded-xl border px-3 py-3 text-sm font-bold capitalize ${form.channels.includes(channel)?'border-primary bg-primary/10 text-primary-dark':'border-gray-200 text-gray-500'}`}>{channel==='app'?<BellRing size={16} className="mx-auto mb-1"/>:channel==='email'?<Mail size={16} className="mx-auto mb-1"/>:<MessageCircle size={16} className="mx-auto mb-1"/>}{channel}</button>)}</div><div><label className="label">Send later (optional)</label><input type="datetime-local" className="input" value={form.scheduled_for} onChange={e=>setForm({...form,scheduled_for:e.target.value})}/></div></div>
+          <div className="space-y-3"><div><label className="label">Audience</label><select className="input" value={form.segment} onChange={e=>setForm({...form,segment:e.target.value as DonorSegment})}>{SEGMENTS.map(s=><option value={s.key} key={s.key}>{s.label}</option>)}</select></div><div><label className="label">Category</label><select className="input" value={form.content_category} onChange={e=>setForm({...form,content_category:e.target.value})}>{CONTENT_CATEGORIES.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></div><div className="grid grid-cols-3 gap-2">{(['app','email','whatsapp'] as CommunicationChannel[]).map(channel=><button type="button" onClick={()=>toggleChannel(channel)} key={channel} className={`rounded-xl border px-3 py-3 text-sm font-bold capitalize ${form.channels.includes(channel)?'border-primary bg-primary/10 text-primary-dark':'border-gray-200 text-gray-500'}`}>{channel==='app'?<BellRing size={16} className="mx-auto mb-1"/>:channel==='email'?<Mail size={16} className="mx-auto mb-1"/>:<MessageCircle size={16} className="mx-auto mb-1"/>}{channel}</button>)}</div><div><label className="label">Send later (optional)</label><input type="datetime-local" className="input" value={form.scheduled_for} onChange={e=>setForm({...form,scheduled_for:e.target.value})}/></div></div>
           <div className="space-y-3"><div><label className="label">Title</label><input className="input" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="Gentle monthly Family Pledge reminder"/></div><div><label className="label">Message</label><textarea rows={6} className="input" value={form.body} onChange={e=>setForm({...form,body:e.target.value})} placeholder="Write or paste the admin-approved message here…"/></div>{preview&&<div className="grid grid-cols-4 gap-2 rounded-xl bg-gray-50 p-3 text-center"><Mini label="Segment" value={preview.total_users}/><Mini label="App" value={preview.app_eligible}/><Mini label="Email" value={preview.email_eligible}/><Mini label="WhatsApp" value={preview.whatsapp_eligible}/></div>}<div className="flex gap-2"><button onClick={()=>void submit()} disabled={busy==='send'} className="btn-primary flex-1 inline-flex justify-center items-center gap-2"><Send size={15}/>{form.scheduled_for?'Schedule':'Queue reminder'}</button><Link href="/ai/chat" className="btn-secondary inline-flex items-center gap-2"><Sparkles size={15}/>Draft with AI</Link></div></div>
         </div>
       </section>
