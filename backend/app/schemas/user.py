@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.models.enums import UserRole
 
@@ -59,6 +59,15 @@ class EmailPreferenceRequest(BaseModel):
 class AnonymousUpdateRequest(BaseModel):
     anonymous_publicly: bool
     public_display_name: Optional[str] = None
+
+
+class DeleteAccountRequest(BaseModel):
+    password: str = Field(min_length=8, max_length=128)
+
+
+class DeleteAccountOut(BaseModel):
+    deleted: bool = True
+    retained_records: list[str] = ["contributions", "pledges"]
 
 
 class BadgeOut(BaseModel):
