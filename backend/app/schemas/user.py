@@ -24,6 +24,12 @@ class UserOut(BaseModel):
     notification_friday: bool = False
     notification_campaigns: bool = False
     notification_emergency: bool = False
+    notification_quran: bool = False
+    notification_hadith: bool = False
+    notification_dua: bool = False
+    notification_motivation: bool = False
+    notification_impact: bool = False
+    notification_humanitarian: bool = False
     notification_onboarding_seen: bool = False
     created_at: datetime
 
@@ -31,11 +37,9 @@ class UserOut(BaseModel):
 
 
 class UserPublicOut(BaseModel):
-    """Public donor view — hides email/phone, respects anonymous_publicly flag."""
     id: UUID
     display_name: str
     country: Optional[str] = None
-
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -66,6 +70,12 @@ class NotificationPreferenceRequest(BaseModel):
     friday: bool
     campaigns: bool
     emergency: bool
+    quran: bool = False
+    hadith: bool = False
+    dua: bool = False
+    motivation: bool = False
+    impact: bool = False
+    humanitarian: bool = False
     onboarding_seen: bool = True
 
 
@@ -80,9 +90,7 @@ class DeleteAccountRequest(BaseModel):
 
 class DeleteAccountOut(BaseModel):
     deleted: bool = True
-    retained_records: list[str] = Field(
-        default_factory=lambda: ["contributions", "pledges"]
-    )
+    retained_records: list[str] = Field(default_factory=lambda: ["contributions", "pledges"])
 
 
 class BadgeOut(BaseModel):
@@ -92,5 +100,4 @@ class BadgeOut(BaseModel):
     description: str
     icon_url: Optional[str] = None
     awarded_at: datetime
-
     model_config = ConfigDict(from_attributes=True)
