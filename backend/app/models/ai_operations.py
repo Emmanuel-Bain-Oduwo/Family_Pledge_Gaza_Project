@@ -86,9 +86,21 @@ class AiFollowupSuggestion(Base, TimestampMixin):
     status: Mapped[AiFollowupStatus] = mapped_column(Enum(AiFollowupStatus, name="ai_followup_status"), nullable=False, default=AiFollowupStatus.new)
     approved_by: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    assigned_admin_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    snoozed_until: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_contacted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    contact_channel: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
 
     user = relationship("User", foreign_keys=[user_id])
     approver = relationship("User", foreign_keys=[approved_by])
+    assigned_admin = relationship("User", foreign_keys=[assigned_admin_id])
     contribution = relationship("Contribution")
     pledge = relationship("Pledge")
-    __table_args__ = (Index("ix_ai_followup_suggestions_status", "status"), Index("ix_ai_followup_suggestions_user_id", "user_id"), Index("ix_ai_followup_suggestions_type", "suggestion_type"))
+    __table_args__ = (
+        Index("ix_ai_followup_suggestions_status", "status"),
+        Index("ix_ai_followup_suggestions_user_id", "user_id"),
+        Index("ix_ai_followup_suggestions_type", "suggestion_type"),
+        Index("ix_ai_followup_snoozed_until", "snoozed_until"),
+        Index("ix_ai_followup_assigned_admin", "assigned_admin_id"),
+    )

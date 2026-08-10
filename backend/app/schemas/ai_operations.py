@@ -52,7 +52,8 @@ class AiTaskCreate(BaseModel):
     instruction: str
     schedule_type: str | None = None
     cron_expression: str | None = None
-    timezone: str = "UTC"
+    timezone: str = "Africa/Nairobi"
+    next_run_at: datetime | None = None
     requires_approval: bool = True
     status: AiTaskStatus = AiTaskStatus.draft
 
@@ -63,6 +64,7 @@ class AiTaskUpdate(BaseModel):
     schedule_type: str | None = None
     cron_expression: str | None = None
     timezone: str | None = None
+    next_run_at: datetime | None = None
     requires_approval: bool | None = None
     status: AiTaskStatus | None = None
 

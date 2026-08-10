@@ -41,6 +41,8 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
     collector_code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, unique=True)
     push_token: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     weekly_email_opt_in: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    email_reminders_opt_in: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    whatsapp_reminders_opt_in: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     # All notification categories remain opt-in.
     notification_daily: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
@@ -82,6 +84,8 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
         Index("ix_users_country", "country"),
         Index("ix_users_is_active", "is_active"),
         Index("ix_users_weekly_email_opt_in", "weekly_email_opt_in"),
+        Index("ix_users_email_reminders_opt_in", "email_reminders_opt_in"),
+        Index("ix_users_whatsapp_reminders_opt_in", "whatsapp_reminders_opt_in"),
         Index("ix_users_deleted_at", "deleted_at"),
     )
 

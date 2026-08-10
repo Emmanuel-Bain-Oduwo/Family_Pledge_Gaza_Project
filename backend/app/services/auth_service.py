@@ -16,6 +16,8 @@ def register(db: Session, data: RegisterRequest) -> User:
         raise HTTPException(400, "Phone number already registered")
     if email and db.scalar(select(User).where(User.email == email)):
         raise HTTPException(400, "Email already registered")
+    if data.email_reminders_opt_in and not email:
+        raise HTTPException(400, "Add an email address before enabling email reminders")
 
     user = User(
         full_name=data.full_name,
@@ -27,6 +29,8 @@ def register(db: Session, data: RegisterRequest) -> User:
         nickname=data.nickname,
         role=UserRole.donor,
         is_active=True,
+        email_reminders_opt_in=bool(data.email_reminders_opt_in and email),
+        whatsapp_reminders_opt_in=bool(data.whatsapp_reminders_opt_in),
     )
     db.add(user)
     db.flush()
@@ -85,10 +89,8 @@ def request_password_reset(db: Session, identifier: str) -> None:
         )
     )
     if not user:
-        # Return silently to prevent user enumeration
         return
 
-    # Invalidate all previous unused tokens for this user
     db.query(PasswordResetToken).filter(
         PasswordResetToken.user_id == user.id,
         PasswordResetToken.used == False,
@@ -105,11 +107,6 @@ def request_password_reset(db: Session, identifier: str) -> None:
     )
     db.add(reset_token)
     db.commit()
-
-    # In a real application, this is where you would send the raw_token
-    # to the user via email or SMS. For this implementation raw_token
-    # is expected to be delivered through a separate notification channel.
-    # For testing purposes we return nothing; the token is stored hashed.
 
 
 def confirm_password_reset(db: Session, token: str, new_password: str) -> None:

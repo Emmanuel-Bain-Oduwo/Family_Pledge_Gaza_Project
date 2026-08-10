@@ -8,6 +8,8 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_password, verify_password
+from app.models.admin_operations import DonorAdminProfile, OutboundRecipient
+from app.models.ai_operations import AiFollowupSuggestion
 from app.models.badge import Badge, UserBadge
 from app.models.collector import Collector, CollectorMember
 from app.models.contribution import Contribution
@@ -17,7 +19,7 @@ from app.models.media_asset import MediaAsset
 from app.models.notification_endpoint import NotificationEndpoint
 from app.models.tracked_contact import TrackedContact
 from app.models.user import User
-from app.schemas.user import AnonymousUpdateRequest, NotificationPreferenceRequest, UserUpdateRequest
+from app.schemas.user import AnonymousUpdateRequest, CommunicationPreferenceRequest, NotificationPreferenceRequest, UserUpdateRequest
 from app.services.private_proof_service import delete_object as delete_private_proof
 
 
@@ -64,8 +66,12 @@ def update_me(db: Session, user: User, data: UserUpdateRequest) -> User:
         raise HTTPException(400, "Email or phone is required")
     if "email" in updates:
         user.email = next_email
+        if not next_email:
+            user.email_reminders_opt_in = False
     if "phone" in updates:
         user.phone = next_phone
+        if not next_phone:
+            user.whatsapp_reminders_opt_in = False
     db.commit()
     db.refresh(user)
     return user
@@ -92,6 +98,19 @@ def update_notification_preferences(db: Session, user: User, data: NotificationP
     user.notification_impact = data.impact
     user.notification_humanitarian = data.humanitarian
     user.notification_onboarding_seen = data.onboarding_seen
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def update_communication_preferences(db: Session, user: User, data: CommunicationPreferenceRequest) -> User:
+    if data.email_reminders_opt_in and not user.email:
+        raise HTTPException(400, "Add an email address before enabling email reminders")
+    if data.whatsapp_reminders_opt_in and not user.phone:
+        raise HTTPException(400, "Add a phone number before enabling WhatsApp reminders")
+    user.email_reminders_opt_in = data.email_reminders_opt_in
+    user.whatsapp_reminders_opt_in = data.whatsapp_reminders_opt_in
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -151,14 +170,16 @@ def delete_account(db: Session, user: User, password: str) -> None:
         contribution.transaction_reference = None
         contribution.proof_expires_at = None
 
-    # Remove all app-only engagement/recognition/community data. Accounting pledge
-    # and contribution rows are the only donor-linked records intentionally retained.
+    # Remove all app-only engagement/recognition/community/admin-follow-up data.
     db.execute(delete(UserBadge).where(UserBadge.user_id == user.id))
     db.execute(delete(NotificationEndpoint).where(NotificationEndpoint.user_id == user.id))
     db.execute(delete(EngagementGoal).where(EngagementGoal.user_id == user.id))
     db.execute(delete(EngagementEvent).where(EngagementEvent.user_id == user.id))
     db.execute(delete(FeatureRequest).where(FeatureRequest.user_id == user.id))
     db.execute(delete(PledgeCircleMember).where(PledgeCircleMember.user_id == user.id))
+    db.execute(delete(DonorAdminProfile).where(DonorAdminProfile.user_id == user.id))
+    db.execute(delete(AiFollowupSuggestion).where(AiFollowupSuggestion.user_id == user.id))
+    db.execute(delete(OutboundRecipient).where(OutboundRecipient.user_id == user.id))
 
     owned_circle_ids = list(db.scalars(select(PledgeCircle.id).where(PledgeCircle.owner_user_id == user.id)).all())
     if owned_circle_ids:
@@ -184,6 +205,8 @@ def delete_account(db: Session, user: User, password: str) -> None:
     user.collector_code = None
     user.anonymous_publicly = True
     user.weekly_email_opt_in = False
+    user.email_reminders_opt_in = False
+    user.whatsapp_reminders_opt_in = False
     for field in (
         "notification_daily",
         "notification_friday",
