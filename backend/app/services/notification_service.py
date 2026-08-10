@@ -152,7 +152,11 @@ def _firebase_app():
 def _send_fcm_web(
     tokens: List[str], title: str, body: str, notification_type: str = "general"
 ) -> tuple[int, int]:
-    """Send browser push through Firebase Cloud Messaging only."""
+    """Send browser push through Firebase Cloud Messaging only.
+
+    Firebase multicast requests accept a bounded token batch, so destinations
+    are chunked rather than assuming the audience will always stay small.
+    """
     if not tokens:
         return 0, 0
     app = _firebase_app()
@@ -165,23 +169,29 @@ def _send_fcm_web(
         return 0, len(tokens)
 
     link = f"{settings.WEB_APP_BASE_URL.rstrip('/')}/screens/notifications"
-    message = messaging.MulticastMessage(
-        tokens=tokens,
-        notification=messaging.Notification(title=title, body=body),
-        data={
-            "screen": "/screens/notifications",
-            "notification_type": notification_type,
-        },
-        webpush=messaging.WebpushConfig(
-            fcm_options=messaging.WebpushFCMOptions(link=link),
-        ),
-    )
-    try:
-        response = messaging.send_each_for_multicast(message, app=app)
-        return int(response.success_count), int(response.failure_count)
-    except Exception as exc:
-        log.warning("Firebase Web push failed: %s", exc)
-        return 0, len(tokens)
+    sent = 0
+    failed = 0
+    for index in range(0, len(tokens), 500):
+        batch = tokens[index : index + 500]
+        message = messaging.MulticastMessage(
+            tokens=batch,
+            notification=messaging.Notification(title=title, body=body),
+            data={
+                "screen": "/screens/notifications",
+                "notification_type": notification_type,
+            },
+            webpush=messaging.WebpushConfig(
+                fcm_options=messaging.WebpushFCMOptions(link=link),
+            ),
+        )
+        try:
+            response = messaging.send_each_for_multicast(message, app=app)
+            sent += int(response.success_count)
+            failed += int(response.failure_count)
+        except Exception as exc:
+            log.warning("Firebase Web push batch failed: %s", exc)
+            failed += len(batch)
+    return sent, failed
 
 
 def _resolve_delivery_tokens(
