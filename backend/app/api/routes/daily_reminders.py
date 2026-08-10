@@ -85,8 +85,8 @@ def _notification_category(reminder: DailyReminder) -> str:
         ReminderType.dhikr: "dhikr",
         ReminderType.shirk: "shirk",
         ReminderType.motivation: "motivation",
-        ReminderType.friday: "pledge",
-        ReminderType.sadaqah: "pledge",
+        ReminderType.friday: "friday",
+        ReminderType.sadaqah: "sadaqah",
     }
     return mapping.get(reminder.reminder_type, "general")
 
