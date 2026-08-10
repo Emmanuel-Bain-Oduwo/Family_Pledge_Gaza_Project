@@ -12,6 +12,7 @@ export function preferencesFromUser(user: User): NotificationPreferences {
     dua: Boolean(user.notification_dua),
     dhikr: Boolean(user.notification_dhikr),
     shirk: Boolean(user.notification_shirk),
+    sadaqah: Boolean(user.notification_sadaqah),
     motivation: Boolean(user.notification_motivation),
     impact: Boolean(user.notification_impact),
     humanitarian: Boolean(user.notification_humanitarian),
