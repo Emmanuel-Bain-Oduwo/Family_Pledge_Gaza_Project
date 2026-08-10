@@ -12,6 +12,8 @@ class RegisterRequest(BaseModel):
     city: Optional[str] = None
     nickname: Optional[str] = None
     referral_code: Optional[str] = None
+    email_reminders_opt_in: bool = False
+    whatsapp_reminders_opt_in: bool = False
 
     @field_validator("password")
     @classmethod

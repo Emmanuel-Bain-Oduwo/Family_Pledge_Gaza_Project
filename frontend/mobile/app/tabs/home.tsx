@@ -74,6 +74,12 @@ export default function HomeScreen() {
         friday: false,
         campaigns: false,
         emergency: false,
+        quran: false,
+        hadith: false,
+        dua: false,
+        motivation: false,
+        impact: false,
+        humanitarian: false,
         onboarding_seen: true,
       });
       setUser(updated);

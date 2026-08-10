@@ -20,6 +20,8 @@ class UserOut(BaseModel):
     public_display_name: Optional[str] = None
     is_active: bool
     weekly_email_opt_in: bool
+    email_reminders_opt_in: bool = False
+    whatsapp_reminders_opt_in: bool = False
     notification_daily: bool = False
     notification_friday: bool = False
     notification_campaigns: bool = False
@@ -63,6 +65,11 @@ class UserUpdateRequest(BaseModel):
 
 class EmailPreferenceRequest(BaseModel):
     weekly_email_opt_in: bool
+
+
+class CommunicationPreferenceRequest(BaseModel):
+    email_reminders_opt_in: bool
+    whatsapp_reminders_opt_in: bool
 
 
 class NotificationPreferenceRequest(BaseModel):

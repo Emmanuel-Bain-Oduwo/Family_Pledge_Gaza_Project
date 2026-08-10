@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.core.database import engine
 from app.api.routes import (
     admin,
+    admin_operations,
     ai_assistant,
     ai_operations,
     auth,
@@ -63,6 +64,9 @@ CORE_TABLES = (
     "pledge_circles",
     "pledge_circle_members",
     "feature_requests",
+    "donor_admin_profiles",
+    "outbound_campaigns",
+    "outbound_recipients",
 )
 
 app = FastAPI(
@@ -112,6 +116,7 @@ ROUTERS = (
     notifications.router,
     ai_assistant.router,
     ai_operations.router,
+    admin_operations.router,
     settings_routes.router,
     storage.router,
     admin.router,

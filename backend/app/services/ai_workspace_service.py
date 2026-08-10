@@ -1,21 +1,27 @@
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from fastapi import HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import exists, func, select
 from sqlalchemy.orm import Session
 
+from app.models.admin_operations import OutboundCampaign
+from app.models.ai_operations import AiFollowupSuggestion
 from app.models.campaign import Campaign
 from app.models.collector import Collector
 from app.models.contribution import Contribution
+from app.models.engagement import FeatureRequest, PledgeCircle, PledgeCircleMember
 from app.models.enums import (
+    AiFollowupStatus,
     CampaignStatus,
     ContributionStatus,
     PledgeStatus,
     ReminderStatus,
     UserRole,
 )
+from app.models.impact import ImpactCard
+from app.models.notification import Notification
 from app.models.pledge import Pledge
 from app.models.reminder import DailyReminder
 from app.models.user import User
@@ -44,13 +50,14 @@ _DOMAIN_SCOPE_TERMS = {
     "donor", "pledge", "contribution", "campaign", "collector", "impact",
     "fundraising", "charity", "sadaqah", "zakat", "islam", "islamic", "muslim",
     "allah", "quran", "qur'an", "hadith", "dua", "jumu", "relief", "beneficiar",
-    "orphans", "widows",
+    "orphans", "widows", "follow-up", "followup", "whatsapp", "email", "circle",
 }
 
 _PLATFORM_SCOPE_TERMS = {
     "dashboard", "database", "accounting", "payment", "notification", "reminder",
     "pending", "confirmed", "rejected", "raised", "progress", "collector",
-    "contribution", "pledge", "campaign", "donor",
+    "contribution", "pledge", "campaign", "donor", "follow-up", "followup",
+    "communication", "segment", "inactive", "feature request", "community",
 }
 
 _PLATFORM_CONTEXT_TERMS = {
@@ -63,9 +70,6 @@ def is_in_scope(text: str) -> bool:
     normalized = " ".join(text.lower().split())
     if any(term in normalized for term in _DOMAIN_SCOPE_TERMS):
         return True
-    # Generic words such as report/task/summary are never sufficient by themselves.
-    # A platform-operational request needs both an operational object and explicit
-    # Family Pledge/admin/database context.
     return (
         any(term in normalized for term in _PLATFORM_SCOPE_TERMS)
         and any(term in normalized for term in _PLATFORM_CONTEXT_TERMS)
@@ -87,14 +91,9 @@ def platform_summary(db: Session) -> dict:
             User.is_active.is_(True),
             User.deleted_at.is_(None),
         )) or 0),
-        "active_pledges": int(db.scalar(select(func.count(Pledge.id)).where(
-            Pledge.status == PledgeStatus.active
-        )) or 0),
+        "active_pledges": int(db.scalar(select(func.count(Pledge.id)).where(Pledge.status == PledgeStatus.active)) or 0),
         "pending_contributions": int(db.scalar(select(func.count(Contribution.id)).where(
-            Contribution.status.in_([
-                ContributionStatus.submitted,
-                ContributionStatus.needs_follow_up,
-            ])
+            Contribution.status.in_([ContributionStatus.submitted, ContributionStatus.needs_follow_up])
         )) or 0),
         "confirmed_contributions_this_month": int(db.scalar(select(func.count(Contribution.id)).where(
             Contribution.status == ContributionStatus.confirmed,
@@ -108,6 +107,48 @@ def platform_summary(db: Session) -> dict:
     }
 
 
+def donor_operations_summary(db: Session) -> dict:
+    month = datetime.now(timezone.utc).strftime("%Y-%m")
+    now = datetime.now(timezone.utc)
+    donor_base = select(User.id).where(
+        User.role == UserRole.donor,
+        User.is_active.is_(True),
+        User.deleted_at.is_(None),
+    )
+    active_pledge = exists(select(Pledge.id).where(Pledge.user_id == User.id, Pledge.status == PledgeStatus.active))
+    confirmed_month = exists(select(Contribution.id).where(
+        Contribution.user_id == User.id,
+        Contribution.contribution_month == month,
+        Contribution.status == ContributionStatus.confirmed,
+    ))
+    pending_month = exists(select(Contribution.id).where(
+        Contribution.user_id == User.id,
+        Contribution.contribution_month == month,
+        Contribution.status.in_([ContributionStatus.submitted, ContributionStatus.needs_follow_up]),
+    ))
+    recent_contribution = exists(select(Contribution.id).where(
+        Contribution.user_id == User.id,
+        Contribution.created_at >= now - timedelta(days=30),
+    ))
+    def count(query):
+        return int(db.scalar(select(func.count()).select_from(query.subquery())) or 0)
+    return {
+        "month": month,
+        "total_donors": count(donor_base),
+        "active_pledges": count(donor_base.where(active_pledge)),
+        "active_pledges_missing_confirmed_or_pending_this_month": count(donor_base.where(active_pledge, ~confirmed_month, ~pending_month)),
+        "donors_with_pending_review_this_month": count(donor_base.where(pending_month)),
+        "donors_confirmed_this_month": count(donor_base.where(confirmed_month)),
+        "inactive_30_days": count(donor_base.where(~recent_contribution, User.created_at < now - timedelta(days=30))),
+        "email_reminder_opt_ins": int(db.scalar(select(func.count(User.id)).where(
+            User.role == UserRole.donor, User.is_active.is_(True), User.email_reminders_opt_in.is_(True)
+        )) or 0),
+        "whatsapp_reminder_opt_ins": int(db.scalar(select(func.count(User.id)).where(
+            User.role == UserRole.donor, User.is_active.is_(True), User.whatsapp_reminders_opt_in.is_(True)
+        )) or 0),
+    }
+
+
 def contribution_summary(db: Session) -> dict:
     month = datetime.now(timezone.utc).strftime("%Y-%m")
     status_rows = db.execute(
@@ -117,10 +158,7 @@ def contribution_summary(db: Session) -> dict:
     ).all()
     currency_rows = db.execute(
         select(Contribution.currency, func.coalesce(func.sum(Contribution.amount), 0))
-        .where(
-            Contribution.contribution_month == month,
-            Contribution.status == ContributionStatus.confirmed,
-        )
+        .where(Contribution.contribution_month == month, Contribution.status == ContributionStatus.confirmed)
         .group_by(Contribution.currency)
     ).all()
     return {
@@ -129,11 +167,41 @@ def contribution_summary(db: Session) -> dict:
             (status.value if hasattr(status, "value") else str(status)): int(count)
             for status, count in status_rows
         },
-        "confirmed_amounts_by_currency": {
-            currency: _number(total) for currency, total in currency_rows
-        },
+        "confirmed_amounts_by_currency": {currency: _number(total) for currency, total in currency_rows},
         "privacy_note": "Aggregate accounting data only; no donor identities or payment proof details supplied to AI.",
     }
+
+
+def followup_summary(db: Session) -> dict:
+    rows = db.execute(
+        select(AiFollowupSuggestion.suggestion_type, AiFollowupSuggestion.priority, func.count(AiFollowupSuggestion.id))
+        .where(AiFollowupSuggestion.status.in_([AiFollowupStatus.new, AiFollowupStatus.approved]))
+        .group_by(AiFollowupSuggestion.suggestion_type, AiFollowupSuggestion.priority)
+    ).all()
+    return {
+        "open_total": sum(int(count) for _, _, count in rows),
+        "groups": [
+            {"type": kind, "priority": priority.value, "count": int(count)}
+            for kind, priority, count in rows
+        ],
+        "privacy_note": "No donor names or contact details are supplied to AI in this summary.",
+    }
+
+
+def communication_summary(db: Session) -> list[dict]:
+    items = list(db.scalars(
+        select(OutboundCampaign).order_by(OutboundCampaign.created_at.desc()).limit(10)
+    ).all())
+    return [{
+        "title": item.title,
+        "segment": item.segment,
+        "channels": item.channels,
+        "status": item.status,
+        "recipient_count": item.recipient_count,
+        "sent_count": item.sent_count,
+        "failed_count": item.failed_count,
+        "scheduled_for": item.scheduled_for.isoformat() if item.scheduled_for else None,
+    } for item in items]
 
 
 def campaign_summary(db: Session) -> list[dict]:
@@ -143,20 +211,46 @@ def campaign_summary(db: Session) -> list[dict]:
         .order_by(Campaign.created_at.desc())
         .limit(10)
     ).all())
-    return [
-        {
-            "title": campaign.title,
-            "type": campaign.campaign_type.value,
-            "status": campaign.status.value,
-            "target_amount": _number(campaign.target_amount),
-            "raised_amount": _number(campaign.raised_amount),
-            "donor_target": campaign.donor_target,
-            "donor_count": campaign.donor_count,
-            "starts_at": campaign.starts_at.isoformat() if campaign.starts_at else None,
-            "ends_at": campaign.ends_at.isoformat() if campaign.ends_at else None,
-        }
-        for campaign in campaigns
-    ]
+    return [{
+        "title": campaign.title,
+        "type": campaign.campaign_type.value,
+        "status": campaign.status.value,
+        "target_amount": _number(campaign.target_amount),
+        "raised_amount": _number(campaign.raised_amount),
+        "donor_target": campaign.donor_target,
+        "donor_count": campaign.donor_count,
+        "starts_at": campaign.starts_at.isoformat() if campaign.starts_at else None,
+        "ends_at": campaign.ends_at.isoformat() if campaign.ends_at else None,
+    } for campaign in campaigns]
+
+
+def impact_summary(db: Session) -> dict:
+    return {
+        "published": int(db.scalar(select(func.count(ImpactCard.id)).where(ImpactCard.published.is_(True))) or 0),
+        "draft": int(db.scalar(select(func.count(ImpactCard.id)).where(ImpactCard.published.is_(False))) or 0),
+        "beneficiaries_recorded": int(db.scalar(select(func.coalesce(func.sum(ImpactCard.beneficiaries_count), 0)).where(ImpactCard.published.is_(True))) or 0),
+    }
+
+
+def community_summary(db: Session) -> dict:
+    return {
+        "active_circles": int(db.scalar(select(func.count(PledgeCircle.id)).where(PledgeCircle.is_active.is_(True))) or 0),
+        "circle_memberships": int(db.scalar(select(func.count(PledgeCircleMember.id))) or 0),
+    }
+
+
+def feature_request_summary(db: Session) -> dict:
+    rows = db.execute(select(FeatureRequest.status, func.count(FeatureRequest.id)).group_by(FeatureRequest.status)).all()
+    return {str(status): int(count) for status, count in rows}
+
+
+def notification_delivery_summary(db: Session) -> dict:
+    recent = list(db.scalars(select(Notification).order_by(Notification.created_at.desc()).limit(20)).all())
+    return {
+        "recent_notifications": len(recent),
+        "sent_deliveries": sum(int(item.sent_count or 0) for item in recent),
+        "failed_deliveries": sum(int(item.failure_count or 0) for item in recent),
+    }
 
 
 def approved_religious_context(db: Session) -> list[dict]:
@@ -164,77 +258,65 @@ def approved_religious_context(db: Session) -> list[dict]:
         select(DailyReminder)
         .where(DailyReminder.status.in_([ReminderStatus.approved, ReminderStatus.published]))
         .order_by(DailyReminder.created_at.desc())
-        .limit(6)
+        .limit(8)
     ).all())
-    return [
-        {
-            "title": item.title,
-            "type": item.reminder_type.value,
-            "arabic_text": item.arabic_text,
-            "translation": item.translation,
-            "explanation": item.explanation,
-            "source_reference": item.source_reference,
-            "status": item.status.value,
-        }
-        for item in reminders
-    ]
+    return [{
+        "title": item.title,
+        "type": item.reminder_type.value,
+        "arabic_text": item.arabic_text,
+        "translation": item.translation,
+        "explanation": item.explanation,
+        "source_reference": item.source_reference,
+        "status": item.status.value,
+        "scheduled_for": item.scheduled_for.isoformat() if item.scheduled_for else None,
+    } for item in reminders]
 
 
 def select_context(db: Session, question: str) -> list[dict]:
     q = question.lower()
     blocks: list[dict] = []
-
     operational_terms = (
         "dashboard", "database", "stats", "statistics", "status", "today", "week",
         "report", "summary", "task", "operations", "pending", "action", "total",
+        "attention", "priority",
     )
     if any(term in q for term in operational_terms):
-        blocks.append({
-            "name": "platform_summary",
-            "description": "Sanitized aggregate Family Pledge operating metrics.",
-            "data": platform_summary(db),
-        })
+        blocks.append({"name": "platform_summary", "description": "Sanitized aggregate Family Pledge operating metrics.", "data": platform_summary(db)})
+        blocks.append({"name": "donor_operations", "description": "Aggregate donor health, pledge and consent segments.", "data": donor_operations_summary(db)})
 
     if any(term in q for term in ("contribution", "donation", "payment", "amount", "confirmed", "pending", "pledge")):
-        blocks.append({
-            "name": "contribution_summary",
-            "description": "Current-month aggregate contribution accounting without donor identity or proof data.",
-            "data": contribution_summary(db),
-        })
+        blocks.append({"name": "contribution_summary", "description": "Current-month aggregate contribution accounting without donor identity or proof data.", "data": contribution_summary(db)})
 
-    if any(term in q for term in ("campaign", "raised", "fundraising", "impact", "appeal", "progress")):
-        blocks.append({
-            "name": "active_campaigns",
-            "description": "Current active campaign facts from PostgreSQL.",
-            "data": campaign_summary(db),
-        })
+    if any(term in q for term in ("follow-up", "followup", "inactive", "remind", "missing", "attention")):
+        blocks.append({"name": "followup_queue", "description": "Aggregate open donor follow-up workload grouped by reason and priority.", "data": followup_summary(db)})
+
+    if any(term in q for term in ("notification", "whatsapp", "email", "communication", "delivery", "message")):
+        blocks.append({"name": "communications", "description": "Recent consent-aware outbound communication campaigns and delivery counts.", "data": communication_summary(db)})
+        blocks.append({"name": "notification_delivery", "description": "Recent push notification delivery totals.", "data": notification_delivery_summary(db)})
+
+    if any(term in q for term in ("campaign", "raised", "fundraising", "appeal", "progress")):
+        blocks.append({"name": "active_campaigns", "description": "Current active campaign facts from PostgreSQL.", "data": campaign_summary(db)})
+
+    if "impact" in q or "beneficiar" in q:
+        blocks.append({"name": "impact_summary", "description": "Published/draft impact content and recorded beneficiary totals.", "data": impact_summary(db)})
+
+    if any(term in q for term in ("circle", "community", "group", "member")):
+        blocks.append({"name": "community_summary", "description": "Aggregate Pledge Circle participation facts.", "data": community_summary(db)})
+
+    if any(term in q for term in ("feature request", "feedback", "request feature")):
+        blocks.append({"name": "feature_requests", "description": "Feature-request counts grouped by workflow status.", "data": feature_request_summary(db)})
 
     if any(term in q for term in ("quran", "qur'an", "hadith", "islam", "islamic", "dua", "sadaqah", "zakat", "jumu", "friday", "allah")):
-        blocks.append({
-            "name": "approved_religious_reminders",
-            "description": "Recent admin-approved/published religious reminder content and source references.",
-            "data": approved_religious_context(db),
-        })
+        blocks.append({"name": "approved_religious_reminders", "description": "Recent admin-approved/published religious reminder content and source references.", "data": approved_religious_context(db)})
 
     if not blocks:
-        blocks.append({
-            "name": "platform_summary",
-            "description": "Sanitized aggregate Family Pledge operating metrics.",
-            "data": platform_summary(db),
-        })
+        blocks.append({"name": "platform_summary", "description": "Sanitized aggregate Family Pledge operating metrics.", "data": platform_summary(db)})
     return blocks
 
 
-def answer_admin_question(
-    db: Session,
-    message: str,
-    history: list[dict] | None = None,
-) -> dict:
+def answer_admin_question(db: Session, message: str, history: list[dict] | None = None) -> dict:
     if not is_in_scope(message):
-        raise HTTPException(
-            400,
-            "This AI workspace is limited to Family Pledge/NAMLEF operations, Gaza humanitarian donations, relevant Islamic context, and approved read-only platform facts.",
-        )
+        raise HTTPException(400, "This AI workspace is limited to Family Pledge/NAMLEF operations, Gaza humanitarian donations, relevant Islamic context, and approved read-only platform facts.")
 
     blocks = select_context(db, message)
     safe_history = (history or [])[-8:]
@@ -247,18 +329,13 @@ def answer_admin_question(
         + (f"Recent conversation:\n{history_text}\n\n" if history_text else "")
         + "Read-only backend context (JSON):\n"
         + json.dumps(blocks, default=str, ensure_ascii=False)
-        + "\n\nAnswer the admin directly. Clearly distinguish database facts from general guidance. "
-          "If the requested database fact is not in the supplied context, say it is not available from the approved tools rather than guessing."
+        + "\n\nAnswer the admin directly. Prioritize concrete next steps for admin work when useful. "
+          "Clearly distinguish database facts from general guidance. If a requested database fact is not in the supplied context, say it is not available from the approved tools rather than guessing."
     )
     answer = call_ai(
         system_prompt=AI_ADMIN_SYSTEM_PROMPT,
         user_prompt=prompt,
-        max_tokens=1000,
+        max_tokens=1200,
         temperature=0.3,
     )
-    return {
-        "answer": answer,
-        "context_used": blocks,
-        "scope": "family_pledge_admin",
-        "actions_executed": [],
-    }
+    return {"answer": answer, "context_used": blocks, "scope": "family_pledge_admin", "actions_executed": []}
