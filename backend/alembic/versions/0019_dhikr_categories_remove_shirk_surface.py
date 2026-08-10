@@ -20,6 +20,15 @@ def upgrade():
         ["reminder_type", "dhikr_category", "status"],
     )
 
+    op.execute(
+        """
+        UPDATE daily_reminders
+        SET dhikr_category = 'anytime'
+        WHERE reminder_type = 'dhikr'
+          AND dhikr_category IS NULL
+        """
+    )
+
     # PostgreSQL enum values are deliberately not removed in-place. Retire any
     # legacy Shirk rows safely so they disappear from user/admin publication flows.
     op.execute(
