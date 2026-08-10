@@ -1,16 +1,219 @@
 'use client';
-import { useEffect, useState } from 'react';
+
+import { FormEvent, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { ArrowLeft, Bot, History, Pause, Play, RefreshCw, RotateCcw, XCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 import AdminLayout from '../../../components/AdminLayout';
-import { createFamilyPledgeAiTask, getFamilyPledgeAiTasks, runFamilyPledgeAiTask, type FamilyPledgeAiTask } from '../../../lib/api';
+import {
+  createAiTask,
+  listAiTaskRuns,
+  listAiTasks,
+  retryAiTaskRun,
+  runAiTaskNow,
+  updateAiTask,
+  type AiTask,
+  type AiTaskRun,
+} from '../../../lib/aiWorkspaceApi';
 
 export default function TasksPage() {
-  const [tasks,setTasks]=useState<FamilyPledgeAiTask[]>([]);
-  const [form,setForm]=useState({title:'',instruction:'',schedule_type:'daily'});
-  const load=()=>getFamilyPledgeAiTasks().then(setTasks);
-  useEffect(()=>{void load();},[]);
-  const create=async(e:React.FormEvent)=>{e.preventDefault(); await createFamilyPledgeAiTask({...form,task_type:'custom_admin_task',timezone:'UTC',requires_approval:true,status:'active'}); setForm({title:'',instruction:'',schedule_type:'daily'}); await load();};
-  return <AdminLayout title="Family Pledge AI Scheduled Tasks" subtitle="Prepare recurring reviewable work automatically. Sending and publishing still require admin approval.">
-    <form onSubmit={create} className="card p-5 grid md:grid-cols-3 gap-3 mb-5"><input required className="input" placeholder="Task title" value={form.title} onChange={e=>setForm({...form,title:e.target.value})}/><select className="input" value={form.schedule_type} onChange={e=>setForm({...form,schedule_type:e.target.value})}><option value="daily">Daily</option><option value="weekly">Weekly</option></select><input required className="input md:col-span-2" placeholder="What should Family Pledge AI prepare?" value={form.instruction} onChange={e=>setForm({...form,instruction:e.target.value})}/><button className="btn-primary">Schedule task</button></form>
-    <div className="card overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left border-b"><th className="p-3">Task</th><th>Schedule</th><th>Next run</th><th>Action</th></tr></thead><tbody>{tasks.map(t=><tr className="border-b" key={t.id}><td className="p-3"><b>{t.title}</b><div className="text-gray-500">{t.instruction}</div></td><td>{t.schedule_type||'Manual'}</td><td>{t.next_run_at?new Date(t.next_run_at).toLocaleString():'Not scheduled'}</td><td><button className="btn-secondary" onClick={async()=>{await runFamilyPledgeAiTask(t.id);await load();}}>Run now</button></td></tr>)}</tbody></table>{!tasks.length&&<p className="p-6 text-center text-gray-500">No scheduled tasks yet.</p>}</div>
-  </AdminLayout>;
+  const [tasks, setTasks] = useState<AiTask[]>([]);
+  const [runs, setRuns] = useState<AiTaskRun[]>([]);
+  const [selectedTask, setSelectedTask] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [form, setForm] = useState({ title: '', instruction: '', schedule_type: 'daily' });
+
+  const load = async () => {
+    try {
+      setTasks(await listAiTasks());
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not load AI tasks');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { void load(); }, []);
+
+  const create = async (event: FormEvent) => {
+    event.preventDefault();
+    try {
+      await createAiTask({
+        title: form.title.trim(),
+        instruction: form.instruction.trim(),
+        schedule_type: form.schedule_type === 'manual' ? null : form.schedule_type as 'daily' | 'weekly',
+      });
+      setForm({ title: '', instruction: '', schedule_type: 'daily' });
+      toast.success('AI task created. All generated output still requires review.');
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not create task');
+    }
+  };
+
+  const runNow = async (task: AiTask) => {
+    setBusyId(task.id);
+    try {
+      const run = await runAiTaskNow(task.id);
+      setRuns((items) => [run, ...items.filter((item) => item.id !== run.id)]);
+      setSelectedTask(task.id);
+      toast[run.status === 'failed' ? 'error' : 'success'](
+        run.status === 'failed'
+          ? run.error_message || 'Task run failed.'
+          : 'AI prepared reviewable output. Nothing was sent or published.',
+      );
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not run task');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const changeStatus = async (task: AiTask, status: AiTask['status']) => {
+    setBusyId(task.id);
+    try {
+      await updateAiTask(task.id, { status });
+      toast.success(`Task ${status}.`);
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not update task');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const showRuns = async (task: AiTask) => {
+    setSelectedTask(task.id);
+    try {
+      setRuns(await listAiTaskRuns(task.id));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not load run history');
+    }
+  };
+
+  const retry = async (run: AiTaskRun) => {
+    setBusyId(run.id);
+    try {
+      const next = await retryAiTaskRun(run.id);
+      setRuns((items) => [next, ...items]);
+      toast[next.status === 'failed' ? 'error' : 'success'](
+        next.status === 'failed' ? next.error_message || 'Retry failed.' : 'Retry prepared new reviewable output.',
+      );
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not retry task run');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <AdminLayout
+      title="Family Pledge AI Scheduled Tasks"
+      subtitle="Prepare recurring internal work automatically; sending and publishing always stay human-controlled."
+    >
+      <div className="mb-4 flex flex-wrap gap-2">
+        <Link href="/ai-assistant" className="btn-secondary inline-flex items-center gap-2"><ArrowLeft size={15} /> Draft workspace</Link>
+        <Link href="/ai/chat" className="btn-secondary inline-flex items-center gap-2"><Bot size={15} /> AI Chat</Link>
+      </div>
+
+      <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+        Scheduled tasks can read only approved, sanitized Family Pledge context. A run creates internal reviewable text and records the database context tools used. It cannot send a notification, change a contribution, approve a draft, publish content, or delete data.
+      </div>
+
+      <form onSubmit={create} className="card mb-5 grid gap-3 p-5 md:grid-cols-4">
+        <div className="md:col-span-2">
+          <label className="label">Task title</label>
+          <input required maxLength={255} className="input" placeholder="e.g. Friday campaign summary" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
+        </div>
+        <div>
+          <label className="label">Schedule</label>
+          <select className="input" value={form.schedule_type} onChange={(event) => setForm({ ...form, schedule_type: event.target.value })}>
+            <option value="manual">Manual only</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+          </select>
+        </div>
+        <div className="flex items-end">
+          <button className="btn-primary w-full">Create task</button>
+        </div>
+        <div className="md:col-span-4">
+          <label className="label">What should Family Pledge AI prepare?</label>
+          <textarea required rows={3} maxLength={4000} className="input" placeholder="Summarize this month's contribution status and active Gaza campaigns for admin review." value={form.instruction} onChange={(event) => setForm({ ...form, instruction: event.target.value })} />
+        </div>
+      </form>
+
+      <div className="card overflow-x-auto">
+        <table className="w-full min-w-[920px] text-sm">
+          <thead>
+            <tr className="border-b bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+              <th className="p-3">Task</th>
+              <th className="p-3">Status</th>
+              <th className="p-3">Schedule</th>
+              <th className="p-3">Next run</th>
+              <th className="p-3">Last run</th>
+              <th className="p-3">Controls</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tasks.map((task) => (
+              <tr className="border-b align-top" key={task.id}>
+                <td className="p-3 max-w-sm"><b>{task.title}</b><div className="mt-1 text-xs leading-5 text-gray-500">{task.instruction}</div></td>
+                <td className="p-3 capitalize"><Status value={task.status} /></td>
+                <td className="p-3 capitalize">{task.schedule_type || 'Manual'}</td>
+                <td className="p-3 text-xs text-gray-500">{task.next_run_at ? new Date(task.next_run_at).toLocaleString() : '—'}</td>
+                <td className="p-3 text-xs text-gray-500">{task.last_run_at ? new Date(task.last_run_at).toLocaleString() : 'Never'}</td>
+                <td className="p-3">
+                  <div className="flex flex-wrap gap-1.5">
+                    <button disabled={busyId === task.id || task.status === 'cancelled'} className="btn-secondary inline-flex items-center gap-1 text-xs" onClick={() => void runNow(task)}><Play size={12} /> Run now</button>
+                    {task.status === 'active' && <button disabled={busyId === task.id} className="btn-ghost inline-flex items-center gap-1 text-xs" onClick={() => void changeStatus(task, 'paused')}><Pause size={12} /> Pause</button>}
+                    {(task.status === 'paused' || task.status === 'draft') && <button disabled={busyId === task.id} className="btn-ghost inline-flex items-center gap-1 text-xs" onClick={() => void changeStatus(task, 'active')}><Play size={12} /> Resume</button>}
+                    {task.status !== 'cancelled' && <button disabled={busyId === task.id} className="btn-ghost inline-flex items-center gap-1 text-xs text-red-600" onClick={() => void changeStatus(task, 'cancelled')}><XCircle size={12} /> Cancel</button>}
+                    <button className="btn-ghost inline-flex items-center gap-1 text-xs" onClick={() => void showRuns(task)}><History size={12} /> History</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {!loading && !tasks.length && <p className="p-8 text-center text-gray-500">No AI tasks yet.</p>}
+        {loading && <p className="p-8 text-center text-gray-400">Loading tasks…</p>}
+      </div>
+
+      {selectedTask && (
+        <div className="card mt-5 p-5">
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <div><h2 className="font-bold text-gray-900">Task run history</h2><p className="text-xs text-gray-500">Generated output is internal until a human uses it elsewhere.</p></div>
+            <button className="btn-ghost" onClick={() => { setSelectedTask(null); setRuns([]); }}>Close</button>
+          </div>
+          <div className="space-y-3">
+            {runs.map((run) => (
+              <div key={run.id} className="rounded-xl border border-gray-200 p-4">
+                <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
+                  <Status value={run.status} />
+                  <span className="text-gray-400">{new Date(run.executed_at || run.created_at).toLocaleString()}</span>
+                  {Array.isArray(run.generated_output?.context_used) && run.generated_output!.context_used!.map((tool) => <span key={tool} className="rounded-full bg-gray-100 px-2 py-1 text-gray-600">{tool.replace(/_/g, ' ')}</span>)}
+                </div>
+                {run.generated_output?.text && <pre className="whitespace-pre-wrap rounded-lg bg-gray-50 p-3 font-sans text-sm leading-6 text-gray-800">{run.generated_output.text}</pre>}
+                {run.error_message && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{run.error_message}</div>}
+                {run.status === 'failed' && <button disabled={busyId === run.id} onClick={() => void retry(run)} className="btn-secondary mt-3 inline-flex items-center gap-1.5 text-xs"><RotateCcw size={12} /> Retry</button>}
+              </div>
+            ))}
+            {!runs.length && <p className="py-6 text-center text-sm text-gray-500">No runs for this task yet.</p>}
+          </div>
+        </div>
+      )}
+    </AdminLayout>
+  );
+}
+
+function Status({ value }: { value: string }) {
+  const cls = value === 'active' || value === 'waiting_approval' || value === 'executed'
+    ? 'bg-green-100 text-green-700'
+    : value === 'failed' || value === 'cancelled'
+      ? 'bg-red-100 text-red-700'
+      : 'bg-amber-100 text-amber-700';
+  return <span className={`inline-flex rounded-full px-2 py-1 text-[11px] font-semibold capitalize ${cls}`}>{value.replace(/_/g, ' ')}</span>;
 }
