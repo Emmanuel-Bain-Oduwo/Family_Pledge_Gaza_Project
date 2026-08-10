@@ -23,6 +23,7 @@ export interface User {
   notification_dua?: boolean;
   notification_dhikr?: boolean;
   notification_shirk?: boolean;
+  notification_sadaqah?: boolean;
   notification_motivation?: boolean;
   notification_impact?: boolean;
   notification_humanitarian?: boolean;
@@ -40,6 +41,7 @@ export interface NotificationPreferences {
   dua: boolean;
   dhikr: boolean;
   shirk: boolean;
+  sadaqah: boolean;
   motivation: boolean;
   impact: boolean;
   humanitarian: boolean;
