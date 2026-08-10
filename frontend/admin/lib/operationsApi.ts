@@ -2,13 +2,14 @@
 
 import axios from 'axios';
 import { getToken, removeToken } from './auth';
+import { getApiErrorMessage } from './apiError';
 
 const DEFAULT_API_URL = 'https://api.familypledgekenya.org/api/v1';
 const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL).replace(/\/+$/, '');
 
 const client = axios.create({ baseURL: BASE_URL, timeout: 40000, headers: { 'Content-Type': 'application/json', Accept: 'application/json' } });
 client.interceptors.request.use((config) => { const token = getToken(); if (token) config.headers.Authorization = `Bearer ${token}`; return config; });
-function fail(error: unknown): never { if (axios.isAxiosError(error)) { if (error.response?.status === 401 || error.response?.status === 403) removeToken(); const data = error.response?.data as { detail?: string; message?: string } | undefined; throw new Error(data?.detail || data?.message || error.message); } throw error; }
+function fail(error: unknown): never { if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) removeToken(); throw new Error(getApiErrorMessage(error, 'Could not complete this operations request.')); }
 
 export type DonorSegment = 'all_donors'|'active_pledges'|'missing_this_month'|'pending_review'|'confirmed_this_month'|'inactive_30_days'|'new_this_month'|'collectors';
 export type CommunicationChannel = 'app'|'email'|'whatsapp';
