@@ -2,11 +2,13 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Bot, History, Pause, Play, RefreshCw, RotateCcw, XCircle } from 'lucide-react';
+import { ArrowLeft, Ban, Bot, CheckCircle2, History, Pause, Play, RotateCcw, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../components/AdminLayout';
 import {
+  approveAiTaskRun,
   createAiTask,
+  dismissAiTaskRun,
   listAiTaskRuns,
   listAiTasks,
   retryAiTaskRun,
@@ -58,11 +60,8 @@ export default function TasksPage() {
       const run = await runAiTaskNow(task.id);
       setRuns((items) => [run, ...items.filter((item) => item.id !== run.id)]);
       setSelectedTask(task.id);
-      toast[run.status === 'failed' ? 'error' : 'success'](
-        run.status === 'failed'
-          ? run.error_message || 'Task run failed.'
-          : 'AI prepared reviewable output. Nothing was sent or published.',
-      );
+      if (run.status === 'failed') toast.error(run.error_message || 'Task run failed.');
+      else toast.success('AI prepared reviewable output. Nothing was sent or published.');
       await load();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not run task');
@@ -98,12 +97,30 @@ export default function TasksPage() {
     try {
       const next = await retryAiTaskRun(run.id);
       setRuns((items) => [next, ...items]);
-      toast[next.status === 'failed' ? 'error' : 'success'](
-        next.status === 'failed' ? next.error_message || 'Retry failed.' : 'Retry prepared new reviewable output.',
-      );
+      if (next.status === 'failed') toast.error(next.error_message || 'Retry failed.');
+      else toast.success('Retry prepared new reviewable output.');
       await load();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not retry task run');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const reviewRun = async (run: AiTaskRun, decision: 'approve' | 'dismiss') => {
+    setBusyId(run.id);
+    try {
+      const updated = decision === 'approve'
+        ? await approveAiTaskRun(run.id)
+        : await dismissAiTaskRun(run.id);
+      setRuns((items) => items.map((item) => item.id === updated.id ? updated : item));
+      toast.success(
+        decision === 'approve'
+          ? 'Output marked as human-reviewed. No external action was executed.'
+          : 'Task output dismissed.',
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not review task output');
     } finally {
       setBusyId(null);
     }
@@ -198,7 +215,16 @@ export default function TasksPage() {
                 </div>
                 {run.generated_output?.text && <pre className="whitespace-pre-wrap rounded-lg bg-gray-50 p-3 font-sans text-sm leading-6 text-gray-800">{run.generated_output.text}</pre>}
                 {run.error_message && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{run.error_message}</div>}
-                {run.status === 'failed' && <button disabled={busyId === run.id} onClick={() => void retry(run)} className="btn-secondary mt-3 inline-flex items-center gap-1.5 text-xs"><RotateCcw size={12} /> Retry</button>}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {run.status === 'waiting_approval' && (
+                    <>
+                      <button disabled={busyId === run.id} onClick={() => void reviewRun(run, 'approve')} className="btn-primary inline-flex items-center gap-1.5 text-xs"><CheckCircle2 size={13} /> Approve output</button>
+                      <button disabled={busyId === run.id} onClick={() => void reviewRun(run, 'dismiss')} className="btn-ghost inline-flex items-center gap-1.5 text-xs text-red-600"><Ban size={13} /> Dismiss</button>
+                    </>
+                  )}
+                  {run.status === 'validated' && <span className="text-xs font-semibold text-green-700">Human-reviewed · no action executed</span>}
+                  {run.status === 'failed' && <button disabled={busyId === run.id} onClick={() => void retry(run)} className="btn-secondary inline-flex items-center gap-1.5 text-xs"><RotateCcw size={12} /> Retry</button>}
+                </div>
               </div>
             ))}
             {!runs.length && <p className="py-6 text-center text-sm text-gray-500">No runs for this task yet.</p>}
@@ -210,7 +236,7 @@ export default function TasksPage() {
 }
 
 function Status({ value }: { value: string }) {
-  const cls = value === 'active' || value === 'waiting_approval' || value === 'executed'
+  const cls = value === 'active' || value === 'waiting_approval' || value === 'executed' || value === 'validated'
     ? 'bg-green-100 text-green-700'
     : value === 'failed' || value === 'cancelled'
       ? 'bg-red-100 text-red-700'
