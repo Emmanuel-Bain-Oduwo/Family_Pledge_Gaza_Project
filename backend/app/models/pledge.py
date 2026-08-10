@@ -1,8 +1,8 @@
 import uuid
-from datetime import date
+from datetime import date, datetime
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import Date, Enum, ForeignKey, Index, Numeric, String
+from sqlalchemy import Date, DateTime, Enum, ForeignKey, Index, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -34,8 +34,9 @@ class Pledge(Base, TimestampMixin):
         default=PledgeStatus.active,
     )
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    agreement_accepted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    agreement_version: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
 
-    # Relationships
     user: Mapped["User"] = relationship("User", back_populates="pledges", foreign_keys=[user_id])
     contributions: Mapped[List["Contribution"]] = relationship(
         "Contribution", back_populates="pledge"

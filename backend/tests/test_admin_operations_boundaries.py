@@ -56,9 +56,11 @@ def test_religious_publish_category_matches_user_preferences():
         ReminderType.quran: "quran",
         ReminderType.hadith: "hadith",
         ReminderType.dua: "dua",
+        ReminderType.dhikr: "dhikr",
+        ReminderType.shirk: "shirk",
         ReminderType.motivation: "motivation",
-        ReminderType.friday: "pledge",
-        ReminderType.sadaqah: "pledge",
+        ReminderType.friday: "friday",
+        ReminderType.sadaqah: "sadaqah",
     }
     for reminder_type, expected in cases.items():
         reminder = SimpleNamespace(reminder_type=reminder_type)

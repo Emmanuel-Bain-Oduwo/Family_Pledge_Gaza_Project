@@ -17,6 +17,7 @@ from app.models.engagement import EngagementEvent, EngagementGoal, FeatureReques
 from app.models.enums import UserRole
 from app.models.media_asset import MediaAsset
 from app.models.notification_endpoint import NotificationEndpoint
+from app.models.support_message import SupportMessage
 from app.models.tracked_contact import TrackedContact
 from app.models.user import User
 from app.schemas.user import AnonymousUpdateRequest, CommunicationPreferenceRequest, NotificationPreferenceRequest, UserUpdateRequest
@@ -94,6 +95,9 @@ def update_notification_preferences(db: Session, user: User, data: NotificationP
     user.notification_quran = data.quran
     user.notification_hadith = data.hadith
     user.notification_dua = data.dua
+    user.notification_dhikr = data.dhikr
+    user.notification_shirk = data.shirk
+    user.notification_sadaqah = data.sadaqah
     user.notification_motivation = data.motivation
     user.notification_impact = data.impact
     user.notification_humanitarian = data.humanitarian
@@ -170,12 +174,13 @@ def delete_account(db: Session, user: User, password: str) -> None:
         contribution.transaction_reference = None
         contribution.proof_expires_at = None
 
-    # Remove all app-only engagement/recognition/community/admin-follow-up data.
+    # Remove all app-only personal, engagement, recognition, community and admin-follow-up data.
     db.execute(delete(UserBadge).where(UserBadge.user_id == user.id))
     db.execute(delete(NotificationEndpoint).where(NotificationEndpoint.user_id == user.id))
     db.execute(delete(EngagementGoal).where(EngagementGoal.user_id == user.id))
     db.execute(delete(EngagementEvent).where(EngagementEvent.user_id == user.id))
     db.execute(delete(FeatureRequest).where(FeatureRequest.user_id == user.id))
+    db.execute(delete(SupportMessage).where(SupportMessage.user_id == user.id))
     db.execute(delete(PledgeCircleMember).where(PledgeCircleMember.user_id == user.id))
     db.execute(delete(DonorAdminProfile).where(DonorAdminProfile.user_id == user.id))
     db.execute(delete(AiFollowupSuggestion).where(AiFollowupSuggestion.user_id == user.id))
@@ -215,6 +220,9 @@ def delete_account(db: Session, user: User, password: str) -> None:
         "notification_quran",
         "notification_hadith",
         "notification_dua",
+        "notification_dhikr",
+        "notification_shirk",
+        "notification_sadaqah",
         "notification_motivation",
         "notification_impact",
         "notification_humanitarian",

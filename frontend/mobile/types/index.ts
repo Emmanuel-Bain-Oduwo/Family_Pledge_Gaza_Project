@@ -21,6 +21,9 @@ export interface User {
   notification_quran?: boolean;
   notification_hadith?: boolean;
   notification_dua?: boolean;
+  notification_dhikr?: boolean;
+  notification_shirk?: boolean;
+  notification_sadaqah?: boolean;
   notification_motivation?: boolean;
   notification_impact?: boolean;
   notification_humanitarian?: boolean;
@@ -36,6 +39,9 @@ export interface NotificationPreferences {
   quran: boolean;
   hadith: boolean;
   dua: boolean;
+  dhikr: boolean;
+  shirk: boolean;
+  sadaqah: boolean;
   motivation: boolean;
   impact: boolean;
   humanitarian: boolean;
@@ -52,6 +58,8 @@ export interface Pledge {
   pledge_type?: string;
   status: string;
   start_date?: string;
+  agreement_accepted_at?: string;
+  agreement_version?: string;
   created_at?: string;
   updated_at?: string;
   month?: string;
@@ -120,6 +128,19 @@ export interface Reminder {
   image_url?: string;
   date?: string;
   created_at?: string;
+}
+
+export interface SupportMessage {
+  id: string;
+  user_id: string;
+  subject: string;
+  message: string;
+  category: string;
+  status: 'open' | 'in_progress' | 'resolved';
+  admin_response?: string;
+  responded_at?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface NamlefContent {

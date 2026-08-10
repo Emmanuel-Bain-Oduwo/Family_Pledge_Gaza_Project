@@ -80,7 +80,7 @@ export const getDashboard = async (): Promise<Dashboard> => {
   catch (e) { return handleApiError(e); }
 };
 
-export const createPledge = async (payload: { pledge_type?: string; amount?: number; currency?: string; start_date: string }): Promise<Pledge> => {
+export const createPledge = async (payload: { pledge_type?: string; amount?: number; currency?: string; start_date: string; agreement_accepted?: boolean }): Promise<Pledge> => {
   try { return (await client.post<Pledge>('/pledges', payload)).data; }
   catch (e) { return handleApiError(e); }
 };

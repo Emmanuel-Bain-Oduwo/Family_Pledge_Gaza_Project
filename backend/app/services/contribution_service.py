@@ -11,6 +11,7 @@ from app.models.campaign import Campaign
 from app.models.contribution import Contribution
 from app.models.enums import ContributionStatus
 from app.models.media_asset import MediaAsset
+from app.models.pledge import Pledge
 from app.models.user import User
 from app.schemas.contribution import ContributionSubmit
 from app.services.private_proof_service import retention_expires_at
@@ -56,7 +57,19 @@ def _validate_private_proof(
     return asset
 
 
+def _validate_pledge_ownership(db: Session, user: User, pledge_id: Optional[UUID]) -> None:
+    if not pledge_id:
+        return
+    pledge = db.get(Pledge, pledge_id)
+    if not pledge:
+        raise HTTPException(400, "Pledge was not found")
+    if pledge.user_id != user.id:
+        raise HTTPException(403, "This pledge belongs to another user")
+
+
 def submit(db: Session, user: User, data: ContributionSubmit) -> Contribution:
+    _validate_pledge_ownership(db, user, data.pledge_id)
+
     normalized_reference = None
     if data.transaction_reference:
         normalized_reference = str(data.transaction_reference).strip()
@@ -148,6 +161,21 @@ def admin_list(
     return items, total
 
 
+def _audit_meta(c: Contribution, prev_status: str, admin_note: Optional[str] = None) -> dict:
+    """Keep immutable audit useful without copying 30-day raw proof/reference data."""
+    meta = {
+        "previous_status": prev_status,
+        "new_status": c.status.value,
+        "amount": str(c.amount) if c.amount is not None else None,
+        "currency": c.currency,
+        "had_transaction_reference": bool(c.transaction_reference),
+        "had_private_proof": bool(c.proof_object_key),
+    }
+    if admin_note:
+        meta["admin_note"] = admin_note
+    return meta
+
+
 def confirm(db: Session, admin: User, contribution_id: UUID) -> Contribution:
     c = _get(db, contribution_id)
     if c.status == ContributionStatus.confirmed:
@@ -166,24 +194,10 @@ def confirm(db: Session, admin: User, contribution_id: UUID) -> Contribution:
                 campaign.donor_count = (campaign.donor_count or 0) + 1
             elif hasattr(campaign, "current_amount"):
                 campaign.current_amount = (campaign.current_amount or 0) + c.amount
-                campaign.total_contributions = (
-                    campaign.total_contributions or 0
-                ) + 1
+                campaign.total_contributions = (campaign.total_contributions or 0) + 1
             db.add(campaign)
 
-    _audit(
-        db,
-        admin,
-        "confirm",
-        str(c.id),
-        {
-            "previous_status": prev_status,
-            "new_status": c.status.value,
-            "amount": str(c.amount) if c.amount is not None else None,
-            "currency": c.currency,
-            "transaction_reference": c.transaction_reference,
-        },
-    )
+    _audit(db, admin, "confirm", str(c.id), _audit_meta(c, prev_status))
     db.commit()
     db.refresh(c)
     return c
@@ -204,20 +218,7 @@ def reject(
     if admin_note:
         c.admin_note = admin_note
 
-    _audit(
-        db,
-        admin,
-        "reject",
-        str(c.id),
-        {
-            "previous_status": prev_status,
-            "new_status": c.status.value,
-            "admin_note": admin_note,
-            "amount": str(c.amount) if c.amount is not None else None,
-            "currency": c.currency,
-            "transaction_reference": c.transaction_reference,
-        },
-    )
+    _audit(db, admin, "reject", str(c.id), _audit_meta(c, prev_status, admin_note))
     db.commit()
     db.refresh(c)
     return c
@@ -238,20 +239,7 @@ def needs_follow_up(
     if admin_note:
         c.admin_note = admin_note
 
-    _audit(
-        db,
-        admin,
-        "needs_follow_up",
-        str(c.id),
-        {
-            "previous_status": prev_status,
-            "new_status": c.status.value,
-            "admin_note": admin_note,
-            "amount": str(c.amount) if c.amount is not None else None,
-            "currency": c.currency,
-            "transaction_reference": c.transaction_reference,
-        },
-    )
+    _audit(db, admin, "needs_follow_up", str(c.id), _audit_meta(c, prev_status, admin_note))
     db.commit()
     db.refresh(c)
     return c
