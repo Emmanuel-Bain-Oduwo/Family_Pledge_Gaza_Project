@@ -13,11 +13,24 @@ const AUDIENCES: { value: NotificationAudience; label: string }[] = [
 ];
 
 const TYPES = ['reminder', 'campaign', 'emergency', 'impact', 'pledge', 'system'];
+const CATEGORIES = [
+  ['general', 'General update'],
+  ['quran', 'Quran reminder'],
+  ['hadith', 'Hadith reminder'],
+  ['dua', 'Dua reminder'],
+  ['motivation', 'Motivation'],
+  ['impact', 'Impact update'],
+  ['humanitarian', 'Humanitarian assistance'],
+  ['campaign', 'Campaign update'],
+  ['emergency', 'Emergency appeal'],
+  ['pledge', 'Pledge reminder'],
+] as const;
 
-interface NotifPayload {
+export interface NotifPayload {
   title: string;
   body: string;
   notification_type: string;
+  content_category?: string;
   audience: NotificationAudience;
 }
 
@@ -30,7 +43,7 @@ interface NotificationFormProps {
 
 export default function NotificationForm({ onSuccess, onSubmit: onSubmitOverride, prefill, loading }: NotificationFormProps) {
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<NotifPayload>({
-    defaultValues: prefill || { audience: 'all_users', notification_type: 'reminder' },
+    defaultValues: prefill || { audience: 'all_users', notification_type: 'reminder', content_category: 'general' },
   });
 
   const onSubmit = async (values: NotifPayload) => {
@@ -54,35 +67,34 @@ export default function NotificationForm({ onSuccess, onSubmit: onSubmitOverride
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <label className="label">Notification Title *</label>
-          <input {...register('title', { required: 'Title is required' })} className="input" placeholder="e.g. Friday Challenge is Live!" />
+          <input {...register('title', { required: 'Title is required' })} className="input" placeholder="e.g. Friday Family Pledge Reminder" />
           {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
         </div>
-
         <div className="sm:col-span-2">
           <label className="label">Body *</label>
           <textarea {...register('body', { required: 'Body is required', maxLength: { value: 300, message: 'Max 300 characters' } })} className="input" rows={4} placeholder="Notification message…" />
           {errors.body && <p className="text-red-500 text-xs mt-1">{errors.body.message}</p>}
         </div>
-
         <div>
-          <label className="label">Type</label>
+          <label className="label">Delivery type</label>
           <select {...register('notification_type')} className="input">
-            {TYPES.map((t) => (
-              <option key={t} value={t}>{t.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</option>
-            ))}
+            {TYPES.map((t) => <option key={t} value={t}>{t.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</option>)}
           </select>
         </div>
-
         <div>
+          <label className="label">Content category</label>
+          <select {...register('content_category')} className="input">
+            {CATEGORIES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+          <p className="mt-1 text-xs text-gray-400">Used to respect each donor's notification preferences.</p>
+        </div>
+        <div className="sm:col-span-2">
           <label className="label">Audience *</label>
           <select {...register('audience', { required: true })} className="input">
-            {AUDIENCES.map((a) => (
-              <option key={a.value} value={a.value}>{a.label}</option>
-            ))}
+            {AUDIENCES.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
           </select>
         </div>
       </div>
-
       <div className="pt-2 border-t border-gray-100">
         <button type="submit" disabled={isSubmitting || loading} className="btn-primary w-full">
           {isSubmitting || loading ? 'Sending…' : 'Send Notification'}
