@@ -57,7 +57,6 @@ def test_religious_publish_category_matches_user_preferences():
         ReminderType.hadith: "hadith",
         ReminderType.dua: "dua",
         ReminderType.dhikr: "dhikr",
-        ReminderType.shirk: "shirk",
         ReminderType.motivation: "motivation",
         ReminderType.friday: "friday",
         ReminderType.sadaqah: "sadaqah",
