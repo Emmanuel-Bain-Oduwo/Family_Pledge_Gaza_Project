@@ -45,6 +45,7 @@ from .engagement import (  # noqa: F401
 )
 from .ai_draft import AiDraft  # noqa: F401
 from .ai_operations import AiTask, AiTaskRun, AiGeneratedContent, AiFollowupSuggestion  # noqa: F401
+from .admin_operations import DonorAdminProfile, OutboundCampaign, OutboundRecipient  # noqa: F401
 from .audit import AdminAuditLog  # noqa: F401
 from .settings import AppSettings  # noqa: F401
 from .password_reset import PasswordResetToken  # noqa: F401
@@ -101,6 +102,9 @@ __all__ = [
     "AiGeneratedContent",
     "AiTaskRun",
     "AiTask",
+    "DonorAdminProfile",
+    "OutboundCampaign",
+    "OutboundRecipient",
     "AdminAuditLog",
     "AppSettings",
     "PasswordResetToken",
