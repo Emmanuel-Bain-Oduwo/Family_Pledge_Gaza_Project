@@ -44,4 +44,20 @@ export async function previewCommunication(segment: DonorSegment, contentCategor
 export async function queueCommunication(payload: { title:string; body:string; segment:DonorSegment; channels:CommunicationChannel[]; content_category?:string; scheduled_for?:string|null; }): Promise<OutboundCampaign> { try { return (await client.post<OutboundCampaign>('/admin/operations/communications', payload)).data; } catch (e) { return fail(e); } }
 export async function listCommunications(): Promise<OutboundCampaign[]> { try { return (await client.get<OutboundCampaign[]>('/admin/operations/communications')).data; } catch (e) { return fail(e); } }
 export async function runCommunication(id: string): Promise<OutboundCampaign> { try { return (await client.post<OutboundCampaign>(`/admin/operations/communications/${id}/run`)).data; } catch (e) { return fail(e); } }
-export function donorExportUrl(segment: DonorSegment): string { return `${BASE_URL}/admin/operations/donors-export.csv?segment=${encodeURIComponent(segment)}`; }
+
+export async function downloadDonorExport(segment: DonorSegment): Promise<void> {
+  try {
+    const response = await client.get<Blob>('/admin/operations/donors-export.csv', {
+      params: { segment },
+      responseType: 'blob',
+    });
+    const url = URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `family-pledge-${segment}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) { return fail(e); }
+}
