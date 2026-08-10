@@ -32,6 +32,7 @@ from .contribution import Contribution  # noqa: F401
 from .impact import ImpactCard  # noqa: F401
 from .reminder import DailyReminder  # noqa: F401
 from .notification import Notification  # noqa: F401
+from .notification_endpoint import NotificationEndpoint  # noqa: F401
 from .collector import Collector, CollectorMember  # noqa: F401
 from .namlef import NamlefContent  # noqa: F401
 from .badge import Badge, UserBadge  # noqa: F401
@@ -79,6 +80,7 @@ __all__ = [
     "ImpactCard",
     "DailyReminder",
     "Notification",
+    "NotificationEndpoint",
     "Collector",
     "CollectorMember",
     "NamlefContent",

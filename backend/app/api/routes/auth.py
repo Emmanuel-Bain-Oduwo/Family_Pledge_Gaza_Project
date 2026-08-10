@@ -5,10 +5,19 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.rate_limit import rate_limiter
 from app.models.user import User
-from app.schemas.auth import LoginRequest, PushTokenRequest, RegisterRequest, TokenResponse, PasswordResetRequest, PasswordResetConfirm
+from app.schemas.auth import (
+    LoginRequest,
+    NotificationEndpointDeactivateRequest,
+    NotificationEndpointRequest,
+    PasswordResetConfirm,
+    PasswordResetRequest,
+    PushTokenRequest,
+    RegisterRequest,
+    TokenResponse,
+)
 from app.schemas.common import MessageResponse
 from app.schemas.user import UserOut
-from app.services import auth_service
+from app.services import auth_service, notification_endpoint_service
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -51,8 +60,48 @@ def save_push_token(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """Legacy Expo-only endpoint for already-installed app builds."""
     auth_service.save_push_token(db, current_user, data.push_token)
+    notification_endpoint_service.register_endpoint(
+        db,
+        current_user,
+        provider="expo",
+        platform="native",
+        token=data.push_token,
+    )
     return MessageResponse(message="Push token saved")
+
+
+@router.post("/notification-endpoints", response_model=MessageResponse)
+def register_notification_endpoint(
+    data: NotificationEndpointRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    notification_endpoint_service.register_endpoint(
+        db,
+        current_user,
+        provider=data.provider,
+        platform=data.platform,
+        token=data.token,
+        device_id=data.device_id,
+    )
+    return MessageResponse(message="Notification endpoint registered")
+
+
+@router.post("/notification-endpoints/deactivate", response_model=MessageResponse)
+def deactivate_notification_endpoint(
+    data: NotificationEndpointDeactivateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    notification_endpoint_service.deactivate_endpoint(
+        db,
+        current_user,
+        provider=data.provider,
+        token=data.token,
+    )
+    return MessageResponse(message="Notification endpoint deactivated")
 
 
 @router.post("/password-reset/request", response_model=MessageResponse)

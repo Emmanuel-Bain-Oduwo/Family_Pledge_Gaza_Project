@@ -9,11 +9,12 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web",
+    "prepare:web-push": "node scripts/generate-firebase-sw.mjs",
+    "web": "npm run prepare:web-push && expo start --web",
     "typecheck": "tsc --noEmit",
     "doctor": "expo-doctor",
     "lint": "eslint . --ext .ts,.tsx",
-    "build:web": "expo export --platform web",
+    "build:web": "npm run prepare:web-push && expo export --platform web",
     "preview:web": "npx serve dist"
   },
   "dependencies": {
@@ -33,6 +34,7 @@
     "expo-secure-store": "~55.0.16",
     "expo-splash-screen": "~55.0.23",
     "expo-status-bar": "~55.0.6",
+    "firebase": "12.16.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-native": "0.83.10",

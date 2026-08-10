@@ -44,12 +44,14 @@ export default function NotificationPreferencesScreen() {
     setSaving(true);
     try {
       const wantsAny = preferences.daily || preferences.friday || preferences.campaigns || preferences.emergency;
-      if (Platform.OS !== 'web' && wantsAny) {
+      if (wantsAny) {
         const token = await registerForPushNotifications(true);
         if (!token) {
           Alert.alert(
             'Notifications are disabled',
-            'Family Pledge cannot enable these settings until notification permission is allowed in your device settings.',
+            Platform.OS === 'web'
+              ? 'Family Pledge cannot enable browser notifications until you allow notifications for this website.'
+              : 'Family Pledge cannot enable these settings until notification permission is allowed in your device settings.',
           );
           return;
         }
@@ -58,9 +60,12 @@ export default function NotificationPreferencesScreen() {
       await applyLocalReminderPreferences(preferences);
       const updated = await updateNotificationPreferences({ ...preferences, onboarding_seen: true });
       await saveUser(updated);
-      Alert.alert('Saved', Platform.OS === 'web'
-        ? 'Your preferences are saved and will apply when you use the same account on Android or iOS.'
-        : 'Your notification preferences have been updated.');
+      Alert.alert(
+        'Saved',
+        Platform.OS === 'web'
+          ? 'Your browser is registered for Family Pledge Web notifications. These preferences also stay with your account on Android and iOS.'
+          : 'Your notification preferences have been updated.',
+      );
     } catch (error: any) {
       Alert.alert('Could not save', error?.message || 'Please try again.');
     } finally {
@@ -84,14 +89,18 @@ export default function NotificationPreferencesScreen() {
         <PreferenceRow
           icon="sunny-outline"
           title="Daily Pledge Reminder"
-          description="A daily reminder to remember Gaza in prayer, pledge and action."
+          description={Platform.OS === 'web'
+            ? 'Controls Family Pledge reminder messages sent to your account. Native apps also schedule a daily local reminder.'
+            : 'A daily local reminder to remember Gaza in prayer, pledge and action.'}
           value={preferences.daily}
           onChange={(value) => setValue('daily', value)}
         />
         <PreferenceRow
           icon="calendar-outline"
           title="Friday / Jumu’ah Reminder"
-          description="A weekly Friday reminder for the Family Pledge challenge."
+          description={Platform.OS === 'web'
+            ? 'Keeps your Friday reminder preference with your account. Native apps schedule the weekly local reminder.'
+            : 'A weekly Friday reminder for the Family Pledge challenge.'}
           value={preferences.friday}
           onChange={(value) => setValue('friday', value)}
         />
@@ -113,7 +122,9 @@ export default function NotificationPreferencesScreen() {
       </AppCard>
 
       <Text style={styles.note}>
-        Android remote notifications use Expo Push Service with Firebase Cloud Messaging underneath. iOS delivery uses Apple Push Notification service. Local Daily/Friday reminders are scheduled on your device.
+        {Platform.OS === 'web'
+          ? 'Web notifications use Firebase Cloud Messaging through your browser service worker. Firebase is used only for notification delivery; your Family Pledge account and donation data remain in the existing backend.'
+          : 'Android remote notifications use Expo Push Service with Firebase Cloud Messaging underneath. iOS delivery uses Apple Push Notification service. Daily/Friday reminders are scheduled locally on your device.'}
       </Text>
 
       <AppButton
