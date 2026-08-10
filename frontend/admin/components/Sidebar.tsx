@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  LayoutDashboard, Users, CreditCard, Megaphone, FolderOpen,
+  LayoutDashboard, PanelsTopLeft, Users, CreditCard, Megaphone, FolderOpen,
   Heart, BookOpen, UserCheck, Tv, Bell, Bot, MessageCircle, ListChecks,
   Settings, HardDrive, LogOut, X,
 } from 'lucide-react';
@@ -13,6 +13,7 @@ import { cn } from '../lib/utils';
 
 const NAV = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/operations', icon: PanelsTopLeft, label: 'Operations' },
   { href: '/donors', icon: Users, label: 'Donors' },
   { href: '/contributions', icon: CreditCard, label: 'Contributions' },
   { href: '/campaigns', icon: Megaphone, label: 'Campaigns' },
