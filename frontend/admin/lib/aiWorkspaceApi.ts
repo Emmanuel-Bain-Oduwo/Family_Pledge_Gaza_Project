@@ -1,12 +1,13 @@
 import axios from 'axios';
 import { getToken, removeToken } from './auth';
+import { getApiErrorMessage } from './apiError';
 import type { AiDraft } from '../types';
 
 const DEFAULT_API_URL = 'https://api.familypledgekenya.org/api/v1';
 const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL).replace(/\/+$/, '');
 const aiClient = axios.create({ baseURL: BASE_URL, timeout: 40000, headers: { 'Content-Type': 'application/json', Accept: 'application/json' } });
 aiClient.interceptors.request.use((config) => { const token = getToken(); if (token) config.headers.Authorization = `Bearer ${token}`; return config; });
-function fail(error: unknown): never { if (axios.isAxiosError(error)) { if (error.response?.status === 401 || error.response?.status === 403) removeToken(); const data = error.response?.data as { detail?: string; message?: string } | undefined; throw new Error(data?.detail || data?.message || error.message); } throw error; }
+function fail(error: unknown): never { if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) removeToken(); throw new Error(getApiErrorMessage(error, 'AI request failed. Please try again.')); }
 
 export async function updateAiDraftText(id: string, generatedText: string): Promise<AiDraft> { try { return (await aiClient.patch<AiDraft>(`/admin/ai/drafts/${id}`, { generated_text: generatedText })).data; } catch (error) { return fail(error); } }
 export interface AiChatMessage { role: 'user' | 'assistant'; content: string; }
@@ -22,6 +23,7 @@ export async function createAiTask(payload:{title:string;instruction:string;task
 export async function updateAiTask(id:string,changes:Partial<AiTask>):Promise<AiTask>{try{return(await aiClient.patch<AiTask>(`/admin/ai/tasks/${id}`,changes)).data;}catch(error){return fail(error);}}
 export async function runAiTaskNow(id:string):Promise<AiTaskRun>{try{return(await aiClient.post<AiTaskRun>(`/admin/ai/tasks/${id}/run-now`)).data;}catch(error){return fail(error);}}
 export async function listAiTaskRuns(taskId?:string):Promise<AiTaskRun[]>{try{return(await aiClient.get<AiTaskRun[]>('/admin/ai/task-runs',{params:taskId?{task_id:taskId}:undefined})).data;}catch(error){return fail(error);}}
+export async function updateAiTaskRunText(runId:string,generatedText:string):Promise<AiTaskRun>{try{return(await aiClient.patch<AiTaskRun>(`/admin/ai/task-runs/${runId}`,{generated_text:generatedText})).data;}catch(error){return fail(error);}}
 export async function retryAiTaskRun(runId:string):Promise<AiTaskRun>{try{return(await aiClient.post<AiTaskRun>(`/admin/ai/task-runs/${runId}/retry`)).data;}catch(error){return fail(error);}}
 export async function approveAiTaskRun(runId:string):Promise<AiTaskRun>{try{return(await aiClient.post<AiTaskRun>(`/admin/ai/task-runs/${runId}/approve`)).data;}catch(error){return fail(error);}}
 export async function dismissAiTaskRun(runId:string):Promise<AiTaskRun>{try{return(await aiClient.post<AiTaskRun>(`/admin/ai/task-runs/${runId}/dismiss`)).data;}catch(error){return fail(error);}}
