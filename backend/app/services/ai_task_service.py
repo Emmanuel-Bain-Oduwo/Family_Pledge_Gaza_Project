@@ -1,3 +1,4 @@
+import calendar
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
@@ -11,6 +12,13 @@ from app.models.user import User
 from app.services import ai_workspace_service
 
 
+def _add_month(value: datetime) -> datetime:
+    year = value.year + (1 if value.month == 12 else 0)
+    month = 1 if value.month == 12 else value.month + 1
+    day = min(value.day, calendar.monthrange(year, month)[1])
+    return value.replace(year=year, month=month, day=day)
+
+
 def _next_run(task: AiTask, now: datetime) -> datetime | None:
     if task.status != AiTaskStatus.active:
         return None
@@ -18,6 +26,9 @@ def _next_run(task: AiTask, now: datetime) -> datetime | None:
         return now + timedelta(days=1)
     if task.schedule_type == "weekly":
         return now + timedelta(days=7)
+    if task.schedule_type == "monthly":
+        return _add_month(now)
+    # Manual and one-time schedules have no recurrence after the run.
     return None
 
 
@@ -43,15 +54,10 @@ def run_task_once(db: Session, admin: User, task: AiTask) -> AiTaskRun:
         run = AiTaskRun(
             task_id=task.id,
             status=AiTaskRunStatus.failed,
-            planned_action={
-                "instruction": task.instruction,
-                "task_type": task.task_type.value,
-            },
+            planned_action={"instruction": task.instruction, "task_type": task.task_type.value},
             generated_output=None,
             validation_result=validation,
-            error_message=(
-                "Task must be in Family Pledge/Gaza/Islam scope and require admin approval."
-            ),
+            error_message="Task must be in Family Pledge/Gaza/Islam scope and require admin approval.",
             executed_at=now,
         )
     else:
@@ -66,15 +72,10 @@ def run_task_once(db: Session, admin: User, task: AiTask) -> AiTaskRun:
             run = AiTaskRun(
                 task_id=task.id,
                 status=AiTaskRunStatus.waiting_approval,
-                planned_action={
-                    "instruction": task.instruction,
-                    "task_type": task.task_type.value,
-                },
+                planned_action={"instruction": task.instruction, "task_type": task.task_type.value},
                 generated_output={
                     "text": workspace_result["answer"],
-                    "context_used": [
-                        block["name"] for block in workspace_result["context_used"]
-                    ],
+                    "context_used": [block["name"] for block in workspace_result["context_used"]],
                     "actions_executed": [],
                 },
                 validation_result=validation,
@@ -85,10 +86,7 @@ def run_task_once(db: Session, admin: User, task: AiTask) -> AiTaskRun:
             run = AiTaskRun(
                 task_id=task.id,
                 status=AiTaskRunStatus.failed,
-                planned_action={
-                    "instruction": task.instruction,
-                    "task_type": task.task_type.value,
-                },
+                planned_action={"instruction": task.instruction, "task_type": task.task_type.value},
                 generated_output=None,
                 validation_result=validation,
                 error_message=str(exc.detail),
@@ -100,19 +98,13 @@ def run_task_once(db: Session, admin: User, task: AiTask) -> AiTaskRun:
     db.add(task)
     db.add(run)
     db.flush()
-    db.add(
-        AdminAuditLog(
-            admin_id=admin.id,
-            action="ai_task.run",
-            entity_type="ai_task",
-            entity_id=str(task.id),
-            metadata_={
-                "run_id": str(run.id),
-                "status": run.status.value,
-                "actions_executed": [],
-            },
-        )
-    )
+    db.add(AdminAuditLog(
+        admin_id=admin.id,
+        action="ai_task.run",
+        entity_type="ai_task",
+        entity_id=str(task.id),
+        metadata_={"run_id": str(run.id), "status": run.status.value, "actions_executed": []},
+    ))
     db.commit()
     db.refresh(run)
     return run
@@ -120,28 +112,25 @@ def run_task_once(db: Session, admin: User, task: AiTask) -> AiTaskRun:
 
 def update_task(db: Session, admin: User, task: AiTask, changes: dict) -> AiTask:
     previous_status = task.status
+    explicit_next_run = "next_run_at" in changes
     for key, value in changes.items():
         setattr(task, key, value)
 
     now = datetime.now(timezone.utc)
-    if task.status == AiTaskStatus.active and (
-        previous_status != AiTaskStatus.active
-        or "schedule_type" in changes
-        or "status" in changes
+    if task.status in (AiTaskStatus.paused, AiTaskStatus.cancelled):
+        task.next_run_at = None
+    elif task.status == AiTaskStatus.active and not explicit_next_run and (
+        previous_status != AiTaskStatus.active or "schedule_type" in changes or "status" in changes
     ):
         task.next_run_at = _next_run(task, now)
-    elif task.status in (AiTaskStatus.paused, AiTaskStatus.cancelled):
-        task.next_run_at = None
 
-    db.add(
-        AdminAuditLog(
-            admin_id=admin.id,
-            action="ai_task.update",
-            entity_type="ai_task",
-            entity_id=str(task.id),
-            metadata_={"changed_fields": sorted(changes.keys())},
-        )
-    )
+    db.add(AdminAuditLog(
+        admin_id=admin.id,
+        action="ai_task.update",
+        entity_type="ai_task",
+        entity_id=str(task.id),
+        metadata_={"changed_fields": sorted(changes.keys())},
+    ))
     db.commit()
     db.refresh(task)
     return task
@@ -165,19 +154,14 @@ def approve_run(db: Session, admin: User, run_id: UUID) -> AiTaskRun:
         raise HTTPException(404, "AI task run not found")
     if run.status != AiTaskRunStatus.waiting_approval:
         raise HTTPException(400, "Only task output waiting for approval can be approved")
-
-    # `validated` means a human reviewed the prepared output. Approval here still
-    # executes no notification, publication, database update, or donor action.
     run.status = AiTaskRunStatus.validated
-    db.add(
-        AdminAuditLog(
-            admin_id=admin.id,
-            action="ai_task_run.approve",
-            entity_type="ai_task_run",
-            entity_id=str(run.id),
-            metadata_={"external_actions_executed": []},
-        )
-    )
+    db.add(AdminAuditLog(
+        admin_id=admin.id,
+        action="ai_task_run.approve",
+        entity_type="ai_task_run",
+        entity_id=str(run.id),
+        metadata_={"external_actions_executed": []},
+    ))
     db.commit()
     db.refresh(run)
     return run
@@ -189,17 +173,14 @@ def dismiss_run(db: Session, admin: User, run_id: UUID) -> AiTaskRun:
         raise HTTPException(404, "AI task run not found")
     if run.status not in (AiTaskRunStatus.waiting_approval, AiTaskRunStatus.validated):
         raise HTTPException(400, "This task output cannot be dismissed")
-
     run.status = AiTaskRunStatus.cancelled
-    db.add(
-        AdminAuditLog(
-            admin_id=admin.id,
-            action="ai_task_run.dismiss",
-            entity_type="ai_task_run",
-            entity_id=str(run.id),
-            metadata_={"external_actions_executed": []},
-        )
-    )
+    db.add(AdminAuditLog(
+        admin_id=admin.id,
+        action="ai_task_run.dismiss",
+        entity_type="ai_task_run",
+        entity_id=str(run.id),
+        metadata_={"external_actions_executed": []},
+    ))
     db.commit()
     db.refresh(run)
     return run
