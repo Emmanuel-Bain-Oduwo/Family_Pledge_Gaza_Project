@@ -165,3 +165,19 @@ export async function retryAiTaskRun(runId: string): Promise<AiTaskRun> {
     return fail(error);
   }
 }
+
+export async function approveAiTaskRun(runId: string): Promise<AiTaskRun> {
+  try {
+    return (await aiClient.post<AiTaskRun>(`/admin/ai/task-runs/${runId}/approve`)).data;
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+export async function dismissAiTaskRun(runId: string): Promise<AiTaskRun> {
+  try {
+    return (await aiClient.post<AiTaskRun>(`/admin/ai/task-runs/${runId}/dismiss`)).data;
+  } catch (error) {
+    return fail(error);
+  }
+}
