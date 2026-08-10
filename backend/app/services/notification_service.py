@@ -26,9 +26,6 @@ log = logging.getLogger(__name__)
 
 
 def _audience_query(audience: NotificationAudience):
-    # Do not require users.push_token here: Web users use Firebase endpoints and
-    # native users may have multiple endpoint rows. Delivery targets are resolved
-    # after the audience and preference filters are applied.
     query = select(User).where(
         User.deleted_at.is_(None),
         User.is_active.is_(True),
@@ -52,14 +49,6 @@ def _audience_query(audience: NotificationAudience):
 
 
 def _push_preference_allows(user: User, notification_type: NotificationType) -> bool:
-    """Apply opt-in preferences to remote push delivery.
-
-    Daily/Friday reminders are scheduled locally by native apps. Admin-created
-    reminder/pledge notifications use the daily opt-in; campaign and impact
-    updates use the campaign opt-in; emergency alerts use the emergency opt-in.
-    System notices remain deliverable because they can contain account/service
-    information rather than campaign content.
-    """
     if notification_type == NotificationType.emergency:
         return user.notification_emergency
     if notification_type in (NotificationType.campaign, NotificationType.impact):
@@ -152,7 +141,6 @@ def _firebase_app():
 def _send_fcm_web(
     tokens: List[str], title: str, body: str, notification_type: str = "general"
 ) -> tuple[int, int]:
-    """Send browser push through Firebase Cloud Messaging only."""
     if not tokens:
         return 0, 0
     app = _firebase_app()
@@ -165,29 +153,34 @@ def _send_fcm_web(
         return 0, len(tokens)
 
     link = f"{settings.WEB_APP_BASE_URL.rstrip('/')}/screens/notifications"
-    message = messaging.MulticastMessage(
-        tokens=tokens,
-        notification=messaging.Notification(title=title, body=body),
-        data={
-            "screen": "/screens/notifications",
-            "notification_type": notification_type,
-        },
-        webpush=messaging.WebpushConfig(
-            fcm_options=messaging.WebpushFCMOptions(link=link),
-        ),
-    )
-    try:
-        response = messaging.send_each_for_multicast(message, app=app)
-        return int(response.success_count), int(response.failure_count)
-    except Exception as exc:
-        log.warning("Firebase Web push failed: %s", exc)
-        return 0, len(tokens)
+    sent = 0
+    failed = 0
+    for index in range(0, len(tokens), 500):
+        batch = tokens[index : index + 500]
+        message = messaging.MulticastMessage(
+            tokens=batch,
+            notification=messaging.Notification(title=title, body=body),
+            data={
+                "screen": "/screens/notifications",
+                "notification_type": notification_type,
+            },
+            webpush=messaging.WebpushConfig(
+                fcm_options=messaging.WebpushFCMOptions(link=link),
+            ),
+        )
+        try:
+            response = messaging.send_each_for_multicast(message, app=app)
+            sent += int(response.success_count)
+            failed += int(response.failure_count)
+        except Exception as exc:
+            log.warning("Firebase Web push batch failed: %s", exc)
+            failed += len(batch)
+    return sent, failed
 
 
 def _resolve_delivery_tokens(
     db: Session, users: list[User]
 ) -> tuple[list[str], list[str]]:
-    """Return deduplicated Expo-native and Firebase-Web tokens."""
     if not users:
         return [], []
     user_ids = [user.id for user in users]
@@ -199,20 +192,14 @@ def _resolve_delivery_tokens(
             )
         ).all()
     )
-
     expo_tokens = {
-        endpoint.token
-        for endpoint in endpoints
-        if endpoint.provider == "expo"
+        endpoint.token for endpoint in endpoints if endpoint.provider == "expo"
     }
     web_tokens = {
         endpoint.token
         for endpoint in endpoints
         if endpoint.provider == "fcm_web" and endpoint.platform == "web"
     }
-
-    # Backward compatibility for users who registered before notification_endpoints
-    # existed. New app builds write both to the endpoint table and legacy field.
     expo_tokens.update(user.push_token for user in users if user.push_token)
     return sorted(expo_tokens), sorted(web_tokens)
 
@@ -287,7 +274,6 @@ def list_notifications(
 def list_for_user(
     db: Session, user: User, skip: int = 0, limit: int = 50
 ) -> Tuple[List[Notification], int]:
-    """Return persisted notifications whose audience includes this user."""
     audiences = [NotificationAudience.all_users]
     if user.role in (UserRole.admin, UserRole.super_admin):
         audiences.append(NotificationAudience.admins)
