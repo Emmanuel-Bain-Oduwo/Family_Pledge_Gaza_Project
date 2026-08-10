@@ -36,28 +36,33 @@ def _audience_query(audience: NotificationAudience):
     return query
 
 
+def _preference(user: User, name: str, default: bool = False) -> bool:
+    """Read a notification preference safely across older user/test objects."""
+    return bool(getattr(user, name, default))
+
+
 def _push_preference_allows(user: User, notification_type: NotificationType, category: str | None = None) -> bool:
     category_map = {
-        "quran": user.notification_quran,
-        "hadith": user.notification_hadith,
-        "dua": user.notification_dua,
-        "motivation": user.notification_motivation,
-        "impact": user.notification_impact,
-        "humanitarian": user.notification_humanitarian,
-        "campaign": user.notification_campaigns,
-        "emergency": user.notification_emergency,
-        "pledge": user.notification_daily,
+        "quran": _preference(user, "notification_quran"),
+        "hadith": _preference(user, "notification_hadith"),
+        "dua": _preference(user, "notification_dua"),
+        "motivation": _preference(user, "notification_motivation"),
+        "impact": _preference(user, "notification_impact") or _preference(user, "notification_campaigns"),
+        "humanitarian": _preference(user, "notification_humanitarian"),
+        "campaign": _preference(user, "notification_campaigns"),
+        "emergency": _preference(user, "notification_emergency"),
+        "pledge": _preference(user, "notification_daily"),
     }
     if category in category_map:
-        return bool(category_map[category])
+        return category_map[category]
     if notification_type == NotificationType.emergency:
-        return user.notification_emergency
+        return _preference(user, "notification_emergency")
     if notification_type == NotificationType.impact:
-        return user.notification_impact or user.notification_campaigns
+        return _preference(user, "notification_impact") or _preference(user, "notification_campaigns")
     if notification_type == NotificationType.campaign:
-        return user.notification_campaigns
+        return _preference(user, "notification_campaigns")
     if notification_type in (NotificationType.reminder, NotificationType.pledge):
-        return user.notification_daily
+        return _preference(user, "notification_daily")
     return True
 
 
@@ -178,13 +183,17 @@ def _resolve_delivery_tokens(db: Session, users: list[User]) -> tuple[list[str],
     return sorted(expo_tokens), sorted(web_tokens)
 
 
-def send(db: Session, admin: User, data: NotificationSend) -> Notification:
-    audience_users = list(db.scalars(_audience_query(data.audience)).all())
-    users = [
-        user for user in audience_users
+def _eligible_users(db: Session, data: NotificationSend) -> list[User]:
+    users = list(db.scalars(_audience_query(data.audience)).unique().all())
+    return [
+        user for user in users
         if _push_preference_allows(user, data.notification_type, data.content_category)
     ]
-    expo_tokens, web_tokens = _resolve_delivery_tokens(db, users)
+
+
+def send(db: Session, admin: User, data: NotificationSend) -> Notification:
+    eligible_users = _eligible_users(db, data)
+    expo_tokens, web_tokens = _resolve_delivery_tokens(db, eligible_users)
     expo_sent, expo_failed = _send_expo_push(
         expo_tokens, data.title, data.body, data.notification_type.value, data.content_category
     )
@@ -193,33 +202,31 @@ def send(db: Session, admin: User, data: NotificationSend) -> Notification:
     )
     sent_count = expo_sent + web_sent
     failure_count = expo_failed + web_failed
+
     notification = Notification(
         title=data.title,
         body=data.body,
         notification_type=data.notification_type,
         content_category=data.content_category,
         audience=data.audience,
-        sent_by=admin.id,
-        sent_at=datetime.now(timezone.utc),
         sent_count=sent_count,
         failure_count=failure_count,
+        sent_by=admin.id,
+        sent_at=datetime.now(timezone.utc),
     )
     db.add(notification)
+    db.flush()
     db.add(AdminAuditLog(
         admin_id=admin.id,
         action="notification.send",
         entity_type="notification",
-        entity_id=None,
+        entity_id=str(notification.id),
         metadata_={
-            "title": data.title,
             "audience": data.audience.value,
             "content_category": data.content_category,
-            "eligible_push_users": len(users),
-            "preference_filtered_users": len(audience_users) - len(users),
-            "expo_targets": len(expo_tokens),
-            "web_fcm_targets": len(web_tokens),
-            "expo_sent": expo_sent,
-            "web_sent": web_sent,
+            "eligible_users": len(eligible_users),
+            "expo_endpoints": len(expo_tokens),
+            "web_endpoints": len(web_tokens),
             "sent_count": sent_count,
             "failure_count": failure_count,
         },
@@ -233,27 +240,4 @@ def list_notifications(db: Session, skip: int = 0, limit: int = 20) -> Tuple[Lis
     base = select(Notification)
     total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     items = list(db.scalars(base.order_by(Notification.created_at.desc()).offset(skip).limit(limit)).all())
-    return items, total
-
-
-def list_for_user(db: Session, user: User, skip: int = 0, limit: int = 50) -> Tuple[List[Notification], int]:
-    audiences = [NotificationAudience.all_users]
-    if user.role in (UserRole.admin, UserRole.super_admin):
-        audiences.append(NotificationAudience.admins)
-    if user.role == UserRole.collector:
-        audiences.append(NotificationAudience.collectors)
-    audience_filter = Notification.audience.in_(audiences)
-    if user.role == UserRole.donor:
-        has_confirmed = exists(select(Contribution.id).where(
-            Contribution.user_id == user.id,
-            Contribution.status == ContributionStatus.confirmed,
-        ))
-        audience_filter = or_(
-            audience_filter,
-            and_(Notification.audience == NotificationAudience.confirmed_donors, has_confirmed),
-            and_(Notification.audience == NotificationAudience.pending_donors, ~has_confirmed),
-        )
-    base = select(Notification).where(Notification.sent_at.is_not(None), audience_filter)
-    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
-    items = list(db.scalars(base.order_by(Notification.sent_at.desc()).offset(skip).limit(limit)).all())
     return items, total
