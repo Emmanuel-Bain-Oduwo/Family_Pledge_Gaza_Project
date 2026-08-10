@@ -53,6 +53,7 @@ CORE_TABLES = (
     "contributions",
     "pledges",
     "media_assets",
+    "notification_endpoints",
     "ai_drafts",
     "ai_tasks",
     "ai_generated_content",
