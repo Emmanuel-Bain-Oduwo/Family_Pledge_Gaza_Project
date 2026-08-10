@@ -77,6 +77,8 @@ export default function HomeScreen() {
         quran: false,
         hadith: false,
         dua: false,
+        dhikr: false,
+        shirk: false,
         motivation: false,
         impact: false,
         humanitarian: false,
@@ -127,7 +129,7 @@ export default function HomeScreen() {
           </View>
           <View style={styles.notificationIntroBody}>
             <Text style={styles.notificationIntroTitle}>Stay connected with Family Pledge</Text>
-            <Text style={styles.notificationIntroText}>Choose Daily, Friday, Campaign and Emergency notifications before the phone asks for permission.</Text>
+            <Text style={styles.notificationIntroText}>Choose Quran, Hadith, Du'a, Dhikr, motivation, pledge, impact, campaign and emergency notifications before the phone asks for permission.</Text>
             <View style={styles.notificationIntroActions}>
               <TouchableOpacity style={styles.enableButton} onPress={() => router.push('/screens/notification-preferences')}>
                 <Text style={styles.enableButtonText}>Choose Notifications</Text>
@@ -145,6 +147,7 @@ export default function HomeScreen() {
           status={dashboard.pledge_status}
           donorNumber={dashboard.donor_number}
           totalDonors={dashboard.total_donors_today}
+          onPress={() => router.push(dashboard.pledge_status === 'none' ? '/screens/contribute' : '/screens/my-pledge')}
         />
       )}
 
