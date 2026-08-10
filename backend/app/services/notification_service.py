@@ -36,28 +36,33 @@ def _audience_query(audience: NotificationAudience):
     return query
 
 
+def _pref(user: User, name: str) -> bool:
+    """Read an opt-in safely across pre-migration/test user objects."""
+    return bool(getattr(user, name, False))
+
+
 def _push_preference_allows(user: User, notification_type: NotificationType, category: str | None = None) -> bool:
     category_map = {
-        "quran": user.notification_quran,
-        "hadith": user.notification_hadith,
-        "dua": user.notification_dua,
-        "motivation": user.notification_motivation,
-        "impact": user.notification_impact,
-        "humanitarian": user.notification_humanitarian,
-        "campaign": user.notification_campaigns,
-        "emergency": user.notification_emergency,
-        "pledge": user.notification_daily,
+        "quran": _pref(user, "notification_quran"),
+        "hadith": _pref(user, "notification_hadith"),
+        "dua": _pref(user, "notification_dua"),
+        "motivation": _pref(user, "notification_motivation"),
+        "impact": _pref(user, "notification_impact"),
+        "humanitarian": _pref(user, "notification_humanitarian"),
+        "campaign": _pref(user, "notification_campaigns"),
+        "emergency": _pref(user, "notification_emergency"),
+        "pledge": _pref(user, "notification_daily"),
     }
     if category in category_map:
-        return bool(category_map[category])
+        return category_map[category]
     if notification_type == NotificationType.emergency:
-        return user.notification_emergency
+        return _pref(user, "notification_emergency")
     if notification_type == NotificationType.impact:
-        return user.notification_impact or user.notification_campaigns
+        return _pref(user, "notification_impact") or _pref(user, "notification_campaigns")
     if notification_type == NotificationType.campaign:
-        return user.notification_campaigns
+        return _pref(user, "notification_campaigns")
     if notification_type in (NotificationType.reminder, NotificationType.pledge):
-        return user.notification_daily
+        return _pref(user, "notification_daily")
     return True
 
 
