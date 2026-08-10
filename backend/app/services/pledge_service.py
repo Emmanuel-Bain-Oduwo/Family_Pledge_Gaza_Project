@@ -1,4 +1,5 @@
-from typing import List, Optional
+from datetime import datetime, timezone
+from typing import List
 from uuid import UUID
 
 from fastapi import HTTPException
@@ -12,6 +13,8 @@ from app.models.user import User
 from app.schemas.pledge import PledgeCreate, PledgeUpdate
 from app.utils.validators import current_month
 
+PLEDGE_AGREEMENT_VERSION = "2026-08-v1"
+
 
 def create_pledge(db: Session, user: User, data: PledgeCreate) -> Pledge:
     existing = db.scalar(
@@ -20,11 +23,14 @@ def create_pledge(db: Session, user: User, data: PledgeCreate) -> Pledge:
             Pledge.status == PledgeStatus.active,
         )
     )
+    accepted_at = datetime.now(timezone.utc)
     if existing:
         existing.amount = data.amount
         existing.currency = data.currency
         existing.pledge_type = data.pledge_type
         existing.start_date = data.start_date
+        existing.agreement_accepted_at = accepted_at
+        existing.agreement_version = PLEDGE_AGREEMENT_VERSION
         db.commit()
         db.refresh(existing)
         return existing
@@ -36,6 +42,8 @@ def create_pledge(db: Session, user: User, data: PledgeCreate) -> Pledge:
         pledge_type=data.pledge_type,
         status=PledgeStatus.active,
         start_date=data.start_date,
+        agreement_accepted_at=accepted_at,
+        agreement_version=PLEDGE_AGREEMENT_VERSION,
     )
     db.add(pledge)
     db.commit()
