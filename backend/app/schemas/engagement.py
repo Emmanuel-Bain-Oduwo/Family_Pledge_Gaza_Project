@@ -126,6 +126,10 @@ class FeatureRequestCreate(BaseModel):
     description: str = Field(min_length=10, max_length=3000)
 
 
+class FeatureRequestStatusUpdate(BaseModel):
+    status: Literal["new", "reviewing", "planned", "completed", "declined"]
+
+
 class FeatureRequestOut(BaseModel):
     id: UUID
     title: str
