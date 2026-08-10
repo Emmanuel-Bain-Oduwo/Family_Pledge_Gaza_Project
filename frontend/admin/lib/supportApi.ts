@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getToken, removeToken } from './auth';
+import { getApiErrorMessage } from './apiError';
 
 const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://api.familypledgekenya.org/api/v1').replace(/\/+$/, '');
 
@@ -23,17 +24,12 @@ const api = axios.create({ baseURL: BASE_URL, timeout: 20000 });
 api.interceptors.request.use(config => { const token = getToken(); if (token) config.headers.Authorization = `Bearer ${token}`; return config; });
 api.interceptors.response.use(r => r, error => { if (error?.response?.status === 401 || error?.response?.status === 403) removeToken(); return Promise.reject(error); });
 
-function errorMessage(error: unknown): string {
-  if (axios.isAxiosError(error)) return (error.response?.data as any)?.detail || error.message;
-  return error instanceof Error ? error.message : 'Support request failed';
-}
-
 export async function getSupportMessages(status?: string): Promise<AdminSupportMessage[]> {
   try { const { data } = await api.get<AdminSupportMessage[]>('/admin/support/messages', { params: status ? { status } : undefined }); return data; }
-  catch (error) { throw new Error(errorMessage(error)); }
+  catch (error) { throw new Error(getApiErrorMessage(error, 'Could not load support messages.')); }
 }
 
 export async function updateSupportMessage(id: string, payload: { status?: string; admin_response?: string }): Promise<AdminSupportMessage> {
   try { const { data } = await api.patch<AdminSupportMessage>(`/admin/support/messages/${id}`, payload); return data; }
-  catch (error) { throw new Error(errorMessage(error)); }
+  catch (error) { throw new Error(getApiErrorMessage(error, 'Could not update this support message.')); }
 }
