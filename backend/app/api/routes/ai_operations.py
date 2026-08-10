@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -9,8 +9,22 @@ from app.core.deps import require_admin
 from app.models.ai_operations import AiFollowupSuggestion, AiGeneratedContent, AiTask, AiTaskRun
 from app.models.enums import AiContentStatus, AiFollowupStatus, AiTaskRunStatus, AiTaskStatus
 from app.models.user import User
-from app.schemas.ai_operations import AiContentDraftCreate, AiFollowupSuggestionOut, AiGeneratedContentOut, AiSummaryOut, AiTaskCreate, AiTaskOut, AiTaskRunOut, AiTaskUpdate
-from app.services import ai_operations_service
+from app.schemas.ai_operations import (
+    AiContentDraftCreate,
+    AiFollowupSuggestionOut,
+    AiGeneratedContentOut,
+    AiSummaryOut,
+    AiTaskCreate,
+    AiTaskOut,
+    AiTaskRunOut,
+    AiTaskUpdate,
+)
+from app.services import (
+    ai_operations_content_service,
+    ai_operations_service,
+    ai_task_service,
+    ai_workspace_service,
+)
 
 router = APIRouter(prefix="/admin/ai", tags=["AI Operations Assistant"])
 
@@ -32,7 +46,9 @@ def summary(admin: User = Depends(require_admin), db: Session = Depends(get_db))
 
 @router.post("/content/draft", response_model=AiGeneratedContentOut, status_code=201)
 def draft_content(data: AiContentDraftCreate, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    return ai_operations_service.generate_content_draft(db, admin, data.prompt, data.content_type, data.channel)
+    return ai_operations_content_service.generate_content_draft(
+        db, admin, data.prompt, data.content_type, data.channel
+    )
 
 
 @router.get("/content", response_model=list[AiGeneratedContentOut])
@@ -72,6 +88,15 @@ def list_tasks(admin: User = Depends(require_admin), db: Session = Depends(get_d
 
 @router.post("/tasks", response_model=AiTaskOut, status_code=201)
 def create_task(data: AiTaskCreate, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    if not data.requires_approval:
+        raise HTTPException(400, "Family Pledge AI tasks must require admin approval")
+    if not ai_workspace_service.is_in_scope(data.instruction):
+        raise HTTPException(
+            400,
+            "AI tasks are limited to Family Pledge/NAMLEF operations, Gaza humanitarian donations, and relevant Islamic context.",
+        )
+    if data.schedule_type not in (None, "daily", "weekly"):
+        raise HTTPException(400, "Schedule must be manual, daily, or weekly")
     return ai_operations_service.create_ai_task(db, admin, data)
 
 
@@ -79,22 +104,59 @@ def create_task(data: AiTaskCreate, admin: User = Depends(require_admin), db: Se
 def update_task(task_id: UUID, data: AiTaskUpdate, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     task = db.get(AiTask, task_id)
     if not task:
-        from fastapi import HTTPException
         raise HTTPException(404, "AI task not found")
-    for k, v in data.model_dump(exclude_unset=True).items():
-        setattr(task, k, v)
-    db.commit(); db.refresh(task); return task
+    changes = data.model_dump(exclude_unset=True)
+    if "instruction" in changes and not ai_workspace_service.is_in_scope(changes["instruction"]):
+        raise HTTPException(400, "Updated AI task instruction is outside the Family Pledge AI scope")
+    if "requires_approval" in changes and not changes["requires_approval"]:
+        raise HTTPException(400, "Family Pledge AI tasks must require admin approval")
+    if changes.get("schedule_type") not in (None, "daily", "weekly") and "schedule_type" in changes:
+        raise HTTPException(400, "Schedule must be manual, daily, or weekly")
+    return ai_task_service.update_task(db, admin, task, changes)
 
 
 @router.post("/tasks/{task_id}/run-now", response_model=AiTaskRunOut)
 def run_task(task_id: UUID, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     task = db.get(AiTask, task_id)
     if not task:
-        from fastapi import HTTPException
         raise HTTPException(404, "AI task not found")
-    return ai_operations_service.run_ai_task_once(db, admin, task)
+    return ai_task_service.run_task_once(db, admin, task)
 
 
 @router.get("/task-runs", response_model=list[AiTaskRunOut])
-def list_task_runs(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    return db.scalars(select(AiTaskRun).order_by(AiTaskRun.created_at.desc())).all()
+def list_task_runs(
+    task_id: UUID | None = Query(default=None),
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    query = select(AiTaskRun)
+    if task_id:
+        query = query.where(AiTaskRun.task_id == task_id)
+    return db.scalars(query.order_by(AiTaskRun.created_at.desc()).limit(100)).all()
+
+
+@router.post("/task-runs/{run_id}/retry", response_model=AiTaskRunOut)
+def retry_task_run(
+    run_id: UUID,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return ai_task_service.retry_run(db, admin, run_id)
+
+
+@router.post("/task-runs/{run_id}/approve", response_model=AiTaskRunOut)
+def approve_task_run(
+    run_id: UUID,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return ai_task_service.approve_run(db, admin, run_id)
+
+
+@router.post("/task-runs/{run_id}/dismiss", response_model=AiTaskRunOut)
+def dismiss_task_run(
+    run_id: UUID,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return ai_task_service.dismiss_run(db, admin, run_id)

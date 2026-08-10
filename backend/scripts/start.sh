@@ -11,4 +11,9 @@ if [ "${DEMO_SEED_ON_STARTUP:-false}" = "true" ]; then
   python scripts/seed_demo_content.py
 fi
 
+if [ "${AI_TASKS_WORKER_ENABLED:-false}" = "true" ]; then
+  echo "AI_TASKS_WORKER_ENABLED=true; starting review-only AI task worker"
+  python scripts/ai_task_worker.py &
+fi
+
 exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT:-8000}"
