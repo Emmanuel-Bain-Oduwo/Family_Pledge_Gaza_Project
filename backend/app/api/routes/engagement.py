@@ -1,10 +1,12 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_admin
+from app.models.engagement import FeatureRequest
 from app.models.user import User
 from app.schemas.engagement import (
     AchievementOut,
@@ -15,6 +17,7 @@ from app.schemas.engagement import (
     EngagementEventCreate,
     FeatureRequestCreate,
     FeatureRequestOut,
+    FeatureRequestStatusUpdate,
     GoalCreate,
     GoalOut,
     GoalUpdate,
@@ -94,3 +97,24 @@ def circle_leave(circle_id: UUID, current_user: User = Depends(get_current_user)
 @router.post("/feature-requests", response_model=FeatureRequestOut, status_code=201)
 def feature_request(data: FeatureRequestCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return engagement_service.create_feature_request(db, current_user, data)
+
+
+@router.get("/feature-requests", response_model=list[FeatureRequestOut])
+def feature_request_list(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    return list(db.scalars(select(FeatureRequest).order_by(FeatureRequest.created_at.desc()).limit(250)).all())
+
+
+@router.patch("/feature-requests/{request_id}", response_model=FeatureRequestOut)
+def feature_request_update(
+    request_id: UUID,
+    data: FeatureRequestStatusUpdate,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    request = db.get(FeatureRequest, request_id)
+    if request is None:
+        raise HTTPException(404, "Feature request not found")
+    request.status = data.status
+    db.commit()
+    db.refresh(request)
+    return request
