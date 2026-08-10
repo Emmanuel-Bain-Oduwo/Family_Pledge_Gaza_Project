@@ -60,12 +60,12 @@ export default function ContributeScreen() {
           start_date: new Date().toISOString().slice(0, 10),
         });
       } else {
-        const proofUrl = proof ? await uploadContributionProof(proof) : undefined;
+        const proofObjectKey = proof ? await uploadContributionProof(proof) : undefined;
         await submitContribution({
           amount,
           currency: selected.currency,
           transaction_reference: reference.trim(),
-          proof_image_url: proofUrl,
+          proof_object_key: proofObjectKey,
           contribution_channel: selectedMethod,
           contribution_month: currentContributionMonth(),
         });
@@ -142,7 +142,7 @@ export default function ContributeScreen() {
 
         <AppCard style={styles.card}>
           <Text style={styles.cardTitle}>{isFreePledge ? 'Finish free pledge' : 'Submit payment proof'}</Text>
-          <Text style={styles.cardDesc}>{isFreePledge ? 'No payment is required. You will still receive reminders and awareness content.' : 'Upload a screenshot or paste the transaction message/reference. Either one is enough for admin review.'}</Text>
+          <Text style={styles.cardDesc}>{isFreePledge ? 'No payment is required. You will still receive reminders and awareness content.' : 'Upload a screenshot or paste the transaction message/reference. Either one is enough for admin review. Sensitive proof data is retained for 30 days.'}</Text>
 
           {!isFreePledge && (
             <>
@@ -176,7 +176,7 @@ export default function ContributeScreen() {
         </View>
         <AppCard style={styles.contactCard}>
           <Ionicons name="mail-outline" size={20} color={Colors.primary} />
-          <View><Text style={styles.contactTitle}>Contact Us</Text><Text selectable style={styles.contactEmail}>admin@familypledgekenya.com</Text></View>
+          <View><Text style={styles.contactTitle}>Contact Us</Text><Text selectable style={styles.contactEmail}>admin@familypledgekenya.org</Text></View>
         </AppCard>
       </ScrollView>
     </KeyboardAvoidingView>
