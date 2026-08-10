@@ -55,9 +55,15 @@ services:
       R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
       R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
       R2_BUCKET_NAME: ${R2_BUCKET_NAME:-}
-      R2_PUBLIC_BASE_URL: ${R2_PUBLIC_BASE_URL:-https://media.familypledge.org}
+      R2_PUBLIC_BASE_URL: ${R2_PUBLIC_BASE_URL:-https://media.familypledgekenya.org}
       R2_MAX_UPLOAD_MB: ${R2_MAX_UPLOAD_MB:-500}
       R2_ALLOWED_UPLOADS_MODE: ${R2_ALLOWED_UPLOADS_MODE:-broad}
+      PROOF_R2_ACCOUNT_ID: ${PROOF_R2_ACCOUNT_ID:-}
+      PROOF_R2_ACCESS_KEY_ID: ${PROOF_R2_ACCESS_KEY_ID:-}
+      PROOF_R2_SECRET_ACCESS_KEY: ${PROOF_R2_SECRET_ACCESS_KEY:-}
+      PROOF_R2_BUCKET_NAME: ${PROOF_R2_BUCKET_NAME:-}
+      PROOF_RETENTION_DAYS: ${PROOF_RETENTION_DAYS:-30}
+      PROOF_SIGNED_GET_TTL_SECONDS: ${PROOF_SIGNED_GET_TTL_SECONDS:-600}
       STREAM_API_TOKEN: ${STREAM_API_TOKEN:-}
       STREAM_CUSTOMER_CODE: ${STREAM_CUSTOMER_CODE:-}
       STREAM_MAX_DURATION_SECONDS: ${STREAM_MAX_DURATION_SECONDS:-21600}
@@ -83,7 +89,7 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      API_DOMAIN: ${API_DOMAIN:-api.familypledge.org}
+      API_DOMAIN: ${API_DOMAIN:-api.familypledgekenya.org}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
