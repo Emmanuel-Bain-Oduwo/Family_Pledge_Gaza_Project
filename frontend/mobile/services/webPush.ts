@@ -25,11 +25,17 @@ function assertConfigured() {
   }
 }
 
-async function getFirebaseMessaging() {
-  // These modules are loaded only after the caller has confirmed it is running
-  // in a browser. Android/iOS continue to use expo-notifications exclusively.
+async function loadFirebaseModules() {
+  // Firebase Messaging is intentionally loaded only by the Web notification
+  // path. Android/iOS continue to use expo-notifications exclusively.
   const appModule = await import('firebase/app');
   const messagingModule = await import('firebase/messaging');
+  return { appModule, messagingModule };
+}
+
+async function initializedMessaging() {
+  const { appModule, messagingModule } = await loadFirebaseModules();
+  if (!(await messagingModule.isSupported())) return null;
   const firebaseApp = appModule.getApps().length
     ? appModule.getApp()
     : appModule.initializeApp(firebaseConfig);
@@ -40,11 +46,11 @@ export async function registerWebPushNotifications(
   requestPermission = true,
 ): Promise<string | null> {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') return null;
-  const { messagingModule } = await getFirebaseMessaging();
-  if (!(await messagingModule.isSupported())) {
+  assertConfigured();
+  const initialized = await initializedMessaging();
+  if (!initialized) {
     throw new Error('This browser does not support Web push notifications.');
   }
-  assertConfigured();
 
   let permission = Notification.permission;
   if (permission !== 'granted' && requestPermission) {
@@ -56,8 +62,7 @@ export async function registerWebPushNotifications(
     throw new Error('This browser does not support notification service workers.');
   }
   const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-  const { messaging } = await getFirebaseMessaging();
-  const token = await messagingModule.getToken(messaging, {
+  const token = await initialized.messagingModule.getToken(initialized.messaging, {
     vapidKey,
     serviceWorkerRegistration: registration,
   });
@@ -73,10 +78,10 @@ export async function addWebPushLifecycleListeners(
   if (typeof window === 'undefined' || typeof navigator === 'undefined') return () => {};
   if (!firebaseConfig.apiKey || !firebaseConfig.messagingSenderId) return () => {};
 
-  const { messagingModule, messaging } = await getFirebaseMessaging();
-  if (!(await messagingModule.isSupported())) return () => {};
+  const initialized = await initializedMessaging();
+  if (!initialized) return () => {};
 
-  return messagingModule.onMessage(messaging, (payload) => {
+  return initialized.messagingModule.onMessage(initialized.messaging, (payload) => {
     const screen = payload.data?.screen || '/screens/notifications';
     const title = payload.notification?.title || 'Family Pledge';
     const body = payload.notification?.body || '';
