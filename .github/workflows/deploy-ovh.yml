@@ -9,6 +9,11 @@ on:
 permissions:
   contents: read
 
+env:
+  OVH_HOST: 15.235.41.132
+  OVH_USER: ubuntu
+  OVH_PORT: "22"
+
 concurrency:
   group: family-pledge-ovh-production
   cancel-in-progress: false
@@ -33,28 +38,36 @@ jobs:
             echo "sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Configure SSH
+      - name: Configure and validate SSH
         env:
           OVH_SSH_PRIVATE_KEY: ${{ secrets.OVH_SSH_PRIVATE_KEY }}
           OVH_KNOWN_HOSTS: ${{ secrets.OVH_KNOWN_HOSTS }}
         shell: bash
         run: |
           set -euo pipefail
+          : "${OVH_SSH_PRIVATE_KEY:?Missing OVH_SSH_PRIVATE_KEY repository secret}"
+          : "${OVH_KNOWN_HOSTS:?Missing OVH_KNOWN_HOSTS repository secret}"
+
           install -m 700 -d ~/.ssh
-          printf '%s\n' "$OVH_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$OVH_SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          printf '%s\n' "$OVH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf '%s\n' "$OVH_KNOWN_HOSTS" | tr -d '\r' > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
+
+          ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null
+          ssh-keygen -F "$OVH_HOST" -f ~/.ssh/known_hosts >/dev/null || {
+            echo "OVH_KNOWN_HOSTS does not contain an entry for ${OVH_HOST}." >&2
+            exit 1
+          }
 
       - name: Deploy tested main to OVH
         env:
-          OVH_HOST: ${{ secrets.OVH_HOST }}
-          OVH_USER: ${{ secrets.OVH_USER }}
           EXPECTED_SHA: ${{ steps.target.outputs.sha }}
         shell: bash
         run: |
           set -euo pipefail
           ssh \
+            -p "$OVH_PORT" \
             -i ~/.ssh/id_ed25519 \
             -o BatchMode=yes \
             -o StrictHostKeyChecking=yes \
