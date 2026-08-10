@@ -48,6 +48,8 @@ def _push_preference_allows(user: User, notification_type: NotificationType, cat
         "dua": _preference(user, "notification_dua"),
         "dhikr": _preference(user, "notification_dhikr"),
         "shirk": _preference(user, "notification_shirk"),
+        "sadaqah": _preference(user, "notification_sadaqah"),
+        "friday": _preference(user, "notification_friday"),
         "motivation": _preference(user, "notification_motivation"),
         "impact": _preference(user, "notification_impact") or _preference(user, "notification_campaigns"),
         "humanitarian": _preference(user, "notification_humanitarian"),
@@ -187,21 +189,14 @@ def _resolve_delivery_tokens(db: Session, users: list[User]) -> tuple[list[str],
 
 def _eligible_users(db: Session, data: NotificationSend) -> list[User]:
     users = list(db.scalars(_audience_query(data.audience)).unique().all())
-    return [
-        user for user in users
-        if _push_preference_allows(user, data.notification_type, data.content_category)
-    ]
+    return [user for user in users if _push_preference_allows(user, data.notification_type, data.content_category)]
 
 
 def send(db: Session, admin: User, data: NotificationSend) -> Notification:
     eligible_users = _eligible_users(db, data)
     expo_tokens, web_tokens = _resolve_delivery_tokens(db, eligible_users)
-    expo_sent, expo_failed = _send_expo_push(
-        expo_tokens, data.title, data.body, data.notification_type.value, data.content_category
-    )
-    web_sent, web_failed = _send_fcm_web(
-        web_tokens, data.title, data.body, data.notification_type.value, data.content_category
-    )
+    expo_sent, expo_failed = _send_expo_push(expo_tokens, data.title, data.body, data.notification_type.value, data.content_category)
+    web_sent, web_failed = _send_fcm_web(web_tokens, data.title, data.body, data.notification_type.value, data.content_category)
     sent_count = expo_sent + web_sent
     failure_count = expo_failed + web_failed
 
