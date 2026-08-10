@@ -23,6 +23,8 @@ def upgrade():
         "notification_humanitarian",
     ):
         op.add_column("users", sa.Column(name, sa.Boolean(), nullable=False, server_default=sa.false()))
+    op.add_column("notifications", sa.Column("content_category", sa.String(length=40), nullable=True))
+    op.create_index("ix_notifications_content_category", "notifications", ["content_category"])
 
     op.create_table(
         "engagement_goals",
@@ -122,6 +124,8 @@ def downgrade():
     op.drop_index("ix_engagement_goals_type", table_name="engagement_goals")
     op.drop_index("ix_engagement_goals_user_status", table_name="engagement_goals")
     op.drop_table("engagement_goals")
+    op.drop_index("ix_notifications_content_category", table_name="notifications")
+    op.drop_column("notifications", "content_category")
     for name in (
         "notification_humanitarian",
         "notification_impact",
