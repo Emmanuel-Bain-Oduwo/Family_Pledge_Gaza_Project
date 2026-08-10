@@ -26,9 +26,9 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
           cache: 'pip'
@@ -58,9 +58,9 @@ jobs:
   admin-checks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20.19.4'
           cache: 'npm'
@@ -84,11 +84,12 @@ jobs:
       CI: '1'
       EXPO_PUBLIC_API_URL: https://api.familypledgekenya.org/api/v1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20.19.4'
+          package-manager-cache: false
       - name: Install SDK 55 dependencies
         run: |
           cd frontend/mobile
