@@ -52,6 +52,15 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
     weekly_email_opt_in: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True
     )
+
+    # Push/local notification preferences are opt-in. Existing and new users
+    # start with all categories disabled until they explicitly choose them.
+    notification_daily: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    notification_friday: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    notification_campaigns: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    notification_emergency: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    notification_onboarding_seen: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
     email_unsubscribe_token: Mapped[str] = mapped_column(
         String(64),
         nullable=False,
