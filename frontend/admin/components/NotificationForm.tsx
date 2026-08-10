@@ -86,7 +86,7 @@ export default function NotificationForm({ onSuccess, onSubmit: onSubmitOverride
           <select {...register('content_category')} className="input">
             {CATEGORIES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
-          <p className="mt-1 text-xs text-gray-400">Used to respect each donor's notification preferences.</p>
+          <p className="mt-1 text-xs text-gray-400">Used to respect each donor&apos;s notification preferences.</p>
         </div>
         <div className="sm:col-span-2">
           <label className="label">Audience *</label>
