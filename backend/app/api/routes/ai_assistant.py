@@ -9,12 +9,13 @@ from app.models.user import User
 from app.schemas.ai_draft import (
     AiCollectorMessageRequest,
     AiDraftOut,
+    AiDraftUpdateRequest,
     AiImpactUpdateRequest,
     AiReminderRequest,
     AiWeeklySummaryRequest,
 )
 from app.schemas.common import PaginatedResponse, make_page
-from app.services import ai_service
+from app.services import ai_draft_edit_service, ai_service
 from app.utils.pagination import offset_limit
 
 router = APIRouter(prefix="/admin/ai", tags=["AI Assistant"])
@@ -68,6 +69,18 @@ def list_drafts(
     skip, limit = offset_limit(page, size)
     items, total = ai_service.list_drafts(db, admin, skip, limit, draft_type, status)
     return make_page([AiDraftOut.model_validate(d) for d in items], total, page, size)
+
+
+@router.patch("/drafts/{draft_id}", response_model=AiDraftOut)
+def edit_draft(
+    draft_id: UUID,
+    data: AiDraftUpdateRequest,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return ai_draft_edit_service.update_draft_text(
+        db, admin, draft_id, data.generated_text
+    )
 
 
 @router.patch("/drafts/{draft_id}/approve", response_model=AiDraftOut)
