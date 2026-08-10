@@ -16,4 +16,9 @@ if [ "${AI_TASKS_WORKER_ENABLED:-false}" = "true" ]; then
   python scripts/ai_task_worker.py &
 fi
 
+if [ "${OUTBOUND_WORKER_ENABLED:-false}" = "true" ]; then
+  echo "OUTBOUND_WORKER_ENABLED=true; starting admin operations worker"
+  python scripts/operations_worker.py &
+fi
+
 exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT:-8000}"
