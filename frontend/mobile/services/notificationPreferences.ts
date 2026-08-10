@@ -10,6 +10,8 @@ export function preferencesFromUser(user: User): NotificationPreferences {
     quran: Boolean(user.notification_quran),
     hadith: Boolean(user.notification_hadith),
     dua: Boolean(user.notification_dua),
+    dhikr: Boolean(user.notification_dhikr),
+    shirk: Boolean(user.notification_shirk),
     motivation: Boolean(user.notification_motivation),
     impact: Boolean(user.notification_impact),
     humanitarian: Boolean(user.notification_humanitarian),
