@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.deps import require_admin
 from app.models.ai_operations import AiFollowupSuggestion, AiGeneratedContent, AiTask, AiTaskRun
+from app.models.audit import AdminAuditLog
 from app.models.enums import AiContentStatus, AiFollowupStatus, AiTaskRunStatus, AiTaskStatus
 from app.models.user import User
 from app.schemas.ai_operations import (
@@ -17,6 +18,7 @@ from app.schemas.ai_operations import (
     AiSummaryOut,
     AiTaskCreate,
     AiTaskOut,
+    AiTaskRunEdit,
     AiTaskRunOut,
     AiTaskUpdate,
 )
@@ -100,9 +102,6 @@ def create_task(data: AiTaskCreate, admin: User = Depends(require_admin), db: Se
         raise HTTPException(400, "AI tasks are limited to Family Pledge/NAMLEF operations, Gaza humanitarian donations, and relevant Islamic context.")
     _validate_schedule(data.schedule_type, data.next_run_at)
     task = ai_operations_service.create_ai_task(db, admin, data)
-    # The older creation service historically calculated daily/weekly from 'now'.
-    # Preserve the exact first run selected by the admin; recurrence is calculated
-    # only after that run by ai_task_service.
     if data.next_run_at is not None and task.next_run_at != data.next_run_at:
         task.next_run_at = data.next_run_at
         db.add(task)
@@ -140,6 +139,36 @@ def list_task_runs(task_id: UUID | None = Query(default=None), admin: User = Dep
     if task_id:
         query = query.where(AiTaskRun.task_id == task_id)
     return db.scalars(query.order_by(AiTaskRun.created_at.desc()).limit(100)).all()
+
+
+@router.patch("/task-runs/{run_id}", response_model=AiTaskRunOut)
+def edit_task_run_output(
+    run_id: UUID,
+    data: AiTaskRunEdit,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    run = db.get(AiTaskRun, run_id)
+    if not run:
+        raise HTTPException(404, "AI task run not found")
+    if run.status != AiTaskRunStatus.waiting_approval:
+        raise HTTPException(409, "Only output waiting for approval can be edited")
+
+    output = dict(run.generated_output or {})
+    output["text"] = data.generated_text.strip()
+    output["edited_by_admin"] = True
+    run.generated_output = output
+    db.add(run)
+    db.add(AdminAuditLog(
+        admin_id=admin.id,
+        action="ai_task_run.output_edited",
+        entity_type="ai_task_run",
+        entity_id=run.id,
+        metadata_={"characters": len(data.generated_text.strip())},
+    ))
+    db.commit()
+    db.refresh(run)
+    return run
 
 
 @router.post("/task-runs/{run_id}/retry", response_model=AiTaskRunOut)

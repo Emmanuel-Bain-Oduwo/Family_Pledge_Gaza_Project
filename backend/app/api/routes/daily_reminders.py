@@ -39,9 +39,11 @@ def admin_list_reminders(
     db: Session = Depends(get_db),
 ):
     skip, limit = offset_limit(page, size)
-    query = select(DailyReminder)
-    if reminder_type:
+    query = select(DailyReminder).where(DailyReminder.reminder_type != ReminderType.shirk)
+    if reminder_type and reminder_type != ReminderType.shirk:
         query = query.where(DailyReminder.reminder_type == reminder_type)
+    elif reminder_type == ReminderType.shirk:
+        query = query.where(False)
     if status:
         query = query.where(DailyReminder.status == status)
     total = int(db.scalar(select(func.count()).select_from(query.subquery())) or 0)
@@ -83,7 +85,6 @@ def _notification_category(reminder: DailyReminder) -> str:
         ReminderType.hadith: "hadith",
         ReminderType.dua: "dua",
         ReminderType.dhikr: "dhikr",
-        ReminderType.shirk: "shirk",
         ReminderType.motivation: "motivation",
         ReminderType.friday: "friday",
         ReminderType.sadaqah: "sadaqah",

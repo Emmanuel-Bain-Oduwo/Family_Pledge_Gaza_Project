@@ -1,34 +1,56 @@
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from app.models.enums import ReminderStatus, ReminderType
 
+DhikrCategory = Literal[
+    "morning",
+    "evening",
+    "anytime",
+    "protection",
+    "after_prayer",
+    "before_sleep",
+]
+
+
+def _resolve_type(reminder_type: ReminderType | None, alias: str | None) -> ReminderType:
+    resolved = reminder_type
+    if resolved is None and alias is not None:
+        try:
+            resolved = ReminderType(alias)
+        except ValueError as exc:
+            raise ValueError("Choose a supported reminder type") from exc
+    if resolved is None:
+        resolved = ReminderType.motivation
+    if resolved == ReminderType.shirk:
+        raise ValueError("Shirk is not an available Family Pledge reminder category")
+    return resolved
+
 
 class ReminderCreate(BaseModel):
     title: Optional[str] = None
-    text: Optional[str] = None  # alias for title accepted from admin frontend
+    text: Optional[str] = None
     reminder_type: Optional[ReminderType] = None
-    type: Optional[str] = None  # alias for reminder_type accepted from admin frontend
+    type: Optional[str] = None
+    dhikr_category: Optional[DhikrCategory] = None
     arabic_text: Optional[str] = None
     translation: Optional[str] = None
     explanation: Optional[str] = None
     source_reference: Optional[str] = None
     image_url: Optional[str] = None
     scheduled_for: Optional[datetime] = None
-    scheduled_date: Optional[str] = None  # date string from admin form
+    scheduled_date: Optional[str] = None
 
     @model_validator(mode='after')
     def resolve_aliases(self) -> 'ReminderCreate':
-        if self.reminder_type is None and self.type is not None:
-            try:
-                self.reminder_type = ReminderType(self.type)
-            except ValueError:
-                self.reminder_type = ReminderType.motivation
-        if self.reminder_type is None:
-            self.reminder_type = ReminderType.motivation
+        self.reminder_type = _resolve_type(self.reminder_type, self.type)
+        if self.reminder_type == ReminderType.dhikr:
+            self.dhikr_category = self.dhikr_category or "anytime"
+        else:
+            self.dhikr_category = None
         if self.title is None and self.text is not None:
             self.title = self.text
         if self.title is None:
@@ -38,9 +60,10 @@ class ReminderCreate(BaseModel):
 
 class ReminderUpdate(BaseModel):
     title: Optional[str] = None
-    text: Optional[str] = None  # alias — mapped to title
+    text: Optional[str] = None
     reminder_type: Optional[ReminderType] = None
-    type: Optional[str] = None  # alias — mapped to reminder_type
+    type: Optional[str] = None
+    dhikr_category: Optional[DhikrCategory] = None
     arabic_text: Optional[str] = None
     translation: Optional[str] = None
     explanation: Optional[str] = None
@@ -52,11 +75,15 @@ class ReminderUpdate(BaseModel):
 
     @model_validator(mode='after')
     def resolve_aliases(self) -> 'ReminderUpdate':
+        if self.reminder_type == ReminderType.shirk or self.type == ReminderType.shirk.value:
+            raise ValueError("Shirk is not an available Family Pledge reminder category")
         if self.reminder_type is None and self.type is not None:
             try:
                 self.reminder_type = ReminderType(self.type)
-            except ValueError:
-                pass
+            except ValueError as exc:
+                raise ValueError("Choose a supported reminder type") from exc
+        if self.reminder_type is not None and self.reminder_type != ReminderType.dhikr:
+            self.dhikr_category = None
         if self.title is None and self.text is not None:
             self.title = self.text
         return self
@@ -66,6 +93,7 @@ class ReminderOut(BaseModel):
     id: UUID
     title: str
     reminder_type: ReminderType
+    dhikr_category: Optional[str] = None
     arabic_text: Optional[str] = None
     translation: Optional[str] = None
     explanation: Optional[str] = None
@@ -78,7 +106,6 @@ class ReminderOut(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    # Frontend-compatible alias fields
     type: Optional[str] = None
     text: Optional[str] = None
     date: Optional[str] = None

@@ -1,10 +1,11 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { AlertTriangle, Check, X, Send, BookOpen, Globe, Save } from 'lucide-react';
+import { AlertTriangle, Check, X, Send, BookOpen, Globe, Save, Eye, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AiDraft, AiDraftStatus } from '../types';
 import { approveAiDraft, rejectAiDraft, publishAiDraft } from '../lib/api';
 import { updateAiDraftText } from '../lib/aiWorkspaceApi';
+import AiMessageContent from './AiMessageContent';
 
 const STATUS_BADGE: Record<AiDraftStatus, string> = {
   draft: 'bg-yellow-100 text-yellow-800',
@@ -29,10 +30,12 @@ export default function AiDraftCard({
   const [draft, setDraft] = useState<AiDraft>(initialDraft);
   const [editingText, setEditingText] = useState(initialDraft.generated_text);
   const [busy, setBusy] = useState(false);
+  const [preview, setPreview] = useState(false);
 
   useEffect(() => {
     setDraft(initialDraft);
     setEditingText(initialDraft.generated_text);
+    setPreview(false);
   }, [initialDraft]);
 
   const hasUnsavedChanges = editingText.trim() !== draft.generated_text.trim();
@@ -120,9 +123,20 @@ export default function AiDraftCard({
       </div>
 
       <div>
-        <label className="label">{draft.status === 'draft' ? 'Editable Draft' : 'Reviewed Draft'}</label>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <label className="label mb-0">{draft.status === 'draft' ? 'Editable Draft' : 'Reviewed Draft'}</label>
+          {draft.status === 'draft' && (
+            <button type="button" onClick={() => setPreview((value) => !value)} className="btn-ghost inline-flex items-center gap-1.5 text-xs">
+              {preview ? <><Pencil size={13}/>Edit</> : <><Eye size={13}/>Preview formatting</>}
+            </button>
+          )}
+        </div>
         {draft.status === 'draft' ? (
-          <>
+          preview ? (
+            <div className="min-h-[12rem] rounded-lg border border-gray-200 bg-white p-4">
+              <AiMessageContent content={editingText} />
+            </div>
+          ) : (
             <textarea
               className="input min-h-[12rem] font-sans text-sm leading-6"
               value={editingText}
@@ -130,23 +144,25 @@ export default function AiDraftCard({
               disabled={busy}
               aria-label="Edit AI draft"
             />
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={busy || !hasUnsavedChanges || !editingText.trim()}
-                className="btn-secondary flex items-center gap-1.5 disabled:opacity-50"
-              >
-                <Save size={14} /> Save changes
-              </button>
-              {hasUnsavedChanges && <span className="text-xs font-medium text-amber-600">Unsaved edits</span>}
-              {!hasUnsavedChanges && <span className="text-xs text-gray-400">All changes saved</span>}
-            </div>
-          </>
+          )
         ) : (
-          <pre className="whitespace-pre-wrap font-sans text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-lg p-3 min-h-[6rem]">
-            {draft.generated_text}
-          </pre>
+          <div className="min-h-[6rem] rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <AiMessageContent content={draft.generated_text} />
+          </div>
+        )}
+        {draft.status === 'draft' && (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={busy || !hasUnsavedChanges || !editingText.trim()}
+              className="btn-secondary flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <Save size={14} /> Save changes
+            </button>
+            {hasUnsavedChanges && <span className="text-xs font-medium text-amber-600">Unsaved edits</span>}
+            {!hasUnsavedChanges && <span className="text-xs text-gray-400">All changes saved</span>}
+          </div>
         )}
       </div>
 

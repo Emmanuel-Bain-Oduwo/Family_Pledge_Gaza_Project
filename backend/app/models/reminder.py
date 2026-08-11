@@ -23,6 +23,7 @@ class DailyReminder(Base, TimestampMixin):
     reminder_type: Mapped[ReminderType] = mapped_column(
         Enum(ReminderType, name="reminder_type"), nullable=False
     )
+    dhikr_category: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     arabic_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     translation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     explanation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -43,7 +44,6 @@ class DailyReminder(Base, TimestampMixin):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
 
-    # Relationships
     created_by_user: Mapped["User"] = relationship(
         "User", back_populates="created_reminders", foreign_keys=[created_by]
     )
@@ -56,6 +56,7 @@ class DailyReminder(Base, TimestampMixin):
         Index("ix_reminders_type", "reminder_type"),
         Index("ix_reminders_created_by", "created_by"),
         Index("ix_reminders_scheduled_for", "scheduled_for"),
+        Index("ix_reminders_type_dhikr_category_status", "reminder_type", "dhikr_category", "status"),
     )
 
     def __repr__(self) -> str:

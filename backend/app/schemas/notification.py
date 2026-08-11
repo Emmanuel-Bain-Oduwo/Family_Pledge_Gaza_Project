@@ -11,7 +11,6 @@ NotificationContentCategory = Literal[
     "hadith",
     "dua",
     "dhikr",
-    "shirk",
     "sadaqah",
     "friday",
     "motivation",

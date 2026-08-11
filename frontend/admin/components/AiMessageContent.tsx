@@ -3,7 +3,62 @@
 import { Fragment, type ReactNode } from 'react';
 
 interface AiMessageContentProps {
-  content: string;
+  content: unknown;
+  className?: string;
+}
+
+function titleCase(value: string): string {
+  return value
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function structuredToText(value: unknown, depth = 0): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        const rendered = structuredToText(item, depth + 1).trim();
+        return rendered ? `- ${rendered.replace(/\n/g, '\n  ')}` : '';
+      })
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  if (typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    for (const preferred of ['text', 'answer', 'content', 'body', 'message', 'generated_text']) {
+      const candidate = record[preferred];
+      if (typeof candidate === 'string' && candidate.trim()) return candidate;
+    }
+
+    return Object.entries(record)
+      .filter(([, nested]) => nested !== null && nested !== undefined && nested !== '')
+      .map(([key, nested]) => {
+        const rendered = structuredToText(nested, depth + 1).trim();
+        if (!rendered) return '';
+        if (typeof nested === 'object') {
+          const heading = depth === 0 ? '##' : '###';
+          return `${heading} ${titleCase(key)}\n${rendered}`;
+        }
+        return `**${titleCase(key)}:** ${rendered}`;
+      })
+      .filter(Boolean)
+      .join('\n\n');
+  }
+
+  return String(value);
+}
+
+function normalizeContent(content: unknown): string {
+  const normalized = structuredToText(content).trim();
+  if (!normalized || normalized === '[object Object]') {
+    return 'This response could not be displayed clearly. Please retry the action.';
+  }
+  return normalized;
 }
 
 function splitTableRow(line: string): string[] {
@@ -46,8 +101,9 @@ function renderInline(text: string): ReactNode[] {
   });
 }
 
-export default function AiMessageContent({ content }: AiMessageContentProps) {
-  const lines = content.replace(/\r\n/g, '\n').split('\n');
+export default function AiMessageContent({ content, className = '' }: AiMessageContentProps) {
+  const text = normalizeContent(content);
+  const lines = text.replace(/\r\n/g, '\n').split('\n');
   const output: ReactNode[] = [];
   let index = 0;
 
@@ -187,5 +243,5 @@ export default function AiMessageContent({ content }: AiMessageContentProps) {
     index += 1;
   }
 
-  return <div className="text-sm">{output}</div>;
+  return <div className={`text-sm ${className}`.trim()}>{output}</div>;
 }

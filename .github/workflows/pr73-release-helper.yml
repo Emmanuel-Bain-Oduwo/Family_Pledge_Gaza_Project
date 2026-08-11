@@ -1,0 +1,76 @@
+name: PR73 Release Helper
+
+on:
+  push:
+    branches:
+      - release/pr-73-final-store-polish
+
+permissions:
+  contents: write
+
+jobs:
+  generate-release-files:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: release/pr-73-final-store-polish
+          fetch-depth: 0
+
+      - name: Patch legacy error formatter and retired category
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          admin = Path('frontend/admin/lib/api.ts')
+          text = admin.read_text()
+          import_anchor = "import { getToken, removeToken } from './auth';\n"
+          import_line = "import { getApiErrorMessage } from './apiError';\n"
+          if import_line not in text:
+              if import_anchor not in text:
+                  raise SystemExit('Admin API import anchor not found')
+              text = text.replace(import_anchor, import_anchor + import_line, 1)
+
+          old = """const handle = (e: unknown): never => {\n  if (axios.isAxiosError(e)) {\n    if (e.response?.status === 401 || e.response?.status === 403) {\n      removeToken();\n    }\n    const msg = (e.response?.data as any)?.detail || (e.response?.data as any)?.message || e.message;\n    throw new Error(msg);\n  }\n  throw e;\n};"""
+          new = """const handle = (e: unknown): never => {\n  if (axios.isAxiosError(e) && (e.response?.status === 401 || e.response?.status === 403)) {\n    removeToken();\n  }\n  throw new Error(getApiErrorMessage(e, 'Could not complete this admin request.'));\n};"""
+          if old in text:
+              text = text.replace(old, new, 1)
+          elif new not in text:
+              raise SystemExit('Legacy Admin API error handler anchor not found')
+          admin.write_text(text)
+
+          notification = Path('backend/app/services/notification_service.py')
+          ntext = notification.read_text()
+          ntext = ntext.replace('        "shirk": _preference(user, "notification_shirk"),\n', '', 1)
+          notification.write_text(ntext)
+          PY
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20.19.4
+          cache: npm
+          cache-dependency-path: frontend/mobile/package.json
+
+      - name: Generate Expo SDK 55 lockfile
+        working-directory: frontend/mobile
+        run: |
+          npm install
+          npx expo install --fix
+          npx expo-doctor@latest
+          npm run typecheck
+          npm run build:web
+
+      - name: Commit generated release files
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/admin/lib/api.ts backend/app/services/notification_service.py frontend/mobile/package.json frontend/mobile/package-lock.json
+          if git diff --cached --quiet; then
+            echo "No generated changes to commit."
+            exit 0
+          fi
+          git commit -m "Generate mobile lockfile and finish shared error cleanup"
+          git push origin HEAD:release/pr-73-final-store-polish

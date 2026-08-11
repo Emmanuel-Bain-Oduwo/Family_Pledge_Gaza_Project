@@ -18,8 +18,7 @@ const CATEGORIES = [
   ['quran', 'Quran reminder'],
   ['hadith', 'Hadith reminder'],
   ['dua', "Du'a reminder"],
-  ['dhikr', 'Dhikr reminder'],
-  ['shirk', 'Shirk Awareness'],
+  ['dhikr', 'Dhikr / Adhkar reminder'],
   ['sadaqah', 'Sadaqah reminder'],
   ['friday', "Friday / Jumu'ah reminder"],
   ['motivation', 'Motivation'],
@@ -101,7 +100,7 @@ export default function NotificationForm({ onSuccess, onSubmit: onSubmitOverride
       </div>
       <div className="pt-2 border-t border-gray-100">
         <button type="submit" disabled={isSubmitting || loading} className="btn-primary w-full">
-          {isSubmitting || loading ? 'Sending…' : 'Send Notification'}
+          {isSubmitting || loading ? 'Sending…' : 'Send Now'}
         </button>
       </div>
     </form>
