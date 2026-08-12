@@ -36,6 +36,14 @@ class ContributionSubmit(BaseModel):
                     data[new] = data[old]
         return data
 
+    @field_validator("currency")
+    @classmethod
+    def normalize_currency(cls, value: str) -> str:
+        normalized = (value or "USD").strip().upper()
+        if len(normalized) != 3 or not normalized.isalpha():
+            raise ValueError("currency must be a 3-letter code")
+        return normalized
+
     @field_validator("contribution_month")
     @classmethod
     def validate_month(cls, v: str) -> str:
