@@ -20,11 +20,15 @@ def upgrade():
         ["reminder_type", "dhikr_category", "status"],
     )
 
+    # reminder_type gained these enum values in 0018. PostgreSQL does not allow a
+    # newly-added enum value to be used as an enum literal until the transaction is
+    # committed. Cast the stored enum to text here so a fresh `alembic upgrade head`
+    # remains valid while still supporting databases where the values already exist.
     op.execute(
         """
         UPDATE daily_reminders
         SET dhikr_category = 'anytime'
-        WHERE reminder_type = 'dhikr'
+        WHERE reminder_type::text = 'dhikr'
           AND dhikr_category IS NULL
         """
     )
@@ -35,7 +39,7 @@ def upgrade():
         """
         UPDATE daily_reminders
         SET status = 'archived'
-        WHERE reminder_type = 'shirk'
+        WHERE reminder_type::text = 'shirk'
           AND status <> 'archived'
         """
     )
