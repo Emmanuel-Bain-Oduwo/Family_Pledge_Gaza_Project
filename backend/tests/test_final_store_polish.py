@@ -4,12 +4,13 @@ import pytest
 from pydantic import ValidationError
 
 from app.api.routes.daily_reminders import _notification_category
-from app.models.enums import NotificationType, ReminderType
+from app.models.enums import ContributionStatus, NotificationType, ReminderType
 from app.schemas.notification import NotificationSend
 from app.schemas.pledge import PledgeCreate
 from app.schemas.reminder import ReminderCreate
 from app.schemas.support import SupportMessageAdminUpdate, SupportMessageCreate
 from app.services.notification_service import _push_preference_allows
+from app.services.pledge_service import _resolve_current_month_status
 
 
 def test_pledge_requires_explicit_agreement():
@@ -23,6 +24,19 @@ def test_pledge_requires_explicit_agreement():
         agreement_accepted=True,
     )
     assert pledge.agreement_accepted is True
+
+
+def test_current_month_status_prefers_confirmed_then_submitted():
+    assert _resolve_current_month_status([]) is None
+    assert _resolve_current_month_status([ContributionStatus.rejected]) == ContributionStatus.rejected
+    assert _resolve_current_month_status([
+        ContributionStatus.needs_follow_up,
+        ContributionStatus.submitted,
+    ]) == ContributionStatus.submitted
+    assert _resolve_current_month_status([
+        ContributionStatus.submitted,
+        ContributionStatus.confirmed,
+    ]) == ContributionStatus.confirmed
 
 
 def test_reminder_categories_map_to_delivery_preferences():

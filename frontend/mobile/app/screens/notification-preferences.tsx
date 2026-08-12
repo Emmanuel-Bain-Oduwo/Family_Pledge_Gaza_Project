@@ -22,7 +22,42 @@ export default function NotificationPreferencesScreen() {
   useEffect(()=>{Promise.all([getNotificationPreferences(),getCommunicationUser()]).then(([data,user])=>{setPreferences({...DEFAULTS,...data,shirk:false,onboarding_seen:true});setChannels({email_reminders_opt_in:Boolean(user.email_reminders_opt_in),whatsapp_reminders_opt_in:Boolean(user.whatsapp_reminders_opt_in)});setContact({hasEmail:Boolean(user.email),hasPhone:Boolean(user.phone)});}).catch(()=>Alert.alert('Could not load settings','Please try again when you are online.')).finally(()=>setLoading(false));},[]);
   const setValue=(key:keyof Omit<NotificationPreferences,'onboarding_seen'>,value:boolean)=>setPreferences(current=>({...current,[key]:value,onboarding_seen:true}));
 
-  const save=async()=>{setSaving(true);try{const cleanPreferences={...preferences,shirk:false};const wantsPush=Object.entries(cleanPreferences).some(([key,value])=>key!=='onboarding_seen'&&value===true);if(wantsPush){const token=await registerForPushNotifications(true);if(!token){Alert.alert('App notifications are disabled',Platform.OS==='web'?'Allow notifications for this website to receive the app categories you selected.':'Allow notifications in device settings to receive the app categories you selected.');return;}}await applyLocalReminderPreferences(cleanPreferences);const [updated]=await Promise.all([updateNotificationPreferences({...cleanPreferences,onboarding_seen:true}),updateCommunicationPreferences(channels)]);await saveUser(updated);Alert.alert('Saved','Your Family Pledge reminder channels and notification categories have been updated.');}catch(error:any){Alert.alert('Could not save',error?.message||'Please try again.');}finally{setSaving(false);}};
+  const save=async()=>{
+    setSaving(true);
+    try{
+      const cleanPreferences={...preferences,shirk:false,onboarding_seen:true};
+      const wantsPush=Object.entries(cleanPreferences).some(([key,value])=>key!=='onboarding_seen'&&value===true);
+
+      // Persist the user's choices first. Missing native push credentials or a denied
+      // device permission must never make the Save button silently lose the choices.
+      const [updated]=await Promise.all([
+        updateNotificationPreferences(cleanPreferences),
+        updateCommunicationPreferences(channels),
+      ]);
+      await saveUser(updated);
+
+      let deliveryNote='';
+      if(wantsPush){
+        try{
+          const token=await registerForPushNotifications(true);
+          if(!token){
+            deliveryNote=Platform.OS==='web'
+              ? ' Your choices are saved; allow browser notifications when you are ready to receive app alerts.'
+              : ' Your choices are saved; allow notifications in device settings when you are ready to receive app alerts.';
+          }
+        }catch{
+          deliveryNote=' Your choices are saved. App push delivery still needs the device notification setup to be completed.';
+        }
+      }
+
+      try{await applyLocalReminderPreferences(cleanPreferences);}catch{
+        if(!deliveryNote) deliveryNote=' Your choices are saved. Local device reminders could not be scheduled yet.';
+      }
+
+      Alert.alert('Saved',`Your Family Pledge reminder channels and notification categories have been saved.${deliveryNote}`);
+    }catch(error:any){Alert.alert('Could not save',error?.message||'Please try again.');}
+    finally{setSaving(false);}
+  };
   if(loading)return <LoadingState fullScreen message="Loading notification settings..."/>;
 
   return <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>

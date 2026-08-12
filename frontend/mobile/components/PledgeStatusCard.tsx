@@ -13,11 +13,24 @@ interface PledgeStatusCardProps {
 }
 
 const STATUS_CONFIG: Record<PledgeStatus, { label: string; color: string; bg: string; icon: string }> = {
-  paid: { label: 'Paid', color: Colors.success, bg: '#ECFDF5', icon: 'checkmark-circle' },
-  pending: { label: 'Pending', color: Colors.warning, bg: '#FFFBEB', icon: 'time' },
+  paid: { label: 'Confirmed', color: Colors.success, bg: '#ECFDF5', icon: 'checkmark-circle' },
+  submitted: { label: 'Proof Sent', color: Colors.primary, bg: '#EFF6FF', icon: 'paper-plane' },
+  needs_follow_up: { label: 'Follow-up Needed', color: Colors.warning, bg: '#FFFBEB', icon: 'alert-circle' },
+  rejected: { label: 'Not Verified', color: Colors.emergency, bg: '#FEF2F2', icon: 'close-circle' },
+  pending: { label: 'Pledge Active', color: Colors.warning, bg: '#FFFBEB', icon: 'heart-circle' },
   missed: { label: 'Missed', color: Colors.emergency, bg: '#FEF2F2', icon: 'alert-circle' },
-  free_participant: { label: 'Active', color: Colors.primary, bg: '#F0FDF4', icon: 'person' },
+  free_participant: { label: 'Pledge Active', color: Colors.primary, bg: '#F0FDF4', icon: 'person' },
   none: { label: 'Start Pledge', color: Colors.primaryDark, bg: '#F0FDF4', icon: 'play-circle' },
+};
+
+const STATUS_MESSAGE: Partial<Record<PledgeStatus, string>> = {
+  paid: 'This month’s contribution has been confirmed. May Allah SWT bless you more and grant you Jannatul Firdaus.',
+  submitted: 'Your payment proof has been sent and is awaiting admin verification. May Allah SWT bless you more and grant you Jannatul Firdaus.',
+  needs_follow_up: 'Your proof needs follow-up before it can be confirmed. Open My Pledge to review the status.',
+  rejected: 'This proof was not verified. Open My Pledge to review the status and submit a new proof when ready.',
+  pending: 'Your voluntary Family Pledge is signed and active. You can send this month’s contribution proof when ready.',
+  missed: 'Your pledge remains here for you. Open My Pledge when you are ready to continue.',
+  free_participant: 'Your voluntary Family Pledge is signed and active. May Allah SWT accept your du’a and support for Gaza.',
 };
 
 export default function PledgeStatusCard({ status, donorNumber, totalDonors, onPress }: PledgeStatusCardProps) {
@@ -47,8 +60,11 @@ export default function PledgeStatusCard({ status, donorNumber, totalDonors, onP
       </View>
 
       <View style={styles.body}>
-        <Text style={styles.thanks}>Your contribution progress is shown as a percentage; admins verify the monthly amount securely.</Text>
-        {status === 'none' && <Text style={styles.startHint}>Tap Start Pledge to review the voluntary pledge agreement and choose how you want to participate.</Text>}
+        {status === 'none' ? (
+          <Text style={styles.statusMessage}>Tap Start Pledge to review the voluntary pledge for helping our brothers and sisters in Gaza.</Text>
+        ) : (
+          <Text style={styles.statusMessage}>{STATUS_MESSAGE[status]}</Text>
+        )}
         {donorNumber && totalDonors && (
           <View style={styles.donorBlock}>
             <View>
@@ -75,8 +91,7 @@ const styles = StyleSheet.create({
   statusPillClickable: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.45)' },
   statusText: { fontSize: 12, fontWeight: '900' },
   body: { padding: 16, backgroundColor: Colors.white },
-  thanks: { fontSize: 12, color: Colors.text.secondary, fontWeight: '700' },
-  startHint: { marginTop: 9, fontSize: 12, lineHeight: 18, color: Colors.primaryDark, fontWeight: '700' },
+  statusMessage: { fontSize: 12, lineHeight: 18, color: Colors.text.secondary, fontWeight: '700' },
   donorBlock: { marginTop: 18, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#EEF2EF', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   donorMuted: { fontSize: 13, color: Colors.text.secondary, fontWeight: '700' },
   donorStrong: { marginTop: 3, fontSize: 18, color: Colors.black, fontWeight: '900' },

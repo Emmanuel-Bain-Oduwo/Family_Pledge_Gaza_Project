@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends
@@ -14,12 +14,11 @@ from app.models.enums import (
     CampaignStatus,
     CampaignType,
     ContributionStatus,
-    PledgeStatus,
+    PledgeType,
     ReminderStatus,
     UserRole,
 )
 from app.models.impact import ImpactCard
-from app.models.pledge import Pledge
 from app.models.reminder import DailyReminder
 from app.models.user import User
 from app.schemas.campaign import CampaignOut
@@ -30,7 +29,7 @@ from app.schemas.pledge import PledgeOut, PledgeStatusOut
 from app.schemas.reminder import ReminderOut
 from app.schemas.user import UserOut
 from app.utils.validators import current_month
-from app.services import notification_service
+from app.services import notification_service, pledge_service
 from app.utils.pagination import offset_limit
 
 router = APIRouter(tags=["Mobile"])
@@ -74,43 +73,27 @@ def mobile_dashboard(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # Pledge status
-    active_pledge = db.scalar(
-        select(Pledge).where(
-            Pledge.user_id == current_user.id,
-            Pledge.status == PledgeStatus.active,
-        )
-    )
+    pledge_data = pledge_service.get_pledge_status(db, current_user.id)
+    active_pledge = pledge_data["pledge"]
+    current_month_status = pledge_data["current_month_status"]
+
+    if active_pledge is None:
+        pledge_status_str = "none"
+    elif active_pledge.pledge_type == PledgeType.free_participant:
+        pledge_status_str = "free_participant"
+    elif current_month_status == ContributionStatus.confirmed:
+        pledge_status_str = "paid"
+    elif current_month_status == ContributionStatus.submitted:
+        pledge_status_str = "submitted"
+    elif current_month_status == ContributionStatus.needs_follow_up:
+        pledge_status_str = "needs_follow_up"
+    elif current_month_status == ContributionStatus.rejected:
+        pledge_status_str = "rejected"
+    else:
+        # The pledge itself is signed and active; this month's proof has not been sent yet.
+        pledge_status_str = "pending"
 
     month = current_month()
-    confirmed_count = db.scalar(
-        select(func.count(Contribution.id)).where(
-            Contribution.user_id == current_user.id,
-            Contribution.status == ContributionStatus.confirmed,
-        )
-    ) or 0
-
-    this_month_contrib = db.scalar(
-        select(Contribution).where(
-            Contribution.user_id == current_user.id,
-            Contribution.contribution_month == month,
-            Contribution.status.in_(
-                [ContributionStatus.submitted, ContributionStatus.confirmed]
-            ),
-        )
-    )
-
-    has_active_pledge = active_pledge is not None
-    current_month_contributed = this_month_contrib is not None
-
-    if has_active_pledge and current_month_contributed:
-        pledge_status_str = "paid"
-    elif has_active_pledge and not current_month_contributed:
-        pledge_status_str = "pending"
-    elif not has_active_pledge:
-        pledge_status_str = "none"
-    else:
-        pledge_status_str = "none"
 
     # Donor number (row rank by created_at)
     donor_number = db.scalar(
@@ -156,12 +139,14 @@ def mobile_dashboard(
         ).order_by(DailyReminder.created_at.desc())
     )
 
-    # Latest impact card
+    # Never surface an unpublished impact draft on the donor dashboard.
     impact_db = db.scalar(
-        select(ImpactCard).order_by(ImpactCard.created_at.desc())
+        select(ImpactCard)
+        .where(ImpactCard.published.is_(True))
+        .order_by(ImpactCard.created_at.desc())
     )
 
-    # Monthly progress — total active donors who contributed this month
+    # Monthly progress — total donors who have submitted or confirmed this month.
     current_contributors = db.scalar(
         select(func.count(func.distinct(Contribution.user_id))).where(
             Contribution.contribution_month == month,
@@ -188,10 +173,11 @@ def mobile_dashboard(
     user_dict["badges"] = []
 
     pledge_summary = PledgeStatusOut(
-        has_active_pledge=has_active_pledge,
+        has_active_pledge=pledge_data["has_active_pledge"],
         pledge=PledgeOut.model_validate(active_pledge) if active_pledge else None,
-        confirmed_contributions_count=confirmed_count,
-        current_month_contributed=current_month_contributed,
+        confirmed_contributions_count=pledge_data["confirmed_contributions_count"],
+        current_month_contributed=pledge_data["current_month_contributed"],
+        current_month_status=current_month_status,
     )
 
     return MobileDashboardOut(

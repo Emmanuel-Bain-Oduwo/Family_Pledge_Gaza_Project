@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
 import PledgeStatusCard from '../../components/PledgeStatusCard';
@@ -53,9 +54,9 @@ export default function HomeScreen() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
-  const onRefresh = () => { setRefreshing(true); load(); };
-  const retry = () => { setLoading(true); load(); };
+  useFocusEffect(useCallback(() => { void load(); }, [load]));
+  const onRefresh = () => { setRefreshing(true); void load(); };
+  const retry = () => { setLoading(true); void load(); };
 
   const dismissNotificationIntro = async () => {
     try {
