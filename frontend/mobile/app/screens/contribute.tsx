@@ -163,12 +163,6 @@ export default function ContributeScreen() {
             <Ionicons name="document-text-outline" size={21} color={Colors.primaryDark} />
             <Text style={styles.cardTitleInline}>Review & sign your pledge</Text>
           </View>
-          <Text style={styles.agreementText}>I understand that Family Pledge is a charitable initiative operated under NAMLEF. My pledge is voluntary, donations are received by NAMLEF, and signing does not unlock paid or premium app features. Contribution proofs are reviewed securely and sensitive proof data is retained for up to 30 days.</Text>
-          <Text style={styles.agreementText}>I can update, pause or cancel my pledge later. I agree that Family Pledge may use my pledge status for contribution tracking and consent-based reminders.</Text>
-          <View style={styles.policyLinks}>
-            <TouchableOpacity onPress={() => router.push('/terms')}><Text style={styles.policyLink}>Terms of Service</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push('/privacy')}><Text style={styles.policyLink}>Privacy & Data Usage</Text></TouchableOpacity>
-          </View>
           <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{ checked: acceptedAgreement }} onPress={() => setAcceptedAgreement((value) => !value)} style={[styles.agreementCheck, acceptedAgreement && styles.agreementCheckActive]}>
             <Ionicons name={acceptedAgreement ? 'checkbox' : 'square-outline'} size={24} color={acceptedAgreement ? Colors.primary : Colors.gray[500]} />
             <Text style={styles.agreementCheckText}>{isFreePledge
@@ -281,10 +275,7 @@ const styles = StyleSheet.create({
   amountHelperActive: { color: Colors.primaryDark },
   openInput: { marginTop: 12 },
   agreementHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-  agreementText: { fontSize: 12.5, lineHeight: 19, color: Colors.text.secondary, marginBottom: 8 },
-  policyLinks: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginVertical: 6 },
-  policyLink: { fontSize: 12, fontWeight: '800', color: Colors.primary, textDecorationLine: 'underline' },
-  agreementCheck: { marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderColor: Colors.border.light, borderRadius: 14, padding: 12, backgroundColor: Colors.gray[50] },
+  agreementCheck: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderColor: Colors.border.light, borderRadius: 14, padding: 12, backgroundColor: Colors.gray[50] },
   agreementCheckActive: { borderColor: Colors.primary, backgroundColor: '#F0FDF4' },
   agreementCheckText: { flex: 1, fontSize: 13, lineHeight: 18, fontWeight: '800', color: Colors.text.primary },
   methodGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
