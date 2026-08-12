@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../constants/colors';
 import AppButton from '../../components/AppButton';
 import AppCard from '../../components/AppCard';
@@ -9,21 +10,44 @@ import LoadingState from '../../components/LoadingState';
 import { getPledgeStatus } from '../../services/api';
 import { PledgeStatusOut } from '../../types';
 
+function monthStatusLabel(data: PledgeStatusOut | null): string {
+  if (data?.pledge?.pledge_type === 'free_participant') return 'No payment proof required';
+  switch (data?.current_month_status) {
+    case 'confirmed': return 'Confirmed';
+    case 'submitted': return 'Proof sent — awaiting verification';
+    case 'needs_follow_up': return 'Follow-up needed';
+    case 'rejected': return 'Not verified';
+    default: return 'Not submitted yet';
+  }
+}
+
 export default function MyPledgeScreen() {
   const [data, setData] = useState<PledgeStatusOut | null>(null);
   const [loading, setLoading] = useState(true);
-  useEffect(() => { getPledgeStatus().then(setData).catch((e) => Alert.alert('Could not load pledge', e.message || 'Please try again.')).finally(() => setLoading(false)); }, []);
+
+  const load = useCallback(async () => {
+    try {
+      setData(await getPledgeStatus());
+    } catch (e: any) {
+      Alert.alert('Could not load pledge', e.message || 'Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(useCallback(() => { void load(); }, [load]));
   if (loading) return <LoadingState fullScreen message="Loading your pledge..." />;
+
   const pledge = data?.pledge;
   return <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-    <View style={styles.hero}><Ionicons name="heart" size={32} color={Colors.goldLight} /><Text style={styles.title}>My Family Pledge</Text><Text style={styles.subtitle}>{data?.has_active_pledge ? 'Your voluntary pledge is active.' : 'Review the pledge agreement, then choose a monthly pledge or join as a free participant.'}</Text></View>
+    <View style={styles.hero}><Ionicons name="heart" size={32} color={Colors.goldLight} /><Text style={styles.title}>My Family Pledge</Text><Text style={styles.subtitle}>{data?.has_active_pledge ? 'Your voluntary pledge for helping our brothers and sisters in Gaza is signed and active.' : 'Review the voluntary pledge for helping our brothers and sisters in Gaza, then choose how you want to participate.'}</Text></View>
     {pledge ? <AppCard style={styles.card}>
-      <Row label="Status" value={pledge.status} />
+      <Row label="Pledge status" value={pledge.status === 'active' ? 'Signed & active' : pledge.status} />
       <Row label="Pledge" value={pledge.pledge_type === 'free_participant' ? 'Free participant' : `${pledge.currency} ${Number(pledge.amount).toLocaleString()} monthly`} />
       <Row label="Started" value={pledge.start_date ? new Date(pledge.start_date).toLocaleDateString() : '—'} />
-      <Row label="Agreement" value={pledge.agreement_accepted_at ? `Signed ${new Date(pledge.agreement_accepted_at).toLocaleDateString()}` : 'Legacy pledge'} />
+      <Row label="Agreement" value={pledge.agreement_accepted_at ? `Signed ${new Date(pledge.agreement_accepted_at).toLocaleDateString()}` : 'Agreement pending'} />
       <Row label="Confirmed contributions" value={data?.confirmed_contributions_count ?? 0} />
-      <Row label="This month" value={data?.current_month_contributed ? 'Submitted / confirmed' : 'Not submitted yet'} last />
+      <Row label="This month" value={monthStatusLabel(data)} last />
     </AppCard> : <AppCard style={styles.card}><Text style={styles.empty}>You have not signed a Family Pledge yet.</Text></AppCard>}
     <AppButton title={pledge ? 'Contribute / Update My Pledge' : 'Review & Sign My Pledge'} onPress={() => router.push('/screens/contribute')} />
   </ScrollView>;
