@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,34 +12,81 @@ import {
   Platform,
 } from 'react-native';
 import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
 import AppCard from '../../components/AppCard';
 import AppButton from '../../components/AppButton';
 import LoadingState from '../../components/LoadingState';
 import ErrorState from '../../components/ErrorState';
-import { getMe, updateAnonymousPreference } from '../../services/api';
+import { getMe, getPledgeStatus, updateAnonymousPreference } from '../../services/api';
 import { getUser, saveUser, logout } from '../../services/auth';
-import { User } from '../../types';
+import { PledgeStatusOut, User } from '../../types';
 import { MOCK_USER } from '../../constants/mockData';
 import { FamilyPledgeLinks } from '../../constants/links';
 
-const STATUS_COLOR: Record<string, string> = { paid: Colors.success, pending: Colors.warning, missed: Colors.emergency, free_participant: Colors.primary, none: Colors.gray[400] };
-const STATUS_LABEL: Record<string, string> = { paid: 'Paid ✓', pending: 'Pending', missed: 'Missed', free_participant: 'Free Participant', none: 'No Pledge' };
+type ProfilePledgeState = 'none' | 'signed' | 'proof_submitted' | 'confirmed' | 'needs_follow_up' | 'rejected' | 'free_participant';
+
+const STATUS_COLOR: Record<ProfilePledgeState, string> = {
+  confirmed: Colors.success,
+  proof_submitted: Colors.warning,
+  needs_follow_up: Colors.warning,
+  rejected: Colors.emergency,
+  signed: Colors.primary,
+  free_participant: Colors.primary,
+  none: Colors.gray[400],
+};
+
+const STATUS_LABEL: Record<ProfilePledgeState, string> = {
+  confirmed: 'Confirmed ✓',
+  proof_submitted: 'Proof Submitted',
+  needs_follow_up: 'Needs Follow-up',
+  rejected: 'Proof Rejected',
+  signed: 'Pledge Signed ✓',
+  free_participant: 'Pledge Signed ✓',
+  none: 'No Pledge',
+};
+
+function deriveProfilePledgeState(status: PledgeStatusOut): ProfilePledgeState {
+  if (!status.has_active_pledge || !status.pledge) return 'none';
+  if (status.pledge.pledge_type === 'free_participant') return 'free_participant';
+  switch (status.current_month_status) {
+    case 'confirmed': return 'confirmed';
+    case 'submitted': return 'proof_submitted';
+    case 'needs_follow_up': return 'needs_follow_up';
+    case 'rejected': return 'rejected';
+    default: return 'signed';
+  }
+}
 
 export default function ProfileScreen() {
   const [user, setUser] = useState<User | null>(null);
+  const [pledgeState, setPledgeState] = useState<ProfilePledgeState>('none');
   const [loading, setLoading] = useState(true);
   const [updatingAnon, setUpdatingAnon] = useState(false);
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     setError('');
-    try { const me = await getMe(); setUser(me); await saveUser(me); }
-    catch { const stored = await getUser(); if (stored) setUser(stored); else if (__DEV__) setUser(MOCK_USER); else { setUser(null); setError('We could not load your profile. Check your connection and try again.'); } }
-    finally { setLoading(false); }
+    try {
+      const [me, pledgeStatus] = await Promise.all([getMe(), getPledgeStatus()]);
+      setUser(me);
+      setPledgeState(deriveProfilePledgeState(pledgeStatus));
+      await saveUser(me);
+    } catch {
+      const stored = await getUser();
+      if (stored) setUser(stored);
+      else if (__DEV__) setUser(MOCK_USER);
+      else {
+        setUser(null);
+        setError('We could not load your profile. Check your connection and try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
   }, []);
-  useEffect(() => { void load(); }, [load]);
+
+  useFocusEffect(useCallback(() => { void load(); }, [load]));
 
   const toggleAnonymous = async (val: boolean) => {
     if (!user) return;
@@ -61,7 +108,6 @@ export default function ProfileScreen() {
   if (!user) return <ErrorState title="Could not load your profile" message={error} onRetry={() => { setLoading(true); void load(); }} />;
 
   const initial = (user.nickname || user.full_name || 'D').charAt(0).toUpperCase();
-  const pledgeStatus = user.pledge_status || 'none';
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -73,7 +119,7 @@ export default function ProfileScreen() {
       </View>
 
       <AppCard style={styles.card}>
-        <View style={styles.cardRow}><View style={styles.cardLabel}><Ionicons name="heart" size={18} color={Colors.primary} /><Text style={styles.cardLabelText}>Pledge Status</Text></View><View style={[styles.statusBadge,{backgroundColor:STATUS_COLOR[pledgeStatus]+'20'}]}><Text style={[styles.statusText,{color:STATUS_COLOR[pledgeStatus]}]}>{STATUS_LABEL[pledgeStatus]}</Text></View></View>
+        <View style={styles.cardRow}><View style={styles.cardLabel}><Ionicons name="heart" size={18} color={Colors.primary} /><Text style={styles.cardLabelText}>Pledge Status</Text></View><View style={[styles.statusBadge,{backgroundColor:STATUS_COLOR[pledgeState]+'20'}]}><Text style={[styles.statusText,{color:STATUS_COLOR[pledgeState]}]}>{STATUS_LABEL[pledgeState]}</Text></View></View>
         <View style={styles.quickActions}><QuickAction icon="leaf-outline" label="Journey" onPress={()=>router.push('/screens/impact-journey')}/><QuickAction icon="flag-outline" label="Goals" onPress={()=>router.push('/screens/goals')}/><QuickAction icon="people-outline" label="Community" onPress={()=>router.push('/screens/community')}/></View>
         <AppButton title="Contribute Now" onPress={()=>router.push('/screens/contribute')} style={{marginTop:14}} icon={<Ionicons name="cash-outline" size={16} color={Colors.white}/>}/>
       </AppCard>
