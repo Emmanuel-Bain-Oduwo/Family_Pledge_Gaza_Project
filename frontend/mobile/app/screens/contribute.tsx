@@ -80,7 +80,7 @@ export default function ContributeScreen() {
 
   const handleSubmit = async () => {
     if (!acceptedAgreement) {
-      Alert.alert('Pledge Agreement Required', 'Please review and accept the voluntary Family Pledge agreement before signing.');
+      Alert.alert('Pledge Agreement Required', 'Please review and accept the voluntary Family Pledge before signing.');
       return;
     }
     if (!isFreePledge && (!amount || amount < 1)) {
@@ -94,8 +94,8 @@ export default function ContributeScreen() {
 
     setLoading(true);
     try {
-      // Persist the pledge first for both free and paid participants. The contribution
-      // is then linked to the signed pledge so admin tracking/follow-up is reliable.
+      // Persist the signed pledge first. A paid participant's proof is then linked
+      // to that exact pledge so the donor and admin always see the same record.
       const pledge = await createPledge({
         pledge_type: isFreePledge ? 'free_participant' : 'monthly',
         amount: isFreePledge ? 0 : amount,
@@ -118,11 +118,11 @@ export default function ContributeScreen() {
       }
 
       Alert.alert(
-        isFreePledge ? 'Pledge Signed 🌙' : 'Pledge & Contribution Submitted 🌙',
+        isFreePledge ? 'Pledge Signed 🌙' : 'Proof Sent 🌙',
         isFreePledge
-          ? 'Your voluntary Family Pledge is active. JazakAllahu khayran for taking part.'
-          : 'Your pledge is active and your contribution is awaiting admin verification. JazakAllahu khayran for supporting the humanitarian effort.',
-        [{ text: 'Done', onPress: () => { setReference(''); setProof(null); setOpenAmount(''); setAcceptedAgreement(false); router.replace('/tabs/home'); } }]
+          ? 'Your voluntary Family Pledge is signed and active. May Allah SWT accept your du’a and grant our brothers and sisters in Gaza relief and Jannatul Firdaus.'
+          : 'Your pledge is signed and your payment proof has been sent for admin verification. May Allah SWT bless you more and grant you Jannatul Firdaus.',
+        [{ text: 'View My Pledge', onPress: () => { setReference(''); setProof(null); setOpenAmount(''); setAcceptedAgreement(false); router.replace('/screens/my-pledge'); } }]
       );
     } catch (err: any) {
       Alert.alert('Submission Failed', err.message || 'Please try again.');
@@ -137,7 +137,7 @@ export default function ContributeScreen() {
         <View style={styles.hero}>
           <View style={styles.heroIcon}><Ionicons name="heart" size={30} color={Colors.white} /></View>
           <Text style={styles.heroTitle}>Your Family Pledge</Text>
-          <Text style={styles.heroSub}>Join freely or choose a monthly amount for Palestine family support. Your pledge is voluntary and can be paused or changed later.</Text>
+          <Text style={styles.heroSub}>Join freely or choose a monthly amount to help our brothers and sisters in Gaza. Your pledge is voluntary and can be paused or changed later.</Text>
         </View>
 
         <AppCard style={styles.card}>
@@ -171,7 +171,9 @@ export default function ContributeScreen() {
           </View>
           <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{ checked: acceptedAgreement }} onPress={() => setAcceptedAgreement((value) => !value)} style={[styles.agreementCheck, acceptedAgreement && styles.agreementCheckActive]}>
             <Ionicons name={acceptedAgreement ? 'checkbox' : 'square-outline'} size={24} color={acceptedAgreement ? Colors.primary : Colors.gray[500]} />
-            <Text style={styles.agreementCheckText}>I have read this and I agree to sign the Family Pledge.</Text>
+            <Text style={styles.agreementCheckText}>{isFreePledge
+              ? 'I agree to keep making du’a for my brothers and sisters in Gaza and to support this humanitarian effort. May Allah SWT grant them relief and Jannatul Firdaus.'
+              : 'I agree to contribute every month to help my brothers and sisters in Gaza, and I will keep on making du’a for them. May Allah SWT grant all of them relief and Jannatul Firdaus.'}</Text>
           </TouchableOpacity>
         </AppCard>
 
@@ -201,7 +203,7 @@ export default function ContributeScreen() {
 
         <AppCard style={styles.card}>
           <Text style={styles.cardTitle}>{isFreePledge ? 'Finish free pledge' : 'Submit payment proof'}</Text>
-          <Text style={styles.cardDesc}>{isFreePledge ? 'No payment is required. You can separately choose the reminders and awareness content you want to receive.' : 'Upload a screenshot or paste the transaction message/reference. Either one is enough for admin review. Sensitive proof data is retained for 30 days.'}</Text>
+          <Text style={styles.cardDesc}>{isFreePledge ? 'No payment is required. You can separately choose the reminders and awareness content you want to receive.' : 'Upload a screenshot or paste the transaction message/reference. Either one is enough for admin review. Once sent, your pledge page will show that the proof is awaiting verification. Sensitive proof data is retained for 30 days.'}</Text>
 
           {!isFreePledge && (
             <>
