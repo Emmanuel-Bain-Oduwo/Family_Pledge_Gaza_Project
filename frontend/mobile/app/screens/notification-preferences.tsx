@@ -66,7 +66,7 @@ export default function NotificationPreferencesScreen() {
         if(!deliveryNote) deliveryNote=' Your choices are saved. Local device reminders could not be scheduled yet.';
       }
 
-      Alert.alert('Notification saved',`Jazak Kheiyran.${deliveryNote}`);
+      Alert.alert('Notification preferences saved',`JazakaAllah Kheiyran.${deliveryNote}`);
     }catch(error:any){Alert.alert('Could not save',error?.message||'Please try again.');}
     finally{setSaving(false);}
   };
