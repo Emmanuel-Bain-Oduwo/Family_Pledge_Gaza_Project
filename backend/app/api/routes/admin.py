@@ -83,6 +83,13 @@ def dashboard(
         )
     ) or 0.0
 
+    total_raised_tracked = db.scalar(
+        select(func.coalesce(func.sum(Contribution.amount), 0)).where(
+            Contribution.status == ContributionStatus.confirmed,
+            Contribution.currency == "USD",
+        )
+    ) or 0.0
+
     collectors_count = db.scalar(select(func.count(Collector.id))) or 0
 
     recent_logs = db.scalars(
@@ -113,7 +120,7 @@ def dashboard(
         pending_contributions=pending_contributions,
         active_campaigns=active_campaigns,
         total_campaign_raised=float(total_campaign_raised),
-        total_raised_tracked=float(total_campaign_raised),
+        total_raised_tracked=float(total_raised_tracked),
         collectors_count=collectors_count,
         latest_activity=latest_activity,
         recent_activity=latest_activity,
