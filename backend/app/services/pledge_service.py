@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 from fastapi import HTTPException
@@ -13,7 +13,20 @@ from app.models.user import User
 from app.schemas.pledge import PledgeCreate, PledgeUpdate
 from app.utils.validators import current_month
 
-PLEDGE_AGREEMENT_VERSION = "2026-08-v1"
+PLEDGE_AGREEMENT_VERSION = "2026-08-v2"
+
+
+def _resolve_current_month_status(statuses: List[ContributionStatus]) -> Optional[ContributionStatus]:
+    """Return the most meaningful donor-facing state for the current month."""
+    for status in (
+        ContributionStatus.confirmed,
+        ContributionStatus.submitted,
+        ContributionStatus.needs_follow_up,
+        ContributionStatus.rejected,
+    ):
+        if status in statuses:
+            return status
+    return None
 
 
 def create_pledge(db: Session, user: User, data: PledgeCreate) -> Pledge:
@@ -95,19 +108,21 @@ def get_pledge_status(db: Session, user_id: UUID) -> dict:
     ) or 0
 
     month = current_month()
-    this_month = db.scalar(
-        select(Contribution).where(
-            Contribution.user_id == user_id,
-            Contribution.contribution_month == month,
-            Contribution.status.in_(
-                [ContributionStatus.submitted, ContributionStatus.confirmed]
-            ),
-        )
+    statuses = list(
+        db.scalars(
+            select(Contribution.status).where(
+                Contribution.user_id == user_id,
+                Contribution.contribution_month == month,
+            )
+        ).all()
     )
+    current_month_status = _resolve_current_month_status(statuses)
 
     return {
         "has_active_pledge": pledge is not None,
         "pledge": pledge,
         "confirmed_contributions_count": confirmed_count,
-        "current_month_contributed": this_month is not None,
+        "current_month_contributed": current_month_status
+        in (ContributionStatus.submitted, ContributionStatus.confirmed),
+        "current_month_status": current_month_status,
     }
