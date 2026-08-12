@@ -14,6 +14,9 @@ export interface User {
   pledge_status?: PledgeStatus;
   donor_number?: number;
   badges?: Badge[];
+  weekly_email_opt_in?: boolean;
+  email_reminders_opt_in?: boolean;
+  whatsapp_reminders_opt_in?: boolean;
   notification_daily?: boolean;
   notification_friday?: boolean;
   notification_campaigns?: boolean;
@@ -182,87 +185,8 @@ export interface Badge {
   id: string;
   name: string;
   description: string;
-  icon: string;
-  tier: 'bronze' | 'silver' | 'gold' | 'platinum';
+  icon_url?: string;
   earned_at?: string;
-}
-
-export interface EngagementGoal {
-  id: string;
-  goal_type: string;
-  title: string;
-  target_count: number;
-  current_count: number;
-  cadence: string;
-  status: 'active' | 'completed' | 'archived';
-  starts_on: string;
-  ends_on?: string;
-  created_at: string;
-}
-
-export interface ImpactJourney {
-  current_consistency_months: number;
-  longest_consistency_months: number;
-  confirmed_contributions: number;
-  pledge_since?: string | null;
-  campaigns_supported: number;
-  impact_updates_viewed: number;
-  campaigns_shared: number;
-  circles_joined: number;
-}
-
-export interface Achievement {
-  key: string;
-  name: string;
-  description: string;
-  icon: string;
-  earned: boolean;
-  progress: number;
-  target: number;
-}
-
-export interface PledgeCircleStats {
-  member_count: number;
-  active_members: number;
-  participation_rate: number;
-  confirmed_actions_this_month: number;
-  consistency_score: number;
-}
-
-export interface PledgeCircleMember {
-  user_id: string;
-  display_name: string;
-  role: string;
-  joined_at: string;
-}
-
-export interface PledgeCircle {
-  id: string;
-  name: string;
-  description?: string;
-  invite_code: string;
-  owner_user_id: string;
-  is_owner: boolean;
-  share_url: string;
-  stats: PledgeCircleStats;
-  members?: PledgeCircleMember[];
-}
-
-export interface CollectorDashboard {
-  collector_code: string;
-  total_registered: number;
-  contributed_this_month: number;
-  pending_this_month: number;
-  circle_members: CircleMember[];
-  invite_link?: string;
-  member_count?: number;
-}
-
-export interface CircleMember {
-  id: string;
-  display_name: string;
-  pledge_status: PledgeStatus;
-  joined_at: string;
 }
 
 export interface Dashboard {
@@ -278,20 +202,19 @@ export interface Dashboard {
   pledge_summary?: PledgeStatusOut;
 }
 
-export interface AuthTokens {
-  access_token: string;
-  refresh_token?: string;
-  token_type: string;
+export interface CollectorDashboard {
+  collector: { code: string; donor_count: number; total_contributions: number };
+  members: User[];
 }
 
 export interface RegisterPayload {
   full_name: string;
-  nickname?: string;
   phone: string;
   email?: string;
+  password: string;
   country: string;
   city?: string;
-  password: string;
+  nickname?: string;
   referral_code?: string;
 }
 
@@ -301,25 +224,24 @@ export interface LoginPayload {
 }
 
 export interface ContributionPayload {
-  campaign_id?: string;
   pledge_id?: string;
+  campaign_id?: string;
   amount?: number;
-  currency: string;
-  reference?: string;
-  proof_url?: string;
-  payment_method?: string;
-  transaction_reference?: string;
-  proof_image_url?: string;
-  proof_object_key?: string;
+  currency?: string;
   contribution_channel?: string;
-  contribution_month?: string;
+  payment_method?: string;
   payment_link_used?: string;
+  transaction_reference?: string;
+  reference?: string;
+  proof_object_key?: string;
+  proof_image_url?: string;
+  proof_url?: string;
+  contribution_month?: string;
 }
 
-export interface ApiResponse<T> {
-  data: T;
-  message?: string;
-  success: boolean;
+export interface AuthTokens {
+  access_token: string;
+  token_type: string;
 }
 
 export interface PaginatedResponse<T> {
@@ -328,4 +250,42 @@ export interface PaginatedResponse<T> {
   page: number;
   size: number;
   pages: number;
+}
+
+export interface EngagementGoal {
+  id: string;
+  goal_type: string;
+  title: string;
+  target_count: number;
+  current_count: number;
+  cadence: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ImpactJourney {
+  active_pledge: boolean;
+  confirmed_contributions: number;
+  support_messages: number;
+  goals_completed: number;
+  circles_joined: number;
+}
+
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  achieved: boolean;
+  achieved_at?: string;
+}
+
+export interface PledgeCircle {
+  id: string;
+  name: string;
+  description?: string;
+  code: string;
+  owner_user_id: string;
+  member_count: number;
+  created_at: string;
 }
