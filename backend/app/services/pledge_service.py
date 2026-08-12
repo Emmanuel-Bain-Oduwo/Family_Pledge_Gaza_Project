@@ -3,7 +3,7 @@ from typing import List, Optional
 from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from app.models.contribution import Contribution
@@ -108,15 +108,24 @@ def get_pledge_status(db: Session, user_id: UUID) -> dict:
     ) or 0
 
     month = current_month()
-    statuses = list(
-        db.scalars(
-            select(Contribution.status).where(
-                Contribution.user_id == user_id,
-                Contribution.contribution_month == month,
-            )
-        ).all()
+    # Pick one donor-facing state in priority order without loading every row.
+    # confirmed > submitted > needs_follow_up > rejected
+    status_priority = case(
+        (Contribution.status == ContributionStatus.confirmed, 1),
+        (Contribution.status == ContributionStatus.submitted, 2),
+        (Contribution.status == ContributionStatus.needs_follow_up, 3),
+        (Contribution.status == ContributionStatus.rejected, 4),
+        else_=5,
     )
-    current_month_status = _resolve_current_month_status(statuses)
+    current_month_status = db.scalar(
+        select(Contribution.status)
+        .where(
+            Contribution.user_id == user_id,
+            Contribution.contribution_month == month,
+        )
+        .order_by(status_priority)
+        .limit(1)
+    )
 
     return {
         "has_active_pledge": pledge is not None,
