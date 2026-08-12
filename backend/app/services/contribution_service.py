@@ -67,6 +67,32 @@ def _validate_pledge_ownership(db: Session, user: User, pledge_id: Optional[UUID
         raise HTTPException(403, "This pledge belongs to another user")
 
 
+def _sync_campaign_totals(db: Session, campaign_id: Optional[UUID]) -> None:
+    """Make campaign totals a projection of the confirmed contribution ledger.
+
+    Recalculating avoids double-counting when an admin moves a contribution from
+    confirmed to follow-up/rejected and later confirms it again.
+    """
+    if not campaign_id:
+        return
+    db.flush()
+    campaign = db.scalar(select(Campaign).where(Campaign.id == campaign_id))
+    if not campaign:
+        return
+    total, count = db.execute(
+        select(
+            func.coalesce(func.sum(Contribution.amount), 0),
+            func.count(Contribution.id),
+        ).where(
+            Contribution.campaign_id == campaign_id,
+            Contribution.status == ContributionStatus.confirmed,
+        )
+    ).one()
+    campaign.raised_amount = total or 0
+    campaign.donor_count = int(count or 0)
+    db.add(campaign)
+
+
 def submit(db: Session, user: User, data: ContributionSubmit) -> Contribution:
     _validate_pledge_ownership(db, user, data.pledge_id)
 
@@ -186,17 +212,7 @@ def confirm(db: Session, admin: User, contribution_id: UUID) -> Contribution:
     c.confirmed_by = admin.id
     c.confirmed_at = datetime.now(timezone.utc)
 
-    if c.campaign_id and c.amount:
-        campaign = db.scalar(select(Campaign).where(Campaign.id == c.campaign_id))
-        if campaign:
-            if hasattr(campaign, "raised_amount"):
-                campaign.raised_amount = (campaign.raised_amount or 0) + c.amount
-                campaign.donor_count = (campaign.donor_count or 0) + 1
-            elif hasattr(campaign, "current_amount"):
-                campaign.current_amount = (campaign.current_amount or 0) + c.amount
-                campaign.total_contributions = (campaign.total_contributions or 0) + 1
-            db.add(campaign)
-
+    _sync_campaign_totals(db, c.campaign_id)
     _audit(db, admin, "confirm", str(c.id), _audit_meta(c, prev_status))
     db.commit()
     db.refresh(c)
@@ -215,9 +231,12 @@ def reject(
 
     prev_status = c.status.value
     c.status = ContributionStatus.rejected
+    c.confirmed_by = None
+    c.confirmed_at = None
     if admin_note:
         c.admin_note = admin_note
 
+    _sync_campaign_totals(db, c.campaign_id)
     _audit(db, admin, "reject", str(c.id), _audit_meta(c, prev_status, admin_note))
     db.commit()
     db.refresh(c)
@@ -236,9 +255,12 @@ def needs_follow_up(
 
     prev_status = c.status.value
     c.status = ContributionStatus.needs_follow_up
+    c.confirmed_by = None
+    c.confirmed_at = None
     if admin_note:
         c.admin_note = admin_note
 
+    _sync_campaign_totals(db, c.campaign_id)
     _audit(db, admin, "needs_follow_up", str(c.id), _audit_meta(c, prev_status, admin_note))
     db.commit()
     db.refresh(c)
