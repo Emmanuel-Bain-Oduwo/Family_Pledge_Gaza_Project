@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, PanelsTopLeft, Users, UserPlus, CreditCard, Megaphone, FolderOpen,
-  Heart, BookOpen, UserCheck, Tv, Bell, Bot, MessageCircle, ListChecks, Inbox,
+  Heart, BookOpen, Tv, Bell, Bot, MessageCircle, ListChecks, Inbox,
   Settings, HardDrive, LogOut, X,
 } from 'lucide-react';
 import { removeToken } from '../lib/auth';
@@ -22,7 +22,6 @@ const NAV = [
   { href: '/projects', icon: FolderOpen, label: 'Projects' },
   { href: '/impact', icon: Heart, label: 'Impact' },
   { href: '/reminders', icon: BookOpen, label: 'Reminders' },
-  { href: '/collectors', icon: UserCheck, label: 'Collectors' },
   { href: '/namlef', icon: Tv, label: 'NAMLEF' },
   { href: '/notifications', icon: Bell, label: 'Notifications' },
   { href: '/ai-assistant', icon: Bot, label: 'AI Draft Workspace' },
