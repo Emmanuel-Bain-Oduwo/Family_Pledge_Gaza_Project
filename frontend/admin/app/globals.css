@@ -48,6 +48,12 @@
   html, body { max-width: 100%; overflow-x: hidden; }
   button, a, input, select, textarea { min-height: 44px; }
   textarea { resize: vertical; }
+
+  /* Legacy coordination records remain in the backend for data compatibility,
+     but the retired Collector admin surface is not shown in the current UI. */
+  option[value="collectors"],
+  a[href="/collectors"],
+  a[href*="segment=collectors"] { display: none !important; }
 }
 
 @layer components {
