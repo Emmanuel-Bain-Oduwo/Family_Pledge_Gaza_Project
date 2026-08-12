@@ -14,6 +14,9 @@ export interface User {
   pledge_status?: PledgeStatus;
   donor_number?: number;
   badges?: Badge[];
+  weekly_email_opt_in?: boolean;
+  email_reminders_opt_in?: boolean;
+  whatsapp_reminders_opt_in?: boolean;
   notification_daily?: boolean;
   notification_friday?: boolean;
   notification_campaigns?: boolean;

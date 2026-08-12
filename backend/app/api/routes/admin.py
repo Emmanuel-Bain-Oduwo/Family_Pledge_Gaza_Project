@@ -83,10 +83,13 @@ def dashboard(
         )
     ) or 0.0
 
+    # Contribution currency is normalized on new writes, but the production
+    # ledger can contain older lower-case or padded values. Keep the dashboard
+    # projection tolerant so every confirmed USD contribution is reflected.
     total_raised_tracked = db.scalar(
         select(func.coalesce(func.sum(Contribution.amount), 0)).where(
             Contribution.status == ContributionStatus.confirmed,
-            Contribution.currency == "USD",
+            func.upper(func.trim(Contribution.currency)) == "USD",
         )
     ) or 0.0
 

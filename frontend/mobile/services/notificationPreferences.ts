@@ -1,4 +1,4 @@
-import api, { getMe } from './api';
+import api from './api';
 import { NotificationPreferences, User } from '../types';
 
 export function preferencesFromUser(user: User): NotificationPreferences {
@@ -22,8 +22,20 @@ export function preferencesFromUser(user: User): NotificationPreferences {
   };
 }
 
+async function getFreshUser(): Promise<User> {
+  const { data } = await api.get<User>('/users/me', {
+    params: { notification_preferences_refresh: Date.now() },
+    headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+  });
+  return data;
+}
+
 export async function getNotificationPreferences(): Promise<NotificationPreferences> {
-  return preferencesFromUser(await getMe());
+  return preferencesFromUser(await getFreshUser());
+}
+
+export async function getNotificationPreferenceUser(): Promise<User> {
+  return getFreshUser();
 }
 
 export async function updateNotificationPreferences(preferences: NotificationPreferences): Promise<User> {

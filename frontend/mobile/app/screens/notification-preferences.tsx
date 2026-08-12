@@ -5,7 +5,12 @@ import { Colors } from '../../constants/colors';
 import AppButton from '../../components/AppButton';
 import AppCard from '../../components/AppCard';
 import LoadingState from '../../components/LoadingState';
-import { getNotificationPreferences, updateNotificationPreferences } from '../../services/notificationPreferences';
+import {
+  getNotificationPreferenceUser,
+  getNotificationPreferences,
+  preferencesFromUser,
+  updateNotificationPreferences,
+} from '../../services/notificationPreferences';
 import { applyLocalReminderPreferences, registerForPushNotifications } from '../../services/notifications';
 import { getCommunicationUser, updateCommunicationPreferences } from '../../services/communicationPreferences';
 import { saveUser } from '../../services/auth';
@@ -28,13 +33,20 @@ export default function NotificationPreferencesScreen() {
       const cleanPreferences={...preferences,shirk:false,onboarding_seen:true};
       const wantsPush=Object.entries(cleanPreferences).some(([key,value])=>key!=='onboarding_seen'&&value===true);
 
-      // Persist the user's choices first. Missing native push credentials or a denied
-      // device permission must never make the Save button silently lose the choices.
-      const [updated]=await Promise.all([
-        updateNotificationPreferences(cleanPreferences),
-        updateCommunicationPreferences(channels),
-      ]);
-      await saveUser(updated);
+      // Persist both preference groups first, then read the user back from the
+      // server. This makes the switches reflect the committed PostgreSQL state
+      // instead of a stale browser/device copy after refresh.
+      await updateNotificationPreferences(cleanPreferences);
+      await updateCommunicationPreferences(channels);
+      const freshUser=await getNotificationPreferenceUser();
+      const persistedPreferences={...DEFAULTS,...preferencesFromUser(freshUser),shirk:false,onboarding_seen:true};
+      setPreferences(persistedPreferences);
+      setChannels({
+        email_reminders_opt_in:Boolean(freshUser.email_reminders_opt_in),
+        whatsapp_reminders_opt_in:Boolean(freshUser.whatsapp_reminders_opt_in),
+      });
+      setContact({hasEmail:Boolean(freshUser.email),hasPhone:Boolean(freshUser.phone)});
+      await saveUser(freshUser);
 
       let deliveryNote='';
       if(wantsPush){
@@ -50,11 +62,11 @@ export default function NotificationPreferencesScreen() {
         }
       }
 
-      try{await applyLocalReminderPreferences(cleanPreferences);}catch{
+      try{await applyLocalReminderPreferences(persistedPreferences);}catch{
         if(!deliveryNote) deliveryNote=' Your choices are saved. Local device reminders could not be scheduled yet.';
       }
 
-      Alert.alert('Saved',`Your Family Pledge reminder channels and notification categories have been saved.${deliveryNote}`);
+      Alert.alert('Notification saved',`Jazak Kheiyran.${deliveryNote}`);
     }catch(error:any){Alert.alert('Could not save',error?.message||'Please try again.');}
     finally{setSaving(false);}
   };
