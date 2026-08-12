@@ -48,7 +48,7 @@ export interface NotificationPreferences {
   onboarding_seen: boolean;
 }
 
-export type PledgeStatus = 'paid' | 'pending' | 'missed' | 'free_participant' | 'none';
+export type PledgeStatus = 'paid' | 'submitted' | 'needs_follow_up' | 'rejected' | 'pending' | 'missed' | 'free_participant' | 'none';
 
 export interface Pledge {
   id: string;
@@ -73,6 +73,7 @@ export interface PledgeStatusOut {
   pledge: Pledge | null;
   confirmed_contributions_count: number;
   current_month_contributed: boolean;
+  current_month_status?: 'submitted' | 'confirmed' | 'rejected' | 'needs_follow_up' | null;
 }
 
 export interface Campaign {
