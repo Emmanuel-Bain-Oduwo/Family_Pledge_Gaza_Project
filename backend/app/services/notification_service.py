@@ -237,3 +237,60 @@ def list_notifications(db: Session, skip: int = 0, limit: int = 20) -> Tuple[Lis
     total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     items = list(db.scalars(base.order_by(Notification.created_at.desc()).offset(skip).limit(limit)).all())
     return items, total
+
+
+def _audiences_for_user(db: Session, user: User) -> list[NotificationAudience]:
+    """Resolve persistent notification audiences for one signed-in user."""
+    audiences = [NotificationAudience.all_users]
+    if user.role in (UserRole.admin, UserRole.super_admin):
+        audiences.append(NotificationAudience.admins)
+    if user.role == UserRole.collector:
+        audiences.append(NotificationAudience.collectors)
+    if user.role == UserRole.donor:
+        has_confirmed = db.scalar(
+            select(Contribution.id)
+            .where(
+                Contribution.user_id == user.id,
+                Contribution.status == ContributionStatus.confirmed,
+            )
+            .limit(1)
+        ) is not None
+        audiences.append(
+            NotificationAudience.confirmed_donors
+            if has_confirmed
+            else NotificationAudience.pending_donors
+        )
+    return audiences
+
+
+def list_for_user(
+    db: Session,
+    user: User,
+    skip: int = 0,
+    limit: int = 20,
+) -> Tuple[List[Notification], int]:
+    """Return the persistent in-app feed the user actually opted in to receive.
+
+    Push transport and the in-app feed share the same preference check so an
+    admin's immediate reminder is visible even when a device has no push token,
+    while categories the donor disabled stay out of that donor's feed.
+    """
+    audiences = _audiences_for_user(db, user)
+    candidates = list(
+        db.scalars(
+            select(Notification)
+            .where(Notification.audience.in_(audiences))
+            .order_by(Notification.created_at.desc())
+        ).all()
+    )
+    visible = [
+        notification
+        for notification in candidates
+        if _push_preference_allows(
+            user,
+            notification.notification_type,
+            notification.content_category,
+        )
+    ]
+    total = len(visible)
+    return visible[skip:skip + limit], total
