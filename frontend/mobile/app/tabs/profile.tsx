@@ -21,6 +21,7 @@ import LoadingState from '../../components/LoadingState';
 import ErrorState from '../../components/ErrorState';
 import { getMe, getPledgeStatus, updateAnonymousPreference } from '../../services/api';
 import { getUser, saveUser, logout } from '../../services/auth';
+import { resetNotificationsForLogout } from '../../services/notifications';
 import { PledgeStatusOut, User } from '../../types';
 import { MOCK_USER } from '../../constants/mockData';
 import { FamilyPledgeLinks } from '../../constants/links';
@@ -64,6 +65,7 @@ export default function ProfileScreen() {
   const [pledgeState, setPledgeState] = useState<ProfilePledgeState>('none');
   const [loading, setLoading] = useState(true);
   const [updatingAnon, setUpdatingAnon] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
@@ -102,7 +104,41 @@ export default function ProfileScreen() {
     if (!storeUrl) { Alert.alert('Store listing coming soon', 'The Family Pledge store listing will be linked here as soon as the first release is published.'); return; }
     await Linking.openURL(storeUrl);
   };
-  const handleLogout = () => Alert.alert('Sign Out', 'Are you sure you want to sign out?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Sign Out', style: 'destructive', onPress: async () => { await logout(); router.replace('/'); } }]);
+
+  const performLogout = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      // Deactivate this browser/device endpoint while the auth token still
+      // exists. Network cleanup is best-effort; local sign-out always wins.
+      await resetNotificationsForLogout();
+    } catch {
+      // Never trap a user in a session because notification cleanup failed.
+    } finally {
+      await logout();
+      router.replace('/auth/login');
+      setSigningOut(false);
+    }
+  };
+
+  const handleLogout = () => {
+    if (signingOut) return;
+    if (Platform.OS === 'web') {
+      const confirmed = typeof window === 'undefined'
+        ? true
+        : window.confirm('Sign out of Family Pledge?');
+      if (confirmed) void performLogout();
+      return;
+    }
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign Out', style: 'destructive', onPress: () => { void performLogout(); } },
+      ],
+    );
+  };
 
   if (loading) return <LoadingState fullScreen message="Loading profile..." />;
   if (!user) return <ErrorState title="Could not load your profile" message={error} onRetry={() => { setLoading(true); void load(); }} />;
@@ -173,7 +209,7 @@ export default function ProfileScreen() {
       </SettingsSection>
 
       <View style={styles.appInfo}><Text style={styles.appInfoText}>Family Pledge v1.0 · A NAMLEF Initiative</Text><Text style={styles.appInfoText}>Nairobi, Kenya</Text></View>
-      <AppButton title="Sign Out" onPress={handleLogout} variant="outline" style={styles.logoutBtn} textStyle={{color:Colors.emergency}} icon={<Ionicons name="log-out-outline" size={18} color={Colors.emergency}/>}/>
+      <AppButton title={signingOut ? 'Signing Out…' : 'Sign Out'} onPress={handleLogout} loading={signingOut} variant="outline" style={styles.logoutBtn} textStyle={{color:Colors.emergency}} icon={<Ionicons name="log-out-outline" size={18} color={Colors.emergency}/>}/>
       <View style={{height:32}} />
     </ScrollView>
   );
