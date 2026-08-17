@@ -13,6 +13,13 @@ web-build/
 .env.local
 public/firebase-messaging-sw.js
 
+# Native notification/build credentials and local client config. Supply
+# google-services.json to EAS as the GOOGLE_SERVICES_JSON file variable.
+google-services.json
+*service-account*.json
+firebase-admin*.json
+credentials.json
+
 # OS
 .DS_Store
 Thumbs.db

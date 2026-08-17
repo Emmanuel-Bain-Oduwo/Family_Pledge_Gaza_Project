@@ -50,7 +50,11 @@ def me(current_user: User = Depends(get_current_user)):
 
 
 @router.post("/logout", response_model=MessageResponse)
-def logout(current_user: User = Depends(get_current_user)):
+def logout(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    notification_endpoint_service.deactivate_all_endpoints(db, current_user)
     return MessageResponse(message="Logged out successfully")
 
 

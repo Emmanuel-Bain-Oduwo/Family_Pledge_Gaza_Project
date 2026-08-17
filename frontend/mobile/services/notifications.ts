@@ -1,7 +1,10 @@
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { registerNotificationEndpoint } from './notificationEndpointApi';
+import {
+  deactivateRememberedNotificationEndpoints,
+  registerNotificationEndpoint,
+} from './notificationEndpointApi';
 import { NotificationPreferences } from '../types';
 
 const DAILY_KIND = 'family-pledge-daily-reminder';
@@ -149,6 +152,22 @@ export const registerForPushNotifications = async (
   );
   return token;
 };
+
+/**
+ * Stop reminders and deactivate this device/browser endpoint before local auth
+ * is removed. This prevents a signed-out device from continuing to receive a
+ * previous donor's Family Pledge notifications.
+ */
+export async function resetNotificationsForLogout(): Promise<void> {
+  await deactivateRememberedNotificationEndpoints();
+  if (Platform.OS === 'web') return;
+  try {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+    await Notifications.setBadgeCountAsync(0);
+  } catch {
+    // Local cleanup is best effort; it must never trap the user in a session.
+  }
+}
 
 /** Keep already-authorized endpoints current and route notification taps. */
 export function addNotificationLifecycleListeners(onOpen: (screen: string) => void) {

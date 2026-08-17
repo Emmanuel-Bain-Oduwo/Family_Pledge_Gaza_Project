@@ -21,4 +21,13 @@ if [ "${OUTBOUND_WORKER_ENABLED:-false}" = "true" ]; then
   python -m scripts.operations_worker &
 fi
 
-exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT:-8000}"
+# In OVH the backend is not published to the host; Caddy is the only external
+# ingress and reaches this service over the private Docker bridge. Trust the
+# configured proxy addresses so request.client.host reflects the real donor IP
+# used by authentication rate limiting. Local/dev keeps Uvicorn's safe loopback
+# default unless FORWARDED_ALLOW_IPS is explicitly set.
+exec uvicorn app.main:app \
+  --host 0.0.0.0 \
+  --port "${PORT:-8000}" \
+  --proxy-headers \
+  --forwarded-allow-ips "${FORWARDED_ALLOW_IPS:-127.0.0.1}"
