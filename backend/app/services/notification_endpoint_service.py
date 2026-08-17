@@ -75,3 +75,32 @@ def deactivate_endpoint(db: Session, user: User, *, provider: str, token: str) -
         db.add(user)
     db.commit()
     return True
+
+
+def deactivate_all_endpoints(db: Session, user: User) -> int:
+    """Deactivate every push destination owned by the signed-in account.
+
+    Logout uses this as a server-side safety net so endpoints registered by
+    older app versions are also stopped, even if the current client did not
+    remember their token locally.
+    """
+    endpoints = list(
+        db.scalars(
+            select(NotificationEndpoint).where(
+                NotificationEndpoint.user_id == user.id,
+                NotificationEndpoint.is_active.is_(True),
+            )
+        ).all()
+    )
+    now = datetime.now(timezone.utc)
+    for endpoint in endpoints:
+        endpoint.is_active = False
+        endpoint.last_seen_at = now
+        db.add(endpoint)
+
+    if user.push_token:
+        user.push_token = None
+        db.add(user)
+
+    db.commit()
+    return len(endpoints)
