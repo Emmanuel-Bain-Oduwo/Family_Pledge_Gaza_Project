@@ -66,20 +66,32 @@ export async function deactivateNotificationEndpoint(
 
 /**
  * Best-effort remote cleanup while the current auth token still exists.
- * Local state is always cleared so a stale endpoint cannot survive a sign-out
- * on this browser/device even if the network is temporarily unavailable.
+ * The current backend logout endpoint deactivates every endpoint belonging to
+ * the account, including tokens registered by an older app build. If that call
+ * fails, fall back to the endpoints remembered by this device/browser.
  */
 export async function deactivateRememberedNotificationEndpoints(): Promise<void> {
   const endpoints = await readRememberedEndpoints();
-  for (const endpoint of endpoints) {
-    try {
-      await client.post('/auth/notification-endpoints/deactivate', {
-        provider: endpoint.provider,
-        token: endpoint.token,
-      });
-    } catch {
-      // Sign-out must still complete if the API is temporarily unreachable.
+  let serverLogoutCompleted = false;
+  try {
+    await client.post('/auth/logout');
+    serverLogoutCompleted = true;
+  } catch {
+    // Fall through to per-endpoint cleanup below.
+  }
+
+  if (!serverLogoutCompleted) {
+    for (const endpoint of endpoints) {
+      try {
+        await client.post('/auth/notification-endpoints/deactivate', {
+          provider: endpoint.provider,
+          token: endpoint.token,
+        });
+      } catch {
+        // Sign-out must still complete if the API is temporarily unreachable.
+      }
     }
   }
+
   await AsyncStorage.removeItem(ENDPOINT_STORAGE_KEY);
 }
