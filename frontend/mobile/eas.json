@@ -1,13 +1,15 @@
 {
   "cli": {
-    "version": ">= 13.0.0",
-    "appVersionSource": "remote"
+    "version": ">= 16.18.0",
+    "appVersionSource": "remote",
+    "promptToConfigurePushNotifications": true
   },
   "build": {
     "development": {
       "developmentClient": true,
       "distribution": "internal",
       "environment": "development",
+      "credentialsSource": "remote",
       "node": "20.19.4",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.familypledgekenya.org/api/v1"
@@ -16,6 +18,7 @@
     "preview": {
       "distribution": "internal",
       "environment": "preview",
+      "credentialsSource": "remote",
       "node": "20.19.4",
       "android": {
         "buildType": "apk"
@@ -27,6 +30,7 @@
     "production": {
       "distribution": "store",
       "environment": "production",
+      "credentialsSource": "remote",
       "node": "20.19.4",
       "autoIncrement": true,
       "android": {
