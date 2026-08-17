@@ -36,6 +36,10 @@ services:
       DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
       DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-10}
       DB_POOL_TIMEOUT_SECONDS: ${DB_POOL_TIMEOUT_SECONDS:-30}
+      # backend:8000 is private to this Docker network; Caddy is the only
+      # published ingress, so trusting forwarded headers here preserves the real
+      # donor IP for auth rate limiting instead of rate-limiting the Caddy IP.
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-*}
       RUN_MIGRATIONS_ON_STARTUP: ${RUN_MIGRATIONS_ON_STARTUP:-false}
       DEMO_SEED_ON_STARTUP: ${DEMO_SEED_ON_STARTUP:-false}
       SENTRY_DSN: ${SENTRY_DSN:-}
