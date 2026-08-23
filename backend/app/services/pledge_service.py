@@ -7,7 +7,8 @@ from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from app.models.contribution import Contribution
-from app.models.enums import ContributionStatus, PledgeStatus
+from app.models.enums import ContributionStatus, PaymentStatus, PledgeStatus
+from app.models.payment_transaction import PaymentTransaction
 from app.models.pledge import Pledge
 from app.models.user import User
 from app.schemas.pledge import PledgeCreate, PledgeUpdate
@@ -17,7 +18,7 @@ PLEDGE_AGREEMENT_VERSION = "2026-08-v2"
 
 
 def _resolve_current_month_status(statuses: List[ContributionStatus]) -> Optional[ContributionStatus]:
-    """Return the most meaningful donor-facing state for the current month."""
+    """Return the most meaningful legacy contribution state for the current month."""
     for status in (
         ContributionStatus.confirmed,
         ContributionStatus.submitted,
@@ -108,8 +109,6 @@ def get_pledge_status(db: Session, user_id: UUID) -> dict:
     ) or 0
 
     month = current_month()
-    # Pick one donor-facing state in priority order without loading every row.
-    # confirmed > submitted > needs_follow_up > rejected
     status_priority = case(
         (Contribution.status == ContributionStatus.confirmed, 1),
         (Contribution.status == ContributionStatus.submitted, 2),
@@ -127,11 +126,29 @@ def get_pledge_status(db: Session, user_id: UUID) -> dict:
         .limit(1)
     )
 
+    payment_status = db.scalar(
+        select(PaymentTransaction.status)
+        .where(
+            PaymentTransaction.user_id == user_id,
+            PaymentTransaction.contribution_month == month,
+            PaymentTransaction.purpose == "monthly_pledge",
+            PaymentTransaction.status.in_(
+                [
+                    PaymentStatus.created,
+                    PaymentStatus.initiating,
+                    PaymentStatus.pending,
+                ]
+            ),
+        )
+        .order_by(PaymentTransaction.created_at.desc())
+        .limit(1)
+    )
+
     return {
         "has_active_pledge": pledge is not None,
         "pledge": pledge,
         "confirmed_contributions_count": confirmed_count,
-        "current_month_contributed": current_month_status
-        in (ContributionStatus.submitted, ContributionStatus.confirmed),
+        "current_month_contributed": current_month_status == ContributionStatus.confirmed,
         "current_month_status": current_month_status,
+        "current_month_payment_status": payment_status,
     }
