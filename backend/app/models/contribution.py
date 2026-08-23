@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, Numeric, String, Text
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -30,15 +30,19 @@ class Contribution(Base, TimestampMixin):
     campaign_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), ForeignKey("campaigns.id", ondelete="SET NULL"), nullable=True
     )
+    payment_transaction_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("payment_transactions.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     amount: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
     contribution_channel: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     payment_link_used: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
 
-    # Raw transaction proof is intentionally short-lived. A screenshot is stored
-    # in a dedicated private R2 bucket by object key; raw reference/message text
-    # is also purged after the same retention window. The contribution amount,
-    # month, status and audit history remain as the accounting record.
+    # Legacy raw payment proof fields are retained during the M-PESA migration
+    # so historical records stay readable. New automated payments do not write
+    # these fields.
     transaction_reference: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     proof_image_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
     proof_object_key: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
@@ -75,9 +79,14 @@ class Contribution(Base, TimestampMixin):
     )
 
     __table_args__ = (
+        UniqueConstraint(
+            "payment_transaction_id",
+            name="uq_contributions_payment_transaction_id",
+        ),
         Index("ix_contributions_user_id", "user_id"),
         Index("ix_contributions_pledge_id", "pledge_id"),
         Index("ix_contributions_campaign_id", "campaign_id"),
+        Index("ix_contributions_payment_transaction_id", "payment_transaction_id"),
         Index("ix_contributions_status", "status"),
         Index("ix_contributions_month", "contribution_month"),
         Index("ix_contributions_confirmed_by", "confirmed_by"),
