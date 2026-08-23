@@ -68,6 +68,25 @@ class MobileDashboardOut(BaseModel):
     pledge_summary: Optional[PledgeStatusOut] = None
 
 
+def _normalize_payment_status(value: Any) -> Optional[PaymentStatus]:
+    """Return only a known payment status for donor-facing responses.
+
+    SQLAlchemy normally returns PaymentStatus directly, but treating this
+    boundary defensively prevents an unexpected database/mock/provider value
+    from breaking the entire mobile dashboard response.
+    """
+    if value is None:
+        return None
+    if isinstance(value, PaymentStatus):
+        return value
+    if isinstance(value, str):
+        try:
+            return PaymentStatus(value)
+        except ValueError:
+            return None
+    return None
+
+
 @router.get("/dashboard", response_model=MobileDashboardOut)
 def mobile_dashboard(
     current_user: User = Depends(get_current_user),
@@ -76,7 +95,9 @@ def mobile_dashboard(
     pledge_data = pledge_service.get_pledge_status(db, current_user.id)
     active_pledge = pledge_data["pledge"]
     current_month_status = pledge_data["current_month_status"]
-    current_payment_status = pledge_data.get("current_month_payment_status")
+    current_payment_status = _normalize_payment_status(
+        pledge_data.get("current_month_payment_status")
+    )
 
     if active_pledge is None:
         pledge_status_str = "none"
