@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.enums import PaymentStatus
@@ -37,9 +38,20 @@ def initiate_mpesa_payment(
         result = mpesa_service.initiate_stk_push(
             phone=payment.payer_phone,
             amount_kes=int(Decimal(payment.settlement_amount or 0)),
-            account_reference=payment.internal_reference,
+            account_reference=settings.MPESA_ACCOUNT_REFERENCE,
         )
     except mpesa_service.DarajaError as exc:
+        if exc.uncertain:
+            # Do not allow an immediate retry after a transport timeout. Safaricom
+            # may have accepted the request even if our HTTP response was lost.
+            payment.provider_result_code = "request_uncertain"
+            payment.provider_result_description = str(exc)[:2000]
+            db.commit()
+            db.refresh(payment)
+            return MpesaInitiateOut(
+                payment=PaymentOut.model_validate(payment),
+                customer_message="M-PESA request status is still being confirmed. Do not start another payment yet.",
+            )
         payment_service.mark_provider_error(
             db,
             payment,
