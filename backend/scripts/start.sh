@@ -21,6 +21,11 @@ if [ "${OUTBOUND_WORKER_ENABLED:-false}" = "true" ]; then
   python -m scripts.operations_worker &
 fi
 
+if [ "${MPESA_RECONCILIATION_ENABLED:-false}" = "true" ]; then
+  echo "MPESA_RECONCILIATION_ENABLED=true; starting M-PESA reconciliation worker"
+  python -m scripts.mpesa_reconciliation_worker &
+fi
+
 # In OVH the backend is not published to the host; Caddy is the only external
 # ingress and reaches this service over the private Docker bridge. Trust the
 # configured proxy addresses so request.client.host reflects the real donor IP
