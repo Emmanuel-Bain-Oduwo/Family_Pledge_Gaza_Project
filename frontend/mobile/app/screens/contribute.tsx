@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -10,122 +10,139 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
 import AppButton from '../../components/AppButton';
 import AppCard from '../../components/AppCard';
-import { createPledge, submitContribution, uploadContributionProof } from '../../services/api';
+import { createPledge, getMe } from '../../services/api';
+import { getPaymentStatus, initiateMpesaPayment, PaymentRecord } from '../../services/payments';
 import { PAYMENT_SETTINGS, currentContributionMonth } from '../../constants/payment';
 import { copyText } from '../../services/webCompat';
 
-type PledgeOptionKey = 'kes10' | 'usd10' | 'usd20' | 'usd50' | 'usd100' | 'open' | 'free';
-type ProofFile = { uri: string; fileName: string; mimeType: string; fileSize: number };
+type PledgeOptionKey = 'usd10' | 'usd20' | 'usd50' | 'usd100' | 'open' | 'free';
+type PaymentMethod = 'mpesa' | 'bank';
 
-const MAX_PROOF_BYTES = 10 * 1024 * 1024;
-const ALLOWED_PROOF_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-function inferMimeType(filename: string): string {
-  const lower = filename.toLowerCase();
-  if (lower.endsWith('.png')) return 'image/png';
-  if (lower.endsWith('.webp')) return 'image/webp';
-  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
-  return '';
-}
-
-function validateProof(file: ProofFile): string | null {
-  if (!ALLOWED_PROOF_TYPES.has(file.mimeType)) return 'Please choose a JPG, PNG or WebP screenshot.';
-  if (file.fileSize > MAX_PROOF_BYTES) return 'The payment screenshot must be 10 MB or smaller.';
-  return null;
+function newIdempotencyKey() {
+  return `fp-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
 export default function ContributeScreen() {
-  const [selectedMethod, setSelectedMethod] = useState('mpesa');
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('mpesa');
   const [selectedOption, setSelectedOption] = useState<PledgeOptionKey>('usd10');
   const [openAmount, setOpenAmount] = useState('');
-  const [reference, setReference] = useState('');
-  const [proof, setProof] = useState<ProofFile | null>(null);
+  const [phone, setPhone] = useState('');
   const [acceptedAgreement, setAcceptedAgreement] = useState(false);
-  const proofInputRef = useRef<any>(null);
   const [loading, setLoading] = useState(false);
+  const [payment, setPayment] = useState<PaymentRecord | null>(null);
+
+  useEffect(() => {
+    getMe()
+      .then((user) => {
+        if (user.phone) setPhone(user.phone);
+      })
+      .catch(() => undefined);
+  }, []);
 
   const selected = useMemo(
-    () => PAYMENT_SETTINGS.pledgeOptions.find((o) => o.key === selectedOption) || PAYMENT_SETTINGS.pledgeOptions[1],
+    () => PAYMENT_SETTINGS.pledgeOptions.find((option) => option.key === selectedOption) || PAYMENT_SETTINGS.pledgeOptions[0],
     [selectedOption]
   );
 
   const amount = selectedOption === 'open' ? Number(openAmount || 0) : selected.amount;
   const isFreePledge = selectedOption === 'free';
 
-  const copy = (label: string, value: string) => copyText(label, value);
-
-  const selectNativeProof = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'], allowsEditing: false, quality: 1, selectionLimit: 1,
-      });
-      if (result.canceled || !result.assets?.[0]) return;
-      const asset = result.assets[0];
-      const fileName = asset.fileName || `payment-proof-${Date.now()}.jpg`;
-      const mimeType = asset.mimeType || inferMimeType(fileName);
-      const selectedFile: ProofFile = { uri: asset.uri, fileName, mimeType, fileSize: asset.fileSize || 0 };
-      const error = validateProof(selectedFile);
-      if (error) { Alert.alert('Unsupported screenshot', error); return; }
-      setProof(selectedFile);
-    } catch {
-      Alert.alert('Could not open photos', 'Please try again or submit the transaction message/reference instead.');
+  const validate = () => {
+    if (!acceptedAgreement) {
+      Alert.alert('Pledge Agreement Required', 'Please review and accept the voluntary Family Pledge before continuing.');
+      return false;
     }
+    if (!isFreePledge && (!amount || amount < 1)) {
+      Alert.alert('Amount Required', 'Please choose an amount or enter your amount.');
+      return false;
+    }
+    if (!isFreePledge && selectedMethod === 'mpesa' && !phone.trim()) {
+      Alert.alert('M-PESA Number Required', 'Enter the M-PESA phone number that should receive the payment prompt.');
+      return false;
+    }
+    return true;
+  };
+
+  const savePledge = () => createPledge({
+    pledge_type: isFreePledge ? 'free_participant' : 'monthly',
+    amount: isFreePledge ? 0 : amount,
+    currency: selected.currency,
+    start_date: new Date().toISOString().slice(0, 10),
+    agreement_accepted: true,
+  });
+
+  const pollPayment = async (initial: PaymentRecord): Promise<PaymentRecord> => {
+    let latest = initial;
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      if (['succeeded', 'failed', 'cancelled', 'expired'].includes(latest.status)) return latest;
+      await sleep(3000);
+      latest = await getPaymentStatus(latest.id);
+      setPayment(latest);
+    }
+    return latest;
   };
 
   const handleSubmit = async () => {
-    if (!acceptedAgreement) {
-      Alert.alert('Pledge Agreement Required', 'Please review and accept the voluntary Family Pledge before signing.');
-      return;
-    }
-    if (!isFreePledge && (!amount || amount < 1)) {
-      Alert.alert('Amount Required', 'Please choose an amount or enter your open amount.');
-      return;
-    }
-    if (!isFreePledge && !reference.trim() && !proof) {
-      Alert.alert('Proof Required', 'Upload a payment screenshot or enter the transaction message/reference.');
-      return;
-    }
-
+    if (!validate()) return;
     setLoading(true);
+    setPayment(null);
     try {
-      // Persist the signed pledge first. A paid participant's proof is then linked
-      // to that exact pledge so the donor and admin always see the same record.
-      const pledge = await createPledge({
-        pledge_type: isFreePledge ? 'free_participant' : 'monthly',
-        amount: isFreePledge ? 0 : amount,
-        currency: selected.currency,
-        start_date: new Date().toISOString().slice(0, 10),
-        agreement_accepted: true,
-      });
+      const pledge = await savePledge();
 
-      if (!isFreePledge) {
-        const proofObjectKey = proof ? await uploadContributionProof(proof) : undefined;
-        await submitContribution({
-          pledge_id: pledge.id,
-          amount,
-          currency: selected.currency,
-          transaction_reference: reference.trim(),
-          proof_object_key: proofObjectKey,
-          contribution_channel: selectedMethod,
-          contribution_month: currentContributionMonth(),
-        });
+      if (isFreePledge) {
+        Alert.alert(
+          'Pledge Signed 🌙',
+          'Your voluntary Family Pledge is signed and active. No payment is required.',
+          [{ text: 'View My Pledge', onPress: () => router.replace('/screens/my-pledge') }]
+        );
+        return;
       }
 
-      Alert.alert(
-        isFreePledge ? 'Pledge Signed 🌙' : 'Proof Sent 🌙',
-        isFreePledge
-          ? 'Your voluntary Family Pledge is signed and active. May Allah SWT accept your du’a and grant our brothers and sisters in Gaza relief and Jannatul Firdaus.'
-          : 'Your pledge is signed and your payment proof has been sent for admin verification. May Allah SWT bless you more and grant you Jannatul Firdaus.',
-        [{ text: 'View My Pledge', onPress: () => { setReference(''); setProof(null); setOpenAmount(''); setAcceptedAgreement(false); router.replace('/screens/my-pledge'); } }]
-      );
+      if (selectedMethod === 'bank') {
+        Alert.alert(
+          'Pledge Signed',
+          'Your pledge is saved. Use the DIB Bank details shown on this page if you choose bank transfer. Bank transfers are not automatically reconciled yet, so they will not be marked paid until the bank integration is added.'
+        );
+        return;
+      }
+
+      const started = await initiateMpesaPayment({
+        pledge_id: pledge.id,
+        phone: phone.trim(),
+        contribution_month: currentContributionMonth(),
+        idempotency_key: newIdempotencyKey(),
+      });
+      setPayment(started.payment);
+      const finalPayment = await pollPayment(started.payment);
+
+      if (finalPayment.status === 'succeeded') {
+        const settled = finalPayment.settlement_amount != null
+          ? `${finalPayment.settlement_currency} ${Number(finalPayment.settlement_amount).toLocaleString()}`
+          : 'M-PESA payment';
+        Alert.alert(
+          'Payment Received ✓',
+          `${settled} received successfully.${finalPayment.mpesa_receipt_number ? `\nReceipt: ${finalPayment.mpesa_receipt_number}` : ''}`,
+          [{ text: 'View My Pledge', onPress: () => router.replace('/screens/my-pledge') }]
+        );
+      } else if (finalPayment.status === 'cancelled') {
+        Alert.alert('Payment Cancelled', 'The M-PESA payment was not completed. No contribution was recorded. You can try again.');
+      } else if (finalPayment.status === 'failed' || finalPayment.status === 'expired') {
+        Alert.alert('Payment Unsuccessful', 'No successful M-PESA payment was confirmed. No contribution was recorded. You can try again.');
+      } else {
+        Alert.alert(
+          'Payment Still Processing',
+          'We are still waiting for M-PESA confirmation. Do not start another payment yet. You can leave this screen and check My Pledge later.'
+        );
+      }
     } catch (err: any) {
-      Alert.alert('Submission Failed', err.message || 'Please try again.');
+      Alert.alert('Payment Could Not Start', err.message || 'Please try again.');
     } finally {
       setLoading(false);
     }
@@ -137,14 +154,19 @@ export default function ContributeScreen() {
         <View style={styles.hero}>
           <View style={styles.heroIcon}><Ionicons name="heart" size={30} color={Colors.white} /></View>
           <Text style={styles.heroTitle}>Your Family Pledge</Text>
-          <Text style={styles.heroSub}>Join freely or choose a monthly amount to help our brothers and sisters in Gaza. Your pledge is voluntary and can be paused or changed later.</Text>
+          <Text style={styles.heroSub}>Choose your monthly pledge, sign it, then pay securely with M-PESA. Payment confirmation is automatic.</Text>
         </View>
 
         <AppCard style={styles.card}>
           <Text style={styles.cardTitle}>Choose pledge amount</Text>
           <View style={styles.optionGrid}>
             {PAYMENT_SETTINGS.pledgeOptions.map((option) => (
-              <TouchableOpacity key={option.key} onPress={() => setSelectedOption(option.key as PledgeOptionKey)} style={[styles.amountOption, selectedOption === option.key && styles.amountOptionActive]} activeOpacity={0.85}>
+              <TouchableOpacity
+                key={option.key}
+                onPress={() => { setSelectedOption(option.key as PledgeOptionKey); setPayment(null); }}
+                style={[styles.amountOption, selectedOption === option.key && styles.amountOptionActive]}
+                activeOpacity={0.85}
+              >
                 <Text style={[styles.amountLabel, selectedOption === option.key && styles.amountLabelActive]}>{option.label}</Text>
                 <Text style={[styles.amountHelper, selectedOption === option.key && styles.amountHelperActive]}>{option.helper}</Text>
               </TouchableOpacity>
@@ -166,77 +188,91 @@ export default function ContributeScreen() {
           <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{ checked: acceptedAgreement }} onPress={() => setAcceptedAgreement((value) => !value)} style={[styles.agreementCheck, acceptedAgreement && styles.agreementCheckActive]}>
             <Ionicons name={acceptedAgreement ? 'checkbox' : 'square-outline'} size={24} color={acceptedAgreement ? Colors.primary : Colors.gray[500]} />
             <Text style={styles.agreementCheckText}>{isFreePledge
-              ? 'I agree to keep making du’a for my brothers and sisters in Gaza and to support this humanitarian effort. May Allah SWT grant them relief and Jannatul Firdaus.'
-              : 'I agree to contribute every month to help my brothers and sisters in Gaza, and I will keep on making du’a for them. May Allah SWT grant all of them relief and Jannatul Firdaus.'}</Text>
+              ? 'I agree to keep making du’a for my brothers and sisters in Gaza and to support this humanitarian effort.'
+              : 'I agree to contribute every month to help my brothers and sisters in Gaza. I understand this pledge is voluntary and can be changed or paused.'}</Text>
           </TouchableOpacity>
         </AppCard>
 
         {!isFreePledge && (
-          <>
-            <AppCard style={styles.card}>
-              <Text style={styles.cardTitle}>Payment method</Text>
-              <View style={styles.methodGrid}>
-                {PAYMENT_SETTINGS.methods.map((m) => (
-                  <TouchableOpacity key={m.key} onPress={() => setSelectedMethod(m.key)} activeOpacity={0.8} style={[styles.methodCard, selectedMethod === m.key && { borderColor: m.color, backgroundColor: m.color + '10' }]}>
-                    <Ionicons name={m.icon as any} size={22} color={selectedMethod === m.key ? m.color : Colors.gray[400]} />
-                    <Text style={[styles.methodLabel, selectedMethod === m.key && { color: m.color }]}>{m.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </AppCard>
+          <AppCard style={styles.card}>
+            <Text style={styles.cardTitle}>Payment method</Text>
+            <View style={styles.methodGrid}>
+              {PAYMENT_SETTINGS.methods.map((method) => (
+                <TouchableOpacity
+                  key={method.key}
+                  onPress={() => { setSelectedMethod(method.key as PaymentMethod); setPayment(null); }}
+                  activeOpacity={0.8}
+                  style={[styles.methodCard, selectedMethod === method.key && { borderColor: method.color, backgroundColor: method.color + '10' }]}
+                >
+                  <Ionicons name={method.icon as any} size={22} color={selectedMethod === method.key ? method.color : Colors.gray[400]} />
+                  <Text style={[styles.methodLabel, selectedMethod === method.key && { color: method.color }]}>{method.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </AppCard>
+        )}
 
-            <AppCard style={styles.card} borderColor={Colors.pink}>
-              <View style={styles.instructHeader}>
-                <Ionicons name="information-circle" size={20} color={Colors.pinkDark} />
-                <Text style={styles.instructTitle}>Copy-friendly payment details</Text>
+        {!isFreePledge && selectedMethod === 'mpesa' && (
+          <AppCard style={styles.card} borderColor={Colors.primary}>
+            <View style={styles.instructHeader}>
+              <Ionicons name="phone-portrait-outline" size={21} color={Colors.primaryDark} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.instructTitle}>Pay with M-PESA</Text>
+                <Text style={styles.cardDesc}>An STK Push will be sent to this number. Enter your PIN only in the official M-PESA prompt.</Text>
               </View>
-              <PaymentDetails method={selectedMethod} onCopy={copy} />
-            </AppCard>
-          </>
+            </View>
+            <Text style={styles.label}>M-PESA phone number</Text>
+            <View style={styles.inputWrap}>
+              <Ionicons name="call-outline" size={18} color={Colors.gray[400]} />
+              <TextInput value={phone} onChangeText={setPhone} placeholder="e.g. 0728 123 456" keyboardType="phone-pad" placeholderTextColor={Colors.gray[400]} style={styles.input} />
+            </View>
+            <View style={styles.summaryBox}>
+              <SummaryRow label="Family Pledge" value={`${selected.currency} ${Number(amount || 0).toLocaleString()}`} />
+              {payment?.settlement_amount != null && <SummaryRow label="M-PESA amount" value={`${payment.settlement_currency} ${Number(payment.settlement_amount).toLocaleString()}`} />}
+              {payment && <SummaryRow label="Status" value={payment.status.replace(/_/g, ' ')} />}
+              {payment?.mpesa_receipt_number && <SummaryRow label="Receipt" value={payment.mpesa_receipt_number} />}
+            </View>
+            {payment && ['created', 'initiating', 'pending'].includes(payment.status) && (
+              <View style={styles.processingBox}>
+                <Ionicons name="time-outline" size={19} color={Colors.primaryDark} />
+                <Text style={styles.processingText}>Check your phone and complete the M-PESA prompt. Do not start another payment while this one is processing.</Text>
+              </View>
+            )}
+          </AppCard>
+        )}
+
+        {!isFreePledge && selectedMethod === 'bank' && (
+          <AppCard style={styles.card} borderColor={Colors.pink}>
+            <View style={styles.instructHeader}>
+              <Ionicons name="business-outline" size={20} color={Colors.pinkDark} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.instructTitle}>DIB Bank transfer</Text>
+                <Text style={styles.cardDesc}>Copy the official bank details below. Bank transfers are available as an alternative but are not yet automatically reconciled in the app.</Text>
+              </View>
+            </View>
+            <BankDetails onCopy={(label, value) => copyText(label, value)} />
+          </AppCard>
         )}
 
         <AppCard style={styles.card}>
-          <Text style={styles.cardTitle}>{isFreePledge ? 'Finish free pledge' : 'Submit payment proof'}</Text>
-          <Text style={styles.cardDesc}>{isFreePledge ? 'No payment is required. You can separately choose the reminders and awareness content you want to receive.' : 'Upload a screenshot or paste the transaction message/reference. Either one is enough for admin review. Once sent, your pledge page will show that the proof is awaiting verification. Sensitive proof data is retained for 30 days.'}</Text>
-
-          {!isFreePledge && (
-            <>
-              <View style={styles.field}>
-                <Text style={styles.label}>Transaction message / reference</Text>
-                <View style={styles.inputWrap}>
-                  <Ionicons name="receipt-outline" size={18} color={Colors.gray[400]} />
-                  <TextInput value={reference} onChangeText={setReference} placeholder="e.g. QKR7XNPK" placeholderTextColor={Colors.gray[400]} style={styles.input} autoCapitalize="characters" />
-                </View>
-              </View>
-              {Platform.OS === 'web' && React.createElement('input', {
-                ref: proofInputRef,
-                type: 'file',
-                accept: 'image/jpeg,image/png,image/webp',
-                style: { display: 'none' },
-                onChange: (event: any) => {
-                  const file = event.target.files?.[0];
-                  if (!file) return;
-                  const selectedFile: ProofFile = { uri: URL.createObjectURL(file), fileName: file.name, mimeType: file.type, fileSize: file.size };
-                  const error = validateProof(selectedFile);
-                  if (error) Alert.alert('Unsupported screenshot', error); else setProof(selectedFile);
-                },
-              })}
-              <TouchableOpacity style={styles.uploadButton} onPress={() => { if (Platform.OS === 'web') proofInputRef.current?.click(); else selectNativeProof(); }}>
-                <Ionicons name={proof ? 'checkmark-circle' : 'cloud-upload-outline'} size={22} color={Colors.primary} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.uploadTitle}>{proof ? 'Screenshot selected' : 'Upload payment screenshot'}</Text>
-                  <Text style={styles.uploadHelp}>{proof?.fileName || 'JPG, PNG or WebP · max 10 MB'}</Text>
-                </View>
-              </TouchableOpacity>
-            </>
-          )}
-
-          <AppButton title={isFreePledge ? 'Sign Free Pledge' : `Sign & Submit ${selected.label}`} onPress={handleSubmit} loading={loading} style={{ marginTop: 8 }} icon={<Ionicons name="checkmark-circle-outline" size={18} color={Colors.white} />} />
+          <Text style={styles.cardTitle}>{isFreePledge ? 'Finish free pledge' : selectedMethod === 'mpesa' ? 'Complete M-PESA payment' : 'Save pledge'}</Text>
+          <Text style={styles.cardDesc}>{isFreePledge
+            ? 'No payment is required.'
+            : selectedMethod === 'mpesa'
+              ? 'No screenshot or transaction reference is required. M-PESA confirms the payment directly to Family Pledge.'
+              : 'No screenshot is required. Bank automation will be added separately.'}</Text>
+          <AppButton
+            title={isFreePledge ? 'Sign Free Pledge' : selectedMethod === 'mpesa' ? `Pay ${selected.label} with M-PESA` : 'Sign Pledge'}
+            onPress={handleSubmit}
+            loading={loading}
+            style={{ marginTop: 8 }}
+            icon={<Ionicons name={selectedMethod === 'mpesa' && !isFreePledge ? 'phone-portrait-outline' : 'checkmark-circle-outline'} size={18} color={Colors.white} />}
+          />
         </AppCard>
 
         <View style={styles.footer}>
           <Ionicons name="shield-checkmark-outline" size={16} color={Colors.primary} />
-          <Text style={styles.footerText}>Secure · Admin verified · Payment details managed centrally</Text>
+          <Text style={styles.footerText}>M-PESA confirmation is automatic · No screenshots · No admin payment approval</Text>
         </View>
         <AppCard style={styles.contactCard}>
           <Ionicons name="chatbubble-ellipses-outline" size={20} color={Colors.primary} />
@@ -247,12 +283,28 @@ export default function ContributeScreen() {
   );
 }
 
-function PaymentDetails({ method, onCopy }: { method: string; onCopy: (label: string, value: string) => void }) {
-  const b = PAYMENT_SETTINGS.bank;
-  const mpesaRows = [['M-PESA PayBill', b.mpesaPaybill], ['Account Number', b.accountNumber], ['Account Name', b.accountName]];
-  const bankRows = [['Bank', b.bankName], ['Account Name', b.accountName], ['Account Number', b.accountNumber], ['Branch', b.branchName], ['SWIFT', b.swiftCode], ['Intermediary SWIFT', b.intermediarySwiftCode]];
-  const isBank=method==='bank'; const rows=isBank?bankRows:mpesaRows;
-  return <View style={styles.detailList}><Text style={styles.paymentHeading}>{isBank?'Bank transfer details':'M-PESA PayBill — recommended'}</Text>{rows.map(([label,value],i)=><TouchableOpacity accessibilityRole="button" accessibilityLabel={`Copy ${label}`} key={label} style={styles.detailRow} onPress={()=>onCopy(label,value)}><View style={styles.stepCircle}><Text style={styles.stepText}>{i+1}</Text></View><View style={{flex:1}}><Text style={styles.detailLabel}>{label}</Text><Text selectable style={styles.detailValue}>{value}</Text></View><Ionicons name="copy-outline" size={18} color={Colors.primary}/></TouchableOpacity>)}<Text style={styles.instructNote}>{isBank?`Currency: ${b.currency}. Bank code ${b.bankCode}, branch code ${b.branchCode}.`:`PayBill ${b.mpesaPaybill}; use the full 15-digit account number exactly as shown.`}</Text></View>;
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return <View style={styles.summaryRow}><Text style={styles.summaryLabel}>{label}</Text><Text style={styles.summaryValue}>{value}</Text></View>;
+}
+
+function BankDetails({ onCopy }: { onCopy: (label: string, value: string) => void }) {
+  const bank = PAYMENT_SETTINGS.bank;
+  const rows = [
+    ['Bank', bank.bankName],
+    ['Account Name', bank.accountName],
+    ['Account Number', bank.accountNumber],
+    ['Currency', bank.currency],
+    ['Branch', bank.branchName],
+    ['SWIFT', bank.swiftCode],
+    ['Intermediary Bank (USD)', bank.intermediaryBankUsd],
+    ['Intermediary SWIFT', bank.intermediarySwiftCode],
+  ];
+  return <View style={styles.detailList}>{rows.map(([label, value]) => (
+    <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Copy ${label}`} key={label} style={styles.detailRow} onPress={() => onCopy(label, value)}>
+      <View style={{ flex: 1 }}><Text style={styles.detailLabel}>{label}</Text><Text selectable style={styles.detailValue}>{value}</Text></View>
+      <Ionicons name="copy-outline" size={18} color={Colors.primary} />
+    </TouchableOpacity>
+  ))}</View>;
 }
 
 const styles = StyleSheet.create({
@@ -265,42 +317,40 @@ const styles = StyleSheet.create({
   card: { marginBottom: 16 },
   cardTitle: { fontSize: 17, fontWeight: '800', color: Colors.text.primary, marginBottom: 8 },
   cardTitleInline: { fontSize: 17, fontWeight: '800', color: Colors.text.primary },
-  cardDesc: { fontSize: 13, color: Colors.text.secondary, lineHeight: 20, marginBottom: 14 },
-  optionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  amountOption: { width: '48%', borderWidth: 1.5, borderColor: Colors.border.light, borderRadius: 16, padding: 12, backgroundColor: Colors.white },
-  amountOptionActive: { borderColor: Colors.pinkDark, backgroundColor: Colors.softPinkBg },
-  amountLabel: { fontSize: 14, fontWeight: '900', color: Colors.text.primary },
-  amountLabelActive: { color: Colors.pinkDark },
-  amountHelper: { marginTop: 4, fontSize: 11, color: Colors.text.secondary, lineHeight: 15 },
+  cardDesc: { fontSize: 13, color: Colors.text.secondary, lineHeight: 20, marginBottom: 12 },
+  optionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
+  amountOption: { width: '48%', borderWidth: 1.5, borderColor: Colors.border.light, borderRadius: 14, padding: 12, backgroundColor: Colors.white },
+  amountOptionActive: { borderColor: Colors.primary, backgroundColor: '#F0FDF4' },
+  amountLabel: { color: Colors.text.primary, fontSize: 16, fontWeight: '900' },
+  amountLabelActive: { color: Colors.primaryDark },
+  amountHelper: { marginTop: 3, color: Colors.text.muted, fontSize: 10, lineHeight: 14 },
   amountHelperActive: { color: Colors.primaryDark },
   openInput: { marginTop: 12 },
   agreementHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-  agreementCheck: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderColor: Colors.border.light, borderRadius: 14, padding: 12, backgroundColor: Colors.gray[50] },
-  agreementCheckActive: { borderColor: Colors.primary, backgroundColor: '#F0FDF4' },
-  agreementCheckText: { flex: 1, fontSize: 13, lineHeight: 18, fontWeight: '800', color: Colors.text.primary },
-  methodGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  methodCard: { flex: 1, minWidth: '45%', alignItems: 'center', paddingVertical: 14, borderRadius: 14, borderWidth: 2, borderColor: Colors.border.light, gap: 6, backgroundColor: Colors.gray[50] },
-  methodLabel: { fontSize: 12, fontWeight: '700', color: Colors.text.secondary },
-  instructHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  instructTitle: { fontSize: 15, fontWeight: '800', color: Colors.text.primary },
-  detailList: { gap: 9 },
-  paymentHeading: { fontSize: 14, color: Colors.primaryDark, fontWeight: '900' },
-  stepCircle: { width: 24, height: 24, borderRadius: 12, backgroundColor: Colors.softPinkBg, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-  stepText: { color: Colors.pinkDark, fontSize: 11, fontWeight: '900' },
-  detailRow: { flexDirection: 'row', alignItems: 'center', padding: 12, borderWidth: 1, borderColor: Colors.border.light, borderRadius: 14, backgroundColor: Colors.gray[50] },
-  detailLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6, color: Colors.text.muted, fontWeight: '800' },
-  detailValue: { marginTop: 2, fontSize: 14, color: Colors.text.primary, fontWeight: '800' },
-  instructNote: { fontSize: 12, color: Colors.pinkDark, marginTop: 4, fontWeight: '600', lineHeight: 18 },
-  field: { marginBottom: 14 },
-  label: { fontSize: 13, fontWeight: '700', color: Colors.text.primary, marginBottom: 6 },
-  inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.gray[50], borderRadius: 12, borderWidth: 1.5, borderColor: Colors.border.light, paddingHorizontal: 14, height: 50, gap: 10 },
-  input: { flex: 1, fontSize: 15, color: Colors.text.primary },
-  uploadButton: { marginBottom: 14, minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: Colors.primary, borderRadius: 14, backgroundColor: Colors.gray[50] },
-  uploadTitle: { color: Colors.text.primary, fontWeight: '800', fontSize: 14 },
-  uploadHelp: { color: Colors.text.secondary, fontSize: 12, marginTop: 3 },
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12 },
-  footerText: { fontSize: 12, color: Colors.text.secondary, fontWeight: '600' },
-  contactCard: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4 },
-  contactTitle: { fontWeight: '800', color: Colors.text.primary },
-  contactEmail: { color: Colors.primary, marginTop: 2, fontWeight: '700' },
+  agreementCheck: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, borderWidth: 1, borderColor: Colors.border.light, borderRadius: 14, padding: 12 },
+  agreementCheckActive: { backgroundColor: '#F0FDF4', borderColor: Colors.primary },
+  agreementCheckText: { flex: 1, color: Colors.text.secondary, fontSize: 12, lineHeight: 18, fontWeight: '600' },
+  methodGrid: { flexDirection: 'row', gap: 10 },
+  methodCard: { flex: 1, minHeight: 86, borderWidth: 1.5, borderColor: Colors.border.light, borderRadius: 16, alignItems: 'center', justifyContent: 'center', gap: 7, backgroundColor: Colors.white },
+  methodLabel: { color: Colors.text.secondary, fontSize: 12, fontWeight: '800' },
+  instructHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 12 },
+  instructTitle: { fontSize: 16, fontWeight: '900', color: Colors.text.primary, marginBottom: 3 },
+  label: { color: Colors.text.secondary, fontWeight: '800', fontSize: 12, marginBottom: 6 },
+  inputWrap: { minHeight: 48, borderRadius: 13, borderWidth: 1, borderColor: Colors.border.light, backgroundColor: Colors.white, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 },
+  input: { flex: 1, minHeight: 46, color: Colors.text.primary, fontSize: 14 },
+  summaryBox: { marginTop: 12, backgroundColor: '#F7FBF8', borderRadius: 14, paddingHorizontal: 12 },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.border.light },
+  summaryLabel: { color: Colors.text.secondary, fontSize: 12 },
+  summaryValue: { color: Colors.text.primary, fontSize: 12, fontWeight: '900', textTransform: 'capitalize', textAlign: 'right' },
+  processingBox: { marginTop: 12, borderRadius: 13, backgroundColor: '#ECFDF5', padding: 12, flexDirection: 'row', gap: 9, alignItems: 'flex-start' },
+  processingText: { flex: 1, color: Colors.primaryDark, fontSize: 12, lineHeight: 18, fontWeight: '700' },
+  detailList: { gap: 7 },
+  detailRow: { flexDirection: 'row', gap: 10, alignItems: 'center', borderWidth: 1, borderColor: Colors.border.light, borderRadius: 12, padding: 11, backgroundColor: Colors.white },
+  detailLabel: { color: Colors.text.muted, fontSize: 10, fontWeight: '700' },
+  detailValue: { marginTop: 2, color: Colors.text.primary, fontSize: 13, fontWeight: '900' },
+  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginBottom: 14 },
+  footerText: { color: Colors.text.muted, fontSize: 10, fontWeight: '700', textAlign: 'center', flexShrink: 1 },
+  contactCard: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  contactTitle: { fontSize: 13, fontWeight: '800', color: Colors.text.primary },
+  contactEmail: { marginTop: 2, fontSize: 12, color: Colors.primary, fontWeight: '700' },
 });
