@@ -10,24 +10,24 @@ import LoadingState from '../../components/LoadingState';
 import { getPledgeStatus } from '../../services/api';
 import { PledgeStatusOut } from '../../types';
 
-function monthStatusLabel(data: PledgeStatusOut | null): string {
-  if (data?.pledge?.pledge_type === 'free_participant') return 'No payment proof required';
-  switch (data?.current_month_status) {
-    case 'confirmed': return 'Confirmed';
-    case 'submitted': return 'Proof sent — awaiting verification';
-    case 'needs_follow_up': return 'Follow-up needed';
-    case 'rejected': return 'Not verified';
-    default: return 'Not submitted yet';
-  }
+type PaymentAwarePledgeStatus = PledgeStatusOut & {
+  current_month_payment_status?: 'created' | 'initiating' | 'pending' | 'succeeded' | 'failed' | 'cancelled' | 'expired' | null;
+};
+
+function monthStatusLabel(data: PaymentAwarePledgeStatus | null): string {
+  if (data?.pledge?.pledge_type === 'free_participant') return 'Free participant — no payment required';
+  if (data?.current_month_status === 'confirmed') return 'Paid';
+  if (['created', 'initiating', 'pending'].includes(String(data?.current_month_payment_status || ''))) return 'M-PESA payment processing';
+  return 'Not paid this month';
 }
 
 export default function MyPledgeScreen() {
-  const [data, setData] = useState<PledgeStatusOut | null>(null);
+  const [data, setData] = useState<PaymentAwarePledgeStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     try {
-      setData(await getPledgeStatus());
+      setData(await getPledgeStatus() as PaymentAwarePledgeStatus);
     } catch (e: any) {
       Alert.alert('Could not load pledge', e.message || 'Please try again.');
     } finally {

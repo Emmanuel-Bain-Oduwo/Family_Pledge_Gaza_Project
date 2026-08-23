@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
-from app.models.enums import ContributionStatus, PledgeStatus, PledgeType
+from app.models.enums import ContributionStatus, PaymentStatus, PledgeStatus, PledgeType
 
 
 class PledgeCreate(BaseModel):
@@ -48,3 +48,4 @@ class PledgeStatusOut(BaseModel):
     confirmed_contributions_count: int
     current_month_contributed: bool
     current_month_status: Optional[ContributionStatus] = None
+    current_month_payment_status: Optional[PaymentStatus] = None

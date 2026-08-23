@@ -13,22 +13,22 @@ interface PledgeStatusCardProps {
 }
 
 const STATUS_CONFIG: Record<PledgeStatus, { label: string; color: string; bg: string; icon: string }> = {
-  paid: { label: 'Confirmed', color: Colors.success, bg: '#ECFDF5', icon: 'checkmark-circle' },
-  submitted: { label: 'Proof Sent', color: Colors.primary, bg: '#EFF6FF', icon: 'paper-plane' },
-  needs_follow_up: { label: 'Follow-up Needed', color: Colors.warning, bg: '#FFFBEB', icon: 'alert-circle' },
-  rejected: { label: 'Not Verified', color: Colors.emergency, bg: '#FEF2F2', icon: 'close-circle' },
+  paid: { label: 'Paid', color: Colors.success, bg: '#ECFDF5', icon: 'checkmark-circle' },
+  submitted: { label: 'Processing', color: Colors.primary, bg: '#EFF6FF', icon: 'time' },
+  needs_follow_up: { label: 'Needs Attention', color: Colors.warning, bg: '#FFFBEB', icon: 'alert-circle' },
+  rejected: { label: 'Not Paid', color: Colors.emergency, bg: '#FEF2F2', icon: 'close-circle' },
   pending: { label: 'Pledge Active', color: Colors.warning, bg: '#FFFBEB', icon: 'heart-circle' },
-  missed: { label: 'Missed', color: Colors.emergency, bg: '#FEF2F2', icon: 'alert-circle' },
+  missed: { label: 'Not Paid', color: Colors.emergency, bg: '#FEF2F2', icon: 'alert-circle' },
   free_participant: { label: 'Pledge Active', color: Colors.primary, bg: '#F0FDF4', icon: 'person' },
   none: { label: 'Start Pledge', color: Colors.primaryDark, bg: '#F0FDF4', icon: 'play-circle' },
 };
 
 const STATUS_MESSAGE: Partial<Record<PledgeStatus, string>> = {
-  paid: 'This month’s contribution has been confirmed. May Allah SWT bless you more and grant you Jannatul Firdaus.',
-  submitted: 'Your payment proof has been sent and is awaiting admin verification. May Allah SWT bless you more and grant you Jannatul Firdaus.',
-  needs_follow_up: 'Your proof needs follow-up before it can be confirmed. Open My Pledge to review the status.',
-  rejected: 'This proof was not verified. Open My Pledge to review the status and submit a new proof when ready.',
-  pending: 'Your voluntary Family Pledge is signed and active. You can send this month’s contribution proof when ready.',
+  paid: 'This month’s contribution has been received. May Allah SWT bless you more and grant you Jannatul Firdaus.',
+  submitted: 'A payment is still being processed. Open My Pledge for the latest status and do not start another payment yet.',
+  needs_follow_up: 'This month’s contribution has not been confirmed. Open My Pledge for the latest payment status.',
+  rejected: 'No successful payment was confirmed. You can try again from My Pledge.',
+  pending: 'Your voluntary Family Pledge is signed and active. You can complete this month’s payment when ready.',
   missed: 'Your pledge remains here for you. Open My Pledge when you are ready to continue.',
   free_participant: 'Your voluntary Family Pledge is signed and active. May Allah SWT accept your du’a and support for Gaza.',
 };
