@@ -8,10 +8,16 @@ class DashboardOut(BaseModel):
     active_pledges: int
     contributions_this_month: int
     pending_contributions: int
+    paid_donors_this_month: int = 0
+    successful_payments_this_month: int = 0
+    pending_payments: int = 0
+    failed_payments: int = 0
+    mpesa_settled_kes: float = 0.0
     active_campaigns: int
     total_campaign_raised: float
     total_raised_tracked: float | None = None
     collectors_count: int
+    top_contributors: List[Dict[str, Any]] = []
     latest_activity: List[Dict[str, Any]]
     recent_activity: List[Dict[str, Any]] | None = None
 

@@ -9,7 +9,8 @@ from app.models.audit import AdminAuditLog
 from app.models.campaign import Campaign
 from app.models.collector import Collector
 from app.models.contribution import Contribution
-from app.models.enums import CampaignStatus, ContributionStatus, PledgeStatus, UserRole
+from app.models.enums import CampaignStatus, ContributionStatus, PaymentStatus, PledgeStatus, UserRole
+from app.models.payment_transaction import PaymentTransaction
 from app.models.pledge import Pledge
 from app.models.user import User
 from app.models.tracked_contact import TrackedContact
@@ -47,6 +48,7 @@ def dashboard(
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    del admin
     total_donors = db.scalar(
         select(func.count(User.id)).where(
             User.role == UserRole.donor, User.deleted_at.is_(None)
@@ -60,15 +62,49 @@ def dashboard(
     month = current_month()
     contributions_this_month = db.scalar(
         select(func.count(Contribution.id)).where(
-            Contribution.contribution_month == month
+            Contribution.contribution_month == month,
+            Contribution.status == ContributionStatus.confirmed,
         )
     ) or 0
 
-    pending_contributions = db.scalar(
-        select(func.count(Contribution.id)).where(
-            Contribution.status == ContributionStatus.submitted
+    paid_donors_this_month = db.scalar(
+        select(func.count(func.distinct(Contribution.user_id))).where(
+            Contribution.contribution_month == month,
+            Contribution.status == ContributionStatus.confirmed,
         )
     ) or 0
+
+    successful_payments_this_month = db.scalar(
+        select(func.count(PaymentTransaction.id)).where(
+            PaymentTransaction.contribution_month == month,
+            PaymentTransaction.status == PaymentStatus.succeeded,
+        )
+    ) or 0
+
+    pending_payments = db.scalar(
+        select(func.count(PaymentTransaction.id)).where(
+            PaymentTransaction.status.in_([
+                PaymentStatus.created,
+                PaymentStatus.initiating,
+                PaymentStatus.pending,
+            ])
+        )
+    ) or 0
+
+    failed_payments = db.scalar(
+        select(func.count(PaymentTransaction.id)).where(
+            PaymentTransaction.contribution_month == month,
+            PaymentTransaction.status.in_([
+                PaymentStatus.failed,
+                PaymentStatus.cancelled,
+                PaymentStatus.expired,
+            ]),
+        )
+    ) or 0
+
+    # Backward-compatible field used by older admin clients. It now means
+    # provider payments waiting for a result, not screenshots waiting for review.
+    pending_contributions = pending_payments
 
     active_campaigns = db.scalar(
         select(func.count(Campaign.id)).where(
@@ -83,9 +119,6 @@ def dashboard(
         )
     ) or 0.0
 
-    # Contribution currency is normalized on new writes, but the production
-    # ledger can contain older lower-case or padded values. Keep the dashboard
-    # projection tolerant so every confirmed USD contribution is reflected.
     total_raised_tracked = db.scalar(
         select(func.coalesce(func.sum(Contribution.amount), 0)).where(
             Contribution.status == ContributionStatus.confirmed,
@@ -93,7 +126,41 @@ def dashboard(
         )
     ) or 0.0
 
+    mpesa_settled_kes = db.scalar(
+        select(func.coalesce(func.sum(PaymentTransaction.settlement_amount), 0)).where(
+            PaymentTransaction.status == PaymentStatus.succeeded,
+            func.upper(func.trim(PaymentTransaction.settlement_currency)) == "KES",
+        )
+    ) or 0.0
+
     collectors_count = db.scalar(select(func.count(Collector.id))) or 0
+
+    top_rows = db.execute(
+        select(
+            User.id,
+            User.full_name,
+            func.coalesce(func.sum(Contribution.amount), 0).label("total_usd"),
+            func.count(Contribution.id).label("contribution_count"),
+        )
+        .join(Contribution, Contribution.user_id == User.id)
+        .where(
+            Contribution.status == ContributionStatus.confirmed,
+            func.upper(func.trim(Contribution.currency)) == "USD",
+            User.deleted_at.is_(None),
+        )
+        .group_by(User.id, User.full_name)
+        .order_by(func.sum(Contribution.amount).desc())
+        .limit(10)
+    ).all()
+    top_contributors = [
+        {
+            "user_id": str(user_id),
+            "name": full_name or "Donor",
+            "total_usd": float(total_usd or 0),
+            "contribution_count": int(contribution_count or 0),
+        }
+        for user_id, full_name, total_usd, contribution_count in top_rows
+    ]
 
     recent_logs = db.scalars(
         select(AdminAuditLog)
@@ -121,10 +188,16 @@ def dashboard(
         active_pledges=active_pledges,
         contributions_this_month=contributions_this_month,
         pending_contributions=pending_contributions,
+        paid_donors_this_month=paid_donors_this_month,
+        successful_payments_this_month=successful_payments_this_month,
+        pending_payments=pending_payments,
+        failed_payments=failed_payments,
+        mpesa_settled_kes=float(mpesa_settled_kes),
         active_campaigns=active_campaigns,
         total_campaign_raised=float(total_campaign_raised),
         total_raised_tracked=float(total_raised_tracked),
         collectors_count=collectors_count,
+        top_contributors=top_contributors,
         latest_activity=latest_activity,
         recent_activity=latest_activity,
     )
@@ -140,6 +213,7 @@ def list_donors(
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    del admin
     skip, limit = offset_limit(page, size)
     query = select(User).where(User.role == UserRole.donor, User.deleted_at.is_(None))
     if search:
@@ -157,23 +231,30 @@ def list_donors(
     user_ids = [u.id for u in users]
     month = current_month()
     active_pledges = {p.user_id: p for p in db.scalars(select(Pledge).where(Pledge.user_id.in_(user_ids), Pledge.status == PledgeStatus.active).order_by(Pledge.created_at.asc())).all()} if user_ids else {}
-    contribution_counts = {(uid, s): count for uid, s, count in db.execute(select(Contribution.user_id, Contribution.status, func.count(Contribution.id)).where(Contribution.user_id.in_(user_ids), Contribution.contribution_month == month).group_by(Contribution.user_id, Contribution.status)).all()} if user_ids else {}
+    confirmed_user_ids = set(db.scalars(select(Contribution.user_id).where(
+        Contribution.user_id.in_(user_ids),
+        Contribution.contribution_month == month,
+        Contribution.status == ContributionStatus.confirmed,
+    )).all()) if user_ids else set()
+    processing_user_ids = set(db.scalars(select(PaymentTransaction.user_id).where(
+        PaymentTransaction.user_id.in_(user_ids),
+        PaymentTransaction.contribution_month == month,
+        PaymentTransaction.status.in_([PaymentStatus.created, PaymentStatus.initiating, PaymentStatus.pending]),
+    )).all()) if user_ids else set()
     collector_ids = set(db.scalars(select(Collector.user_id).where(Collector.user_id.in_(user_ids))).all()) if user_ids else set()
     rows: list[AdminDonorOut] = []
     for index, user in enumerate(users, start=skip + 1):
         active_pledge = active_pledges.get(user.id)
-        confirmed_this_month = contribution_counts.get((user.id, ContributionStatus.confirmed), 0)
-        submitted_this_month = contribution_counts.get((user.id, ContributionStatus.submitted), 0)
         if not active_pledge:
             pledge_status = "none"
         elif active_pledge.pledge_type.value == "free_participant":
             pledge_status = "free_participant"
-        elif confirmed_this_month:
+        elif user.id in confirmed_user_ids:
             pledge_status = "paid"
-        elif submitted_this_month:
+        elif user.id in processing_user_ids:
             pledge_status = "pending"
         else:
-            pledge_status = "pending"
+            pledge_status = "missed"
         if status and pledge_status != status:
             continue
         rows.append(AdminDonorOut(
