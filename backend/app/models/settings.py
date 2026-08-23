@@ -14,7 +14,7 @@ class AppSettings(Base, TimestampMixin):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     payment_link: Mapped[str] = mapped_column(String(1024), nullable=False, default="https://familypledge.org/contribute")
-    payment_instructions: Mapped[str] = mapped_column(Text, nullable=False, default="Use the official Family Pledge payment link or DIB Bank/M-PESA details, then submit your transaction reference in the app.")
+    payment_instructions: Mapped[str] = mapped_column(Text, nullable=False, default="Pay securely with M-PESA in the Family Pledge app. M-PESA payments are confirmed automatically; no screenshot or transaction reference is required. DIB Bank details remain available as a separate bank-transfer option.")
     org_contact_email: Mapped[str] = mapped_column(String(255), nullable=False, default="support@familypledge.org")
     org_contact_phone: Mapped[str] = mapped_column(String(50), nullable=False, default="+254700000000")
     app_notice: Mapped[str] = mapped_column(Text, nullable=False, default="")
