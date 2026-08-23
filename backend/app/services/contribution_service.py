@@ -67,11 +67,11 @@ def _validate_pledge_ownership(db: Session, user: User, pledge_id: Optional[UUID
         raise HTTPException(403, "This pledge belongs to another user")
 
 
-def _sync_campaign_totals(db: Session, campaign_id: Optional[UUID]) -> None:
+def sync_campaign_totals(db: Session, campaign_id: Optional[UUID]) -> None:
     """Make campaign totals a projection of the confirmed contribution ledger.
 
-    Recalculating avoids double-counting when an admin moves a contribution from
-    confirmed to follow-up/rejected and later confirms it again.
+    Recalculating avoids double-counting whether a legacy admin review or an
+    automated payment settlement changes the confirmed ledger.
     """
     if not campaign_id:
         return
@@ -212,7 +212,7 @@ def confirm(db: Session, admin: User, contribution_id: UUID) -> Contribution:
     c.confirmed_by = admin.id
     c.confirmed_at = datetime.now(timezone.utc)
 
-    _sync_campaign_totals(db, c.campaign_id)
+    sync_campaign_totals(db, c.campaign_id)
     _audit(db, admin, "confirm", str(c.id), _audit_meta(c, prev_status))
     db.commit()
     db.refresh(c)
@@ -236,7 +236,7 @@ def reject(
     if admin_note:
         c.admin_note = admin_note
 
-    _sync_campaign_totals(db, c.campaign_id)
+    sync_campaign_totals(db, c.campaign_id)
     _audit(db, admin, "reject", str(c.id), _audit_meta(c, prev_status, admin_note))
     db.commit()
     db.refresh(c)
@@ -260,7 +260,7 @@ def needs_follow_up(
     if admin_note:
         c.admin_note = admin_note
 
-    _sync_campaign_totals(db, c.campaign_id)
+    sync_campaign_totals(db, c.campaign_id)
     _audit(db, admin, "needs_follow_up", str(c.id), _audit_meta(c, prev_status, admin_note))
     db.commit()
     db.refresh(c)
