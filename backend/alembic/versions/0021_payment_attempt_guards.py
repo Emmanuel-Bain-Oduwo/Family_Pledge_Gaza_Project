@@ -16,6 +16,10 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # Prevent two app-initiated monthly STK requests from being active at once.
+    # We intentionally do not forbid multiple historical succeeded payments: if
+    # an external provider ever settles an accidental duplicate, the ledger must
+    # be able to record the real-world event for reconciliation rather than hide it.
     op.create_index(
         "uq_payment_active_monthly_pledge",
         "payment_transactions",
@@ -25,22 +29,9 @@ def upgrade() -> None:
             "purpose = 'monthly_pledge' AND status IN ('created','initiating','pending')"
         ),
     )
-    op.create_index(
-        "uq_payment_succeeded_monthly_pledge",
-        "payment_transactions",
-        ["user_id", "pledge_id", "contribution_month", "purpose"],
-        unique=True,
-        postgresql_where=sa.text(
-            "purpose = 'monthly_pledge' AND status = 'succeeded'"
-        ),
-    )
 
 
 def downgrade() -> None:
-    op.drop_index(
-        "uq_payment_succeeded_monthly_pledge",
-        table_name="payment_transactions",
-    )
     op.drop_index(
         "uq_payment_active_monthly_pledge",
         table_name="payment_transactions",
