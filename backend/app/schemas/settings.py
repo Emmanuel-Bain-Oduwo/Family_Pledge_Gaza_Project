@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict
 
 class AppSettingsBase(BaseModel):
     payment_link: str = "https://familypledge.org/contribute"
-    payment_instructions: str = "Use the official Family Pledge payment link or DIB Bank/M-PESA details, then submit your transaction reference in the app."
+    payment_instructions: str = "Pay securely with M-PESA in the Family Pledge app. M-PESA payments are confirmed automatically; no screenshot or transaction reference is required. DIB Bank details remain available as a separate bank-transfer option."
     org_contact_email: str = "support@familypledge.org"
     org_contact_phone: str = "+254700000000"
     app_notice: str = ""

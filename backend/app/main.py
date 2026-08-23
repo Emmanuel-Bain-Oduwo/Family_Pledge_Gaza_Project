@@ -89,6 +89,27 @@ app.add_middleware(
 )
 
 @app.middleware("http")
+async def retired_proof_upload_guard(request: Request, call_next):
+    """Prevent old app builds from creating new screenshot proof uploads.
+
+    Historical proof reads remain available under their retention policy; only
+    the two donor upload/write endpoints are retired.
+    """
+    retired_suffixes = (
+        "/admin/storage/contribution-proof/presigned-upload",
+        "/admin/storage/contribution-proof/confirm-upload",
+    )
+    if request.method == "POST" and request.url.path.endswith(retired_suffixes):
+        return JSONResponse(
+            status_code=410,
+            content={
+                "detail": "Payment screenshot uploads have been retired. Use the M-PESA payment flow."
+            },
+        )
+    return await call_next(request)
+
+
+@app.middleware("http")
 async def security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"

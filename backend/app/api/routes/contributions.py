@@ -33,7 +33,11 @@ def submit_contribution(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return contribution_service.submit(db, current_user, data)
+    del data, current_user, db
+    raise HTTPException(
+        status_code=410,
+        detail="Manual contribution proof submission has been retired. Use the M-PESA payment flow.",
+    )
 
 
 @router.get("/contributions/me", response_model=PaginatedResponse[ContributionOut])
@@ -65,6 +69,7 @@ def admin_list_contributions(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    del current_user
     skip, limit = offset_limit(page, size)
     items, total = contribution_service.admin_list(db, skip, limit, status)
 
@@ -89,6 +94,7 @@ def admin_contribution_summary(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    del current_user
     rows = db.execute(
         select(Contribution.status, func.count(Contribution.id)).group_by(Contribution.status)
     ).all()
@@ -111,6 +117,7 @@ def admin_contribution_proof_url(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    del current_user
     contribution = db.scalar(select(Contribution).where(Contribution.id == contribution_id))
     if not contribution:
         raise HTTPException(404, "Contribution not found")
@@ -127,12 +134,24 @@ def admin_contribution_proof_url(
     raise HTTPException(404, "No contribution proof is available")
 
 
+def _require_legacy_manual_review(db: Session, contribution_id: UUID) -> None:
+    contribution = db.get(Contribution, contribution_id)
+    if not contribution:
+        raise HTTPException(404, "Contribution not found")
+    if contribution.payment_transaction_id:
+        raise HTTPException(
+            409,
+            "Provider-confirmed contributions cannot be manually approved, rejected, or reclassified.",
+        )
+
+
 @router.patch("/admin/contributions/{contribution_id}/confirm", response_model=ContributionOut)
 def admin_confirm(
     contribution_id: UUID,
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    _require_legacy_manual_review(db, contribution_id)
     return contribution_service.confirm(db, current_user, contribution_id)
 
 
@@ -143,6 +162,7 @@ def admin_reject(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    _require_legacy_manual_review(db, contribution_id)
     return contribution_service.reject(db, current_user, contribution_id, data.admin_note)
 
 
@@ -153,6 +173,7 @@ def admin_needs_follow_up(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    _require_legacy_manual_review(db, contribution_id)
     return contribution_service.needs_follow_up(db, current_user, contribution_id, data.admin_note)
 
 
@@ -163,6 +184,7 @@ def admin_review_contribution(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    _require_legacy_manual_review(db, contribution_id)
     status = data.get("status")
     admin_note = data.get("admin_note")
     if status == ContributionStatus.confirmed.value:
