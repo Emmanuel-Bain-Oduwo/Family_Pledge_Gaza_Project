@@ -21,14 +21,11 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/familypledge"
     JWT_SECRET: str = "change-me-in-production"
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080  # 7 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080
     OPENAI_API_KEY: str = ""
     OPENAI_BASE_URL: str = ""
     OPENAI_MODEL: str = "gpt-oss-120b"
 
-    # Optional OVH visual-language model. The app stays fully functional when
-    # these are blank. Model/base URL are env-configurable so a catalog model can
-    # be changed without another code release.
     AI_VISION_API_KEY: str = ""
     AI_VISION_BASE_URL: str = ""
     AI_VISION_MODEL: str = ""
@@ -42,13 +39,12 @@ class Settings(BaseSettings):
     SENTRY_TRACES_SAMPLE_RATE: float = 0.1
     EXPO_ACCESS_TOKEN: str = ""
 
-    # Public user-facing and API origins. No secret values belong here.
     WEB_APP_BASE_URL: str = "https://familypledgekenya.org"
     PUBLIC_API_BASE_URL: str = "https://api.familypledgekenya.org/api/v1"
 
-    # M-PESA / Safaricom Daraja. Secrets stay backend-only. The base URL can be
-    # overridden if Safaricom changes an environment endpoint without requiring
-    # an application release.
+    # M-PESA / Safaricom Daraja. Secrets are backend-only. The currently
+    # supplied public PayBill account reference is 133133; production shortcode
+    # remains deployment-configured because it must match Safaricom authorization.
     MPESA_ENABLED: bool = False
     MPESA_ENV: str = "sandbox"
     MPESA_BASE_URL: str = ""
@@ -57,22 +53,20 @@ class Settings(BaseSettings):
     MPESA_SHORTCODE: str = ""
     MPESA_PASSKEY: str = ""
     MPESA_CALLBACK_URL: str = ""
+    MPESA_ACCOUNT_REFERENCE: str = "133133"
     MPESA_TRANSACTION_TYPE: str = "CustomerPayBillOnline"
     MPESA_TRANSACTION_DESC: str = "Family Pledge"
     MPESA_REQUEST_TIMEOUT_SECONDS: int = 20
     MPESA_PAYMENT_TTL_MINUTES: int = 10
-    # The pledge ledger is USD while M-PESA settles in KES. Until the rate is
-    # moved into admin settings, the backend requires an explicit deployment
-    # value rather than silently using a stale exchange rate.
     MPESA_USD_KES_RATE: float = 0.0
+    MPESA_RECONCILIATION_ENABLED: bool = False
+    MPESA_RECONCILIATION_INTERVAL_SECONDS: int = 60
+    MPESA_RECONCILIATION_BATCH_SIZE: int = 50
+    MPESA_QUERY_AFTER_SECONDS: int = 30
 
-    # Firebase is used only for notification delivery. No Firebase Auth,
-    # Firestore, Realtime Database, or Firebase Storage is used by this app.
     FIREBASE_PROJECT_ID: str = ""
     FIREBASE_SERVICE_ACCOUNT_JSON_B64: str = ""
 
-    # Email reminder delivery. The same SMTP foundation can serve weekly emails
-    # and consent-based admin reminders; both are disabled unless configured.
     EMAIL_PROVIDER: str = "smtp"
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
@@ -82,9 +76,6 @@ class Settings(BaseSettings):
     SMTP_USE_TLS: bool = True
     WEEKLY_EMAILS_ENABLED: bool = False
 
-    # WhatsApp Business Cloud API. Only users who explicitly opt in are eligible.
-    # Keep the Graph API version explicit in OVH rather than hard-coding a version
-    # that can become stale after a Meta platform upgrade.
     WHATSAPP_ENABLED: bool = False
     WHATSAPP_GRAPH_BASE_URL: str = "https://graph.facebook.com"
     WHATSAPP_GRAPH_API_VERSION: str = ""
@@ -93,13 +84,10 @@ class Settings(BaseSettings):
     WHATSAPP_TEMPLATE_NAME: str = "family_pledge_reminder"
     WHATSAPP_TEMPLATE_LANGUAGE: str = "en"
 
-    # The outbound worker processes queued App/Email/WhatsApp campaigns in small
-    # batches so a 2,000-user send does not block an admin HTTP request.
     OUTBOUND_WORKER_ENABLED: bool = False
     OUTBOUND_WORKER_INTERVAL_SECONDS: int = 30
     OUTBOUND_WORKER_BATCH_SIZE: int = 250
 
-    # Cloudflare R2 — public application media (backend secrets only)
     R2_ACCOUNT_ID: str = ""
     R2_ACCESS_KEY_ID: str = ""
     R2_SECRET_ACCESS_KEY: str = ""
@@ -108,7 +96,6 @@ class Settings(BaseSettings):
     R2_MAX_UPLOAD_MB: int = 500
     R2_ALLOWED_UPLOADS_MODE: str = "broad"
 
-    # Cloudflare R2 — private payment/contribution proofs.
     PROOF_R2_ACCOUNT_ID: str = ""
     PROOF_R2_ACCESS_KEY_ID: str = ""
     PROOF_R2_SECRET_ACCESS_KEY: str = ""
@@ -116,7 +103,6 @@ class Settings(BaseSettings):
     PROOF_RETENTION_DAYS: int = 30
     PROOF_SIGNED_GET_TTL_SECONDS: int = 600
 
-    # Cloudflare Stream — adaptive video delivery (backend token only)
     STREAM_API_TOKEN: str = ""
     STREAM_CUSTOMER_CODE: str = ""
     STREAM_MAX_DURATION_SECONDS: int = 21600
@@ -160,8 +146,11 @@ class Settings(BaseSettings):
                 self.MPESA_SHORTCODE,
                 self.MPESA_PASSKEY,
                 self.MPESA_CALLBACK_URL,
+                self.MPESA_ACCOUNT_REFERENCE,
             ]):
-                raise ValueError("M-PESA credentials, shortcode, passkey, and callback URL are required when MPESA_ENABLED=true")
+                raise ValueError("M-PESA credentials, shortcode, passkey, callback URL, and account reference are required when MPESA_ENABLED=true")
+            if self.MPESA_ENABLED and self.MPESA_USD_KES_RATE <= 0:
+                raise ValueError("MPESA_USD_KES_RATE must be configured when M-PESA is enabled")
         return self
 
     @property
