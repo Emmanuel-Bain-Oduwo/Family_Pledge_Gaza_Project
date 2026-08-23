@@ -26,6 +26,16 @@ class ContributionStatus(str, enum.Enum):
     needs_follow_up = "needs_follow_up"
 
 
+class PaymentStatus(str, enum.Enum):
+    created = "created"
+    initiating = "initiating"
+    pending = "pending"
+    succeeded = "succeeded"
+    failed = "failed"
+    cancelled = "cancelled"
+    expired = "expired"
+
+
 class CampaignType(str, enum.Enum):
     monthly = "monthly"
     friday = "friday"
