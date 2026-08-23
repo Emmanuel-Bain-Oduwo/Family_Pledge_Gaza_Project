@@ -62,3 +62,11 @@ export async function getPaymentStatus(paymentId: string): Promise<PaymentRecord
     return fail(error);
   }
 }
+
+export async function getMyPayments(): Promise<PaymentRecord[]> {
+  try {
+    return (await client.get<PaymentRecord[]>('/payments/me')).data;
+  } catch (error) {
+    return fail(error);
+  }
+}
