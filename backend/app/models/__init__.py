@@ -12,6 +12,7 @@ from .enums import (  # noqa: F401
     CampaignStatus,
     CampaignType,
     ContributionStatus,
+    PaymentStatus,
     NamlefContentStatus,
     NamlefContentType,
     NotificationAudience,
@@ -28,6 +29,7 @@ from .user import User  # noqa: F401
 from .campaign import Campaign  # noqa: F401
 from .project import Project  # noqa: F401
 from .pledge import Pledge  # noqa: F401
+from .payment_transaction import PaymentTransaction  # noqa: F401
 from .contribution import Contribution  # noqa: F401
 from .impact import ImpactCard  # noqa: F401
 from .reminder import DailyReminder  # noqa: F401
@@ -61,6 +63,7 @@ __all__ = [
     "PledgeType",
     "PledgeStatus",
     "ContributionStatus",
+    "PaymentStatus",
     "CampaignType",
     "CampaignStatus",
     "ProjectCategory",
@@ -81,6 +84,7 @@ __all__ = [
     "AiTaskType",
     "User",
     "Pledge",
+    "PaymentTransaction",
     "Contribution",
     "Campaign",
     "Project",
