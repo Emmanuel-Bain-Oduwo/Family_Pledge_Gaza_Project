@@ -14,6 +14,7 @@ from app.models.enums import (
     CampaignStatus,
     CampaignType,
     ContributionStatus,
+    PaymentStatus,
     PledgeType,
     ReminderStatus,
     UserRole,
@@ -42,7 +43,6 @@ def user_notifications(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Persistent in-app feed for notifications sent to the current audience."""
     page = max(page, 1)
     size = min(max(size, 1), 100)
     skip, limit = offset_limit(page, size)
@@ -76,6 +76,7 @@ def mobile_dashboard(
     pledge_data = pledge_service.get_pledge_status(db, current_user.id)
     active_pledge = pledge_data["pledge"]
     current_month_status = pledge_data["current_month_status"]
+    current_payment_status = pledge_data.get("current_month_payment_status")
 
     if active_pledge is None:
         pledge_status_str = "none"
@@ -83,19 +84,23 @@ def mobile_dashboard(
         pledge_status_str = "free_participant"
     elif current_month_status == ContributionStatus.confirmed:
         pledge_status_str = "paid"
-    elif current_month_status == ContributionStatus.submitted:
+    elif current_payment_status in (
+        PaymentStatus.created,
+        PaymentStatus.initiating,
+        PaymentStatus.pending,
+    ):
+        # Keep the existing dashboard status wire value for backward-compatible
+        # mobile clients; the card now renders it as payment Processing.
         pledge_status_str = "submitted"
     elif current_month_status == ContributionStatus.needs_follow_up:
         pledge_status_str = "needs_follow_up"
     elif current_month_status == ContributionStatus.rejected:
         pledge_status_str = "rejected"
     else:
-        # The pledge itself is signed and active; this month's proof has not been sent yet.
         pledge_status_str = "pending"
 
     month = current_month()
 
-    # Donor number (row rank by created_at)
     donor_number = db.scalar(
         select(func.count(User.id)).where(
             User.role == UserRole.donor,
@@ -104,7 +109,6 @@ def mobile_dashboard(
         )
     ) or 1
 
-    # Total donors registered today
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     total_donors_today = db.scalar(
         select(func.count(User.id)).where(
@@ -114,7 +118,6 @@ def mobile_dashboard(
         )
     ) or 0
 
-    # Active non-emergency campaign
     active_campaign_db = db.scalar(
         select(Campaign).where(
             Campaign.status == CampaignStatus.active,
@@ -123,7 +126,6 @@ def mobile_dashboard(
         ).order_by(Campaign.created_at.desc())
     )
 
-    # Emergency campaign
     emergency_db = db.scalar(
         select(Campaign).where(
             Campaign.status == CampaignStatus.active,
@@ -132,27 +134,24 @@ def mobile_dashboard(
         ).order_by(Campaign.created_at.desc())
     )
 
-    # Latest published reminder
     reminder_db = db.scalar(
         select(DailyReminder).where(
             DailyReminder.status == ReminderStatus.published,
         ).order_by(DailyReminder.created_at.desc())
     )
 
-    # Never surface an unpublished impact draft on the donor dashboard.
     impact_db = db.scalar(
         select(ImpactCard)
         .where(ImpactCard.published.is_(True))
         .order_by(ImpactCard.created_at.desc())
     )
 
-    # Monthly progress — total donors who have submitted or confirmed this month.
+    # Real contribution progress is money actually confirmed in the ledger.
+    # Pending STK requests do not count as contributions.
     current_contributors = db.scalar(
         select(func.count(func.distinct(Contribution.user_id))).where(
             Contribution.contribution_month == month,
-            Contribution.status.in_(
-                [ContributionStatus.submitted, ContributionStatus.confirmed]
-            ),
+            Contribution.status == ContributionStatus.confirmed,
         )
     ) or 0
 
@@ -163,7 +162,6 @@ def mobile_dashboard(
         )
     ) or 0
 
-    # User data (with extra computed fields)
     user_out = UserOut.model_validate(current_user)
     user_dict = user_out.model_dump()
     user_dict["pledge_status"] = pledge_status_str
@@ -178,6 +176,7 @@ def mobile_dashboard(
         confirmed_contributions_count=pledge_data["confirmed_contributions_count"],
         current_month_contributed=pledge_data["current_month_contributed"],
         current_month_status=current_month_status,
+        current_month_payment_status=current_payment_status,
     )
 
     return MobileDashboardOut(
