@@ -99,6 +99,19 @@ jobs:
         run: |
           cd frontend/mobile
           npm ci --no-audit --no-fund
+      - name: Refresh Expo SDK patch alignment
+        run: |
+          cd frontend/mobile
+          npx expo install --fix
+      - name: Capture refreshed mobile dependency files
+        uses: actions/upload-artifact@v4
+        with:
+          name: expo-sdk55-lock-refresh
+          path: |
+            frontend/mobile/package.json
+            frontend/mobile/package-lock.json
+          if-no-files-found: error
+          retention-days: 1
       - name: Verify Expo dependency alignment
         run: |
           cd frontend/mobile
