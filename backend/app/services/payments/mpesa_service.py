@@ -8,9 +8,16 @@ from app.core.config import settings
 
 
 class DarajaError(RuntimeError):
-    def __init__(self, message: str, *, code: str | None = None):
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str | None = None,
+        uncertain: bool = False,
+    ):
         super().__init__(message)
         self.code = code
+        self.uncertain = uncertain
 
 
 def _require_configured() -> None:
@@ -23,6 +30,7 @@ def _require_configured() -> None:
             settings.MPESA_SHORTCODE,
             settings.MPESA_PASSKEY,
             settings.MPESA_CALLBACK_URL,
+            settings.MPESA_ACCOUNT_REFERENCE,
         )
     ):
         raise DarajaError("M-PESA configuration is incomplete")
@@ -62,6 +70,8 @@ def get_access_token(client: httpx.Client | None = None) -> str:
     except httpx.HTTPStatusError as exc:
         detail = _safe_error_detail(exc.response)
         raise DarajaError(f"Daraja authorization failed: {detail}") from exc
+    except httpx.TimeoutException as exc:
+        raise DarajaError("Daraja authorization timed out") from exc
     except (httpx.HTTPError, ValueError) as exc:
         raise DarajaError("Could not reach Daraja authorization service") from exc
     finally:
@@ -73,12 +83,13 @@ def initiate_stk_push(
     *,
     phone: str,
     amount_kes: int,
-    account_reference: str,
+    account_reference: str | None = None,
     client: httpx.Client | None = None,
 ) -> dict[str, Any]:
     _require_configured()
     owns_client = client is None
     client = client or httpx.Client(timeout=settings.MPESA_REQUEST_TIMEOUT_SECONDS)
+    reference = (account_reference or settings.MPESA_ACCOUNT_REFERENCE).strip()
     try:
         token = get_access_token(client)
         timestamp = _timestamp()
@@ -92,7 +103,7 @@ def initiate_stk_push(
             "PartyB": settings.MPESA_SHORTCODE,
             "PhoneNumber": phone,
             "CallBackURL": settings.MPESA_CALLBACK_URL,
-            "AccountReference": account_reference[:12],
+            "AccountReference": reference[:12],
             "TransactionDesc": settings.MPESA_TRANSACTION_DESC[:20],
         }
         response = client.post(
@@ -116,7 +127,13 @@ def initiate_stk_push(
         detail = _safe_error_detail(exc.response)
         raise DarajaError(f"Daraja STK request failed: {detail}") from exc
     except httpx.TimeoutException as exc:
-        raise DarajaError("Daraja STK request timed out; payment state is uncertain") from exc
+        # Never mark this immediately failed: the provider may have accepted the
+        # request even though our HTTP response was lost. Keeping it active blocks
+        # an unsafe immediate retry until reconciliation/expiry resolves it.
+        raise DarajaError(
+            "Daraja STK request timed out; payment state is uncertain",
+            uncertain=True,
+        ) from exc
     except httpx.HTTPError as exc:
         raise DarajaError("Could not reach Daraja STK service") from exc
     except ValueError as exc:
@@ -155,6 +172,8 @@ def query_stk_status(
     except httpx.HTTPStatusError as exc:
         detail = _safe_error_detail(exc.response)
         raise DarajaError(f"Daraja transaction query failed: {detail}") from exc
+    except httpx.TimeoutException as exc:
+        raise DarajaError("Daraja transaction query timed out", uncertain=True) from exc
     except (httpx.HTTPError, ValueError) as exc:
         raise DarajaError("Could not query M-PESA transaction status") from exc
     finally:
