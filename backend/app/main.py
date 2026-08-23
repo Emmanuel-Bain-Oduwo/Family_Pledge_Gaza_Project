@@ -13,6 +13,7 @@ from app.core.database import engine
 from app.api.routes import (
     admin,
     admin_operations,
+    admin_payments,
     ai_assistant,
     ai_operations,
     auth,
@@ -123,6 +124,7 @@ ROUTERS = (
     ai_assistant.router,
     ai_operations.router,
     admin_operations.router,
+    admin_payments.router,
     settings_routes.router,
     storage.router,
     admin.router,
