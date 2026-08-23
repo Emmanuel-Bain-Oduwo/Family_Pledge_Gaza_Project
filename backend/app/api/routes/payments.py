@@ -3,11 +3,13 @@ from decimal import Decimal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.enums import PaymentStatus
+from app.models.payment_transaction import PaymentTransaction
 from app.models.user import User
 from app.schemas.payment import MpesaCallbackAck, MpesaInitiateIn, MpesaInitiateOut, PaymentOut
 from app.services.payments import mpesa_service, payment_service
@@ -64,6 +66,21 @@ def initiate_mpesa_payment(
     )
 
 
+@router.get("/me", response_model=list[PaymentOut])
+def get_my_payments(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return list(
+        db.scalars(
+            select(PaymentTransaction)
+            .where(PaymentTransaction.user_id == current_user.id)
+            .order_by(PaymentTransaction.created_at.desc())
+            .limit(100)
+        ).all()
+    )
+
+
 @router.get("/{payment_id}", response_model=PaymentOut)
 def get_payment(
     payment_id: UUID,
@@ -88,8 +105,6 @@ def mpesa_callback(
         db, parsed["checkout_request_id"]
     )
     if payment is None:
-        # Acknowledge unknown provider callbacks without crediting anything. This
-        # prevents an uncorrelated callback from creating a financial record.
         log.warning(
             "Received M-PESA callback for unknown checkout id %s",
             parsed["checkout_request_id"],
