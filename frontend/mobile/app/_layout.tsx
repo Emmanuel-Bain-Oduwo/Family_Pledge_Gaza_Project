@@ -48,7 +48,6 @@ export default function RootLayout() {
           <Stack.Screen name="screens/tutorials" options={{ title: 'How Family Pledge Works' }} />
           <Stack.Screen name="screens/about-family-pledge" options={{ title: 'About Family Pledge' }} />
           <Stack.Screen name="screens/request-feature" options={{ title: 'Request a Feature' }} />
-          <Stack.Screen name="screens/contribution-proof-privacy" options={{ title: 'Contribution Proof Privacy' }} />
           <Stack.Screen name="screens/appearance" options={{ title: 'Appearance' }} />
           <Stack.Screen name="screens/notifications" options={{ title: 'Notifications' }} />
           <Stack.Screen name="screens/notification-preferences" options={{ title: 'Notification Preferences' }} />

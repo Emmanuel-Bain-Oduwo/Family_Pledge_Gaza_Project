@@ -82,6 +82,7 @@ class MobileDashboardImpactTests(TestCase):
             None,  # active pledge
             0,     # confirmed count
             None,  # this month contribution
+            None,  # current M-PESA payment status
             1,     # donor number
             1,     # total donors today
             None,  # active campaign

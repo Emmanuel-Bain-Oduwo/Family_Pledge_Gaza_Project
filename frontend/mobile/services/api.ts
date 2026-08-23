@@ -1,6 +1,5 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { Config } from '../constants/config';
-import { currentContributionMonth } from '../constants/payment';
 import { getToken } from './auth';
 import { getApiErrorMessage } from './apiError';
 import {
@@ -13,7 +12,6 @@ import {
   CollectorDashboard,
   RegisterPayload,
   LoginPayload,
-  ContributionPayload,
   AuthTokens,
   Pledge,
   PaginatedResponse,
@@ -96,37 +94,6 @@ export const getPledgeStatus = async (): Promise<PledgeStatusOut> => {
 export const updateAnonymousPreference = async (anonymous: boolean): Promise<User> => {
   try { return (await client.patch<User>('/users/me/anonymous', { anonymous_publicly: anonymous })).data; }
   catch (e) { return handleApiError(e); }
-};
-
-export const submitContribution = async (payload: ContributionPayload): Promise<void> => {
-  const normalized = {
-    pledge_id: payload.pledge_id, campaign_id: payload.campaign_id, amount: payload.amount,
-    currency: payload.currency, contribution_channel: payload.contribution_channel || payload.payment_method,
-    payment_link_used: payload.payment_link_used,
-    transaction_reference: payload.transaction_reference || payload.reference,
-    proof_object_key: payload.proof_object_key,
-    proof_image_url: payload.proof_image_url || payload.proof_url,
-    contribution_month: payload.contribution_month || currentContributionMonth(),
-  };
-  try { await client.post('/contributions/submit', normalized); }
-  catch (e) { return handleApiError(e); }
-};
-
-export const uploadContributionProof = async (asset: { uri: string; fileName?: string | null; mimeType?: string | null; fileSize?: number; }): Promise<string> => {
-  const filename = asset.fileName || `payment-proof-${Date.now()}.jpg`;
-  const contentType = asset.mimeType || 'image/jpeg';
-  const fileResponse = await fetch(asset.uri);
-  const blob = await fileResponse.blob();
-  const sizeBytes = asset.fileSize || blob.size;
-  try {
-    const { data } = await client.post('/admin/storage/contribution-proof/presigned-upload', {
-      folder: 'contribution_proofs', filename, content_type: contentType, size_bytes: sizeBytes,
-    });
-    const uploaded = await fetch(data.upload_url, { method: 'PUT', headers: data.required_headers, body: blob });
-    if (!uploaded.ok) throw new Error('The screenshot could not be uploaded.');
-    const confirmed = await client.post('/admin/storage/contribution-proof/confirm-upload', { object_key: data.object_key });
-    return confirmed.data.object_key as string;
-  } catch (e) { return handleApiError(e); }
 };
 
 export const getMyContributions = async (page = 1): Promise<PaginatedResponse<any>> => {
