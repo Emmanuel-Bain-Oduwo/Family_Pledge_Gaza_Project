@@ -27,8 +27,19 @@ PAYMENT_STATUS_VALUES = (
 )
 
 
+def _payment_status_enum() -> postgresql.ENUM:
+    # The migration owns the named PostgreSQL enum lifecycle explicitly. Keeping
+    # create_type=False prevents op.create_table() from trying to CREATE TYPE a
+    # second time after the explicit checkfirst=True create below.
+    return postgresql.ENUM(
+        *PAYMENT_STATUS_VALUES,
+        name="payment_status",
+        create_type=False,
+    )
+
+
 def upgrade() -> None:
-    payment_status = postgresql.ENUM(*PAYMENT_STATUS_VALUES, name="payment_status")
+    payment_status = _payment_status_enum()
     payment_status.create(op.get_bind(), checkfirst=True)
 
     op.create_table(
@@ -114,5 +125,4 @@ def downgrade() -> None:
     op.drop_index("ix_payment_transactions_user_id", table_name="payment_transactions")
     op.drop_table("payment_transactions")
 
-    payment_status = postgresql.ENUM(*PAYMENT_STATUS_VALUES, name="payment_status")
-    payment_status.drop(op.get_bind(), checkfirst=True)
+    _payment_status_enum().drop(op.get_bind(), checkfirst=True)
