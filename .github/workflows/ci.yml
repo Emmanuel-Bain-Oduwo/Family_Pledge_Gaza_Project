@@ -6,6 +6,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   backend-checks:
     runs-on: ubuntu-latest
@@ -89,29 +92,30 @@ jobs:
       EXPO_PUBLIC_API_URL: https://api.familypledgekenya.org/api/v1
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
           node-version: '20.19.4'
           cache: 'npm'
           cache-dependency-path: frontend/mobile/package-lock.json
-      - name: Install SDK 55 dependencies
+      - name: Install and reconcile SDK 55 dependencies
         run: |
           cd frontend/mobile
-          npm ci --no-audit --no-fund
-      - name: Refresh Expo SDK patch alignment
-        run: |
-          cd frontend/mobile
+          npm install --no-audit --no-fund
           npx expo install --fix
-      - name: Capture refreshed mobile dependency files
-        uses: actions/upload-artifact@v4
-        with:
-          name: expo-sdk55-lock-refresh
-          path: |
-            frontend/mobile/package.json
-            frontend/mobile/package-lock.json
-          if-no-files-found: error
-          retention-days: 1
+      - name: Commit refreshed Expo dependency lock
+        if: github.event_name == 'pull_request' && github.head_ref == 'payments/pr10-legacy-cleanup'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/mobile/package.json frontend/mobile/package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Align Expo SDK 55 dependency lock"
+            git push origin HEAD:${{ github.head_ref }}
+          fi
       - name: Verify Expo dependency alignment
         run: |
           cd frontend/mobile
