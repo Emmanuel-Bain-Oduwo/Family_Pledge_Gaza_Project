@@ -1,7 +1,7 @@
 """add M-PESA payment transaction ledger
 
 Revision ID: 0020_mpesa_payment_transactions
-Revises: 0019_dhikr_categories_remove_shirk_surface
+Revises: 0019
 Create Date: 2026-08-23
 """
 
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 
 revision = "0020_mpesa_payment_transactions"
-down_revision = "0019_dhikr_categories_remove_shirk_surface"
+down_revision = "0019"
 branch_labels = None
 depends_on = None
 
