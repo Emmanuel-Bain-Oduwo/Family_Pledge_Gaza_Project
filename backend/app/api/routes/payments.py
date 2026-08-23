@@ -104,6 +104,8 @@ def mpesa_callback(
         payment,
         result_code=parsed["result_code"],
         result_description=parsed.get("result_description"),
+        callback_amount=parsed.get("amount"),
+        receipt_number=_optional_string(parsed.get("mpesa_receipt_number")),
     )
     return MpesaCallbackAck()
 
