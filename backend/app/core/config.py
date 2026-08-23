@@ -46,6 +46,26 @@ class Settings(BaseSettings):
     WEB_APP_BASE_URL: str = "https://familypledgekenya.org"
     PUBLIC_API_BASE_URL: str = "https://api.familypledgekenya.org/api/v1"
 
+    # M-PESA / Safaricom Daraja. Secrets stay backend-only. The base URL can be
+    # overridden if Safaricom changes an environment endpoint without requiring
+    # an application release.
+    MPESA_ENABLED: bool = False
+    MPESA_ENV: str = "sandbox"
+    MPESA_BASE_URL: str = ""
+    MPESA_CONSUMER_KEY: str = ""
+    MPESA_CONSUMER_SECRET: str = ""
+    MPESA_SHORTCODE: str = ""
+    MPESA_PASSKEY: str = ""
+    MPESA_CALLBACK_URL: str = ""
+    MPESA_TRANSACTION_TYPE: str = "CustomerPayBillOnline"
+    MPESA_TRANSACTION_DESC: str = "Family Pledge"
+    MPESA_REQUEST_TIMEOUT_SECONDS: int = 20
+    MPESA_PAYMENT_TTL_MINUTES: int = 10
+    # The pledge ledger is USD while M-PESA settles in KES. Until the rate is
+    # moved into admin settings, the backend requires an explicit deployment
+    # value rather than silently using a stale exchange rate.
+    MPESA_USD_KES_RATE: float = 0.0
+
     # Firebase is used only for notification delivery. No Firebase Auth,
     # Firestore, Realtime Database, or Firebase Storage is used by this app.
     FIREBASE_PROJECT_ID: str = ""
@@ -108,6 +128,14 @@ class Settings(BaseSettings):
     def normalize_database_url_value(cls, value: str) -> str:
         return normalize_database_url(value)
 
+    @field_validator("MPESA_ENV")
+    @classmethod
+    def normalize_mpesa_env(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized not in {"sandbox", "production"}:
+            raise ValueError("MPESA_ENV must be sandbox or production")
+        return normalized
+
     @model_validator(mode="after")
     def validate_production_settings(self):
         if self.APP_ENV.lower() == "production":
@@ -126,11 +154,29 @@ class Settings(BaseSettings):
                 self.WHATSAPP_TEMPLATE_NAME,
             ]):
                 raise ValueError("WhatsApp Graph version, credentials, and approved template are required when WHATSAPP_ENABLED=true")
+            if self.MPESA_ENABLED and not all([
+                self.MPESA_CONSUMER_KEY,
+                self.MPESA_CONSUMER_SECRET,
+                self.MPESA_SHORTCODE,
+                self.MPESA_PASSKEY,
+                self.MPESA_CALLBACK_URL,
+            ]):
+                raise ValueError("M-PESA credentials, shortcode, passkey, and callback URL are required when MPESA_ENABLED=true")
         return self
 
     @property
     def cors_origins_list(self) -> List[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
+
+    @property
+    def mpesa_base_url(self) -> str:
+        if self.MPESA_BASE_URL.strip():
+            return self.MPESA_BASE_URL.rstrip("/")
+        return (
+            "https://sandbox.safaricom.co.ke"
+            if self.MPESA_ENV == "sandbox"
+            else "https://api.safaricom.co.ke"
+        )
 
 
 @lru_cache
