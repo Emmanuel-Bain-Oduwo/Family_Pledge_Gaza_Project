@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, Numeric, String, Text
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -34,7 +34,6 @@ class Contribution(Base, TimestampMixin):
         UUID(as_uuid=True),
         ForeignKey("payment_transactions.id", ondelete="SET NULL"),
         nullable=True,
-        unique=True,
     )
     amount: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
@@ -80,6 +79,10 @@ class Contribution(Base, TimestampMixin):
     )
 
     __table_args__ = (
+        UniqueConstraint(
+            "payment_transaction_id",
+            name="uq_contributions_payment_transaction_id",
+        ),
         Index("ix_contributions_user_id", "user_id"),
         Index("ix_contributions_pledge_id", "pledge_id"),
         Index("ix_contributions_campaign_id", "campaign_id"),
