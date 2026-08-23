@@ -10,7 +10,8 @@ from sqlalchemy.orm import Session
 from app.models.audit import AdminAuditLog
 from app.models.collector import Collector, CollectorMember
 from app.models.contribution import Contribution
-from app.models.enums import ContributionStatus, UserRole
+from app.models.enums import ContributionStatus, PaymentStatus, UserRole
+from app.models.payment_transaction import PaymentTransaction
 from app.models.user import User
 from app.schemas.collector import CollectorCreate, CollectorMemberAdd
 from app.services.user_service import get_display_name
@@ -65,10 +66,14 @@ def get_dashboard(db: Session, user: User) -> dict:
         ) or 0
 
         pending_this_month = db.scalar(
-            select(func.count(Contribution.id)).where(
-                Contribution.user_id.in_(member_user_ids),
-                Contribution.contribution_month == month,
-                Contribution.status == ContributionStatus.submitted,
+            select(func.count(func.distinct(PaymentTransaction.user_id))).where(
+                PaymentTransaction.user_id.in_(member_user_ids),
+                PaymentTransaction.contribution_month == month,
+                PaymentTransaction.status.in_([
+                    PaymentStatus.created,
+                    PaymentStatus.initiating,
+                    PaymentStatus.pending,
+                ]),
             )
         ) or 0
 
@@ -134,7 +139,6 @@ def admin_create(db: Session, admin: User, data: CollectorCreate) -> Collector:
     if existing:
         raise HTTPException(400, "User already has a collector profile")
 
-    # Ensure unique collector code
     code = _generate_code()
     while db.scalar(select(Collector).where(Collector.collector_code == code)):
         code = _generate_code()
@@ -146,7 +150,6 @@ def admin_create(db: Session, admin: User, data: CollectorCreate) -> Collector:
         country=data.country or target_user.country,
     )
 
-    # Promote user to collector role
     target_user.role = UserRole.collector
     target_user.collector_code = code
 
